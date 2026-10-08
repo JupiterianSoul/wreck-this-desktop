@@ -65,7 +65,7 @@
   const SAVE_KEY = 'wtd-save';
   const SAVE_V = 4;
   const HOTBAR_N = 10;
-  const DEFAULT_SETTINGS = { controls: 'mouse', autoAim: 0, autoFire: false, aimSmooth: 0, bigCross: false, master: 0.8, muted: false, quality: 'auto', killcam: true, mode: 'free', nextLevel: true, liveNotifs: false, wreckage: false, shakeReal: false, xray: false, gags: true, shake: 1, particles: 2, sfx: 0.8, colorblind: false, flashes: true, fps: false, adaptive: true, aimAssist: 1, haptics: true, toggleFire: false, radial: false, touchSize: 1, touchAlpha: 0.55, touchAim: 'auto', touchSwap: false };
+  const DEFAULT_SETTINGS = { controls: 'mouse', autoAim: 0, autoFire: false, aimSmooth: 0, bigCross: false, master: 0.6, muted: false, quality: 'auto', killcam: true, mode: 'free', nextLevel: true, liveNotifs: false, wreckage: false, shakeReal: false, xray: false, gags: true, shake: 1, particles: 2, sfx: 0.75, colorblind: false, flashes: true, fps: false, adaptive: true, aimAssist: 1, haptics: true, toggleFire: false, radial: false, touchSize: 1, touchAlpha: 0.55, touchAim: 'auto', touchSwap: false };
   const DEFAULT_KEYS = {
     left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], jump: ['KeyW', 'Space', 'ArrowUp'], down: ['KeyS', 'ArrowDown'],
     dash: ['ShiftLeft', 'ShiftRight'], roll: ['ControlLeft'], fire: ['Enter', 'KeyK'], alt: ['KeyG'], melee: ['KeyF'], gadget: ['KeyQ'], pickup: ['KeyE'], prev: [], next: [], wheel: ['Tab'], reset: ['KeyR'], pause: ['Escape'], mute: ['key:m'], fps: ['F3'], next_level: ['KeyN'], firelock: ['KeyV'], aimUp: [], aimDown: [], aimLeft: [], aimRight: []

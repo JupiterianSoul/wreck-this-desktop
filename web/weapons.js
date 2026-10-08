@@ -1257,7 +1257,7 @@
             }
             if (s.nail && Math.random() < 0.6) Wd.placeRubble(Math.floor(x), Math.floor(y), P32['5']);
             for (let z = 0; z < 2; z++) FX().spark(x, y, -s.vx * 0.15 + rand(-50, 50), -s.vy * 0.15 + rand(-50, 50), P32.Y, rand(0.08, 0.2));
-            A('impact');
+            if (Wd.lastHitMtl !== Wd.M.METAL) A('impact', Wd.lastHitMtl >= 0 ? Wd.lastHitMtl : Wd.mtl[Math.floor(y) * Wd.w + Math.floor(x)]);
             if (pierced > 0) { s.pierce -= Math.max(1, s.r * 1.5); if (s.pierce > 0) { if (n) Wd.crumble(x, y, 2, 8); return false; } }
             return true;
           });

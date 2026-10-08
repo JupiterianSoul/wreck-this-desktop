@@ -62,5 +62,10 @@ node tests/smoke.test.js tiled3
 node tests/structures.test.js tiled3
 node tests/weapons.test.js tiled3
 node tests/enemies.test.js
+node tests/budget.test.js
+node tests/sudo.test.js
+node tests/sound.test.js
 tests/host.test.sh tiled3
 ```
+
+`node tools/sfx-measure.js` renders every sound offline and prints peak, loudness and length per category. Add `--write` to regenerate the level table in `web/desk/sfx-levels.js` after changing a sound, or `--only=name,name` to redo a few.

@@ -293,7 +293,7 @@
     const y0 = Math.max(0, Math.floor(cy - R)), y1 = Math.min(W.h - 4, Math.ceil(cy + R));
     const jit = Math.min(2.2, r * 0.35);
     const hitG = [], hitGlass = [], hitP = [];
-    let iceHit = -1, dented = 0, metalHit = 0;
+    let iceHit = -1, dented = 0, metalHit = 0, hm = -1;
     const shape = o.square;
     const backR = o.back != null ? r * o.back : (r >= 6 && pow >= 3 ? r * 0.5 : 0);
     const codeR = o.code != null ? r * o.code : (r >= 13 ? r * 0.32 : 0);
@@ -307,6 +307,7 @@
         else { const jr = r + ((hash(x, y) & 7) / 7 - 0.5) * jit; inside = d2 <= jr * jr; }
         if (inside) {
           if (m === SOLID) {
+            if (hm < 0) hm = mtl[i];
             if (pgid[i] && hitP.length < 8 && hitP.indexOf(pgid[i]) < 0) hitP.push(pgid[i]);
             if (kind[i] === K_GLASS) { if (hitGlass.indexOf(gid[i]) < 0) hitGlass.push(gid[i]); continue; }
             const t = TOUGH[mtl[i]];
@@ -334,6 +335,7 @@
         }
       }
     }
+    W.lastHitMtl = hm;
     for (const g of hitGlass) n += shatterGlass(g, cx, cy);
     if (iceHit >= 0) n += shatterIce(iceHit, cx, cy, force);
     if (o.ignite) igniteRing(cx, cy, r, o.ignite);
@@ -353,6 +355,7 @@
     if ((n || backR > 0) && !o.noCrumble) n += crumble(cx, cy, Math.max(0, r - 1), r + (o.crumbleR || 5));
     if (n) G()?.scored?.(n, cx, cy, o.cause);
     if (pow >= 2 && !o.noCrack) STR()?.impact?.(cx, cy, r, pow);
+    W.lastHitMtl = hm;
     return n;
   }
   function letterRing(cx, cy, r0, r1, force) {
