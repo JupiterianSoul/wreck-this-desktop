@@ -453,6 +453,20 @@
     if (s.edgeDirty) rebuildEdge(s);
     if (s.n < 40) { settleSlab(s, true); return; }
     s.px = s.x; s.py = s.y; s.pa = s.a;
+    if (s.stopT > 0) { s.stopT -= dt; rasterize(s); return; }
+    if (s.held) {
+      s.t = 0;
+      const k = Math.min(1, dt * 12);
+      s.vx += ((s.tx - s.x) * 14 - s.vx) * k; s.vy += ((s.ty - s.y) * 14 - s.vy) * k;
+      s.va = s.va * 0.85 + (-s.a * 3) * dt * 6;
+      const nx = s.x + s.vx * dt, ny = s.y + s.vy * dt, na = s.a + s.va * dt;
+      if (!blockedAt(s, nx, ny, na)) { s.x = nx; s.y = ny; s.a = na; }
+      else if (!blockedAt(s, nx, s.y, na)) { s.x = nx; s.a = na; s.vy *= 0.3; }
+      else if (!blockedAt(s, s.x, ny, s.a)) { s.y = ny; s.vx *= 0.3; }
+      else { const b = blockedAt(s, nx, ny, na); if (b && Math.hypot(s.vx, s.vy) > 80) impactAt(s, b, Math.hypot(s.vx, s.vy) * 0.6); s.vx *= 0.2; s.vy *= 0.2; }
+      rasterize(s);
+      return;
+    }
     if (s.pivot) {
       const lx = s.pivot.lx, ly = s.pivot.ly;
       const cs = Math.cos(s.a), sn = Math.sin(s.a);
@@ -617,6 +631,45 @@
     const s = ST.slabs.filter((x) => x.win === w && !x.dead).sort((a, b) => b.n - a.n)[0];
     if (s) { s.vy = o.vy ?? -60; s.va = o.va ?? rand(-0.5, 0.5); s.vx = o.vx ?? 0; if (o.shatter) s.forceShatter = true; }
     return true;
+  };
+  ST.grab = (rid) => {
+    const w = ST.wins[rid];
+    if (!w) return null;
+    if (w.state === 'static') ST.collapse(rid, { vy: 0, va: 0 });
+    const s = ST.slabs.filter((x) => x.win === w && !x.dead).sort((a, b) => b.n - a.n)[0];
+    if (!s) return null;
+    s.pivot = null; s.held = true; s.tx = s.x; s.ty = s.y; w.state = 'falling';
+    return s;
+  };
+  ST.grabSlab = (s) => { if (!s || s.dead) return null; s.pivot = null; s.held = true; s.tx = s.x; s.ty = s.y; s.win.state = 'falling'; return s; };
+  ST.dragTo = (s, x, y) => { if (s && !s.dead) { s.tx = x; s.ty = y; } };
+  ST.release = (s, vx, vy) => { if (!s || s.dead) return; s.held = false; s.vx = vx; s.vy = vy; s.va = WTP.rand(-1.5, 1.5); s.rest = 0; s.hits = 0; s.thrownT = 1.5; };
+  ST.stop = (s, t) => { if (s && !s.dead) { s.stopT = t; s.vx = 0; s.vy = 0; s.va = 0; } };
+  ST.detachGrid = (rid, cols, rows, dwindle) => {
+    const w = ST.wins[rid];
+    const Wd = W();
+    if (!w || w.state !== 'static') return 0;
+    const r = w.reg;
+    const cells = [];
+    for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) { const i = y * Wd.w + x; if (isStruct(i, r.id) || (Wd.rid[i] === r.id && crack[i] && (Wd.mat[i] === SOLID || Wd.back[i]))) cells.push(i); }
+    const rects = [];
+    if (dwindle) {
+      const split = (x0, y0, x1, y1, d) => { if (d >= 5 || (x1 - x0) < 20 || (y1 - y0) < 14) { rects.push([x0, y0, x1, y1]); return; } if (d % 2 === 0) { const m = Math.round((x0 + x1) / 2); rects.push([x0, y0, m, y1]); split(m + 1, y0, x1, y1, d + 1); } else { const m = Math.round((y0 + y1) / 2); rects.push([x0, y0, x1, m]); split(x0, m + 1, x1, y1, d + 1); } };
+      split(r.x0, r.y0, r.x1, r.y1, 0);
+    } else {
+      for (let gy = 0; gy < rows; gy++) for (let gx = 0; gx < cols; gx++) rects.push([Math.round(r.x0 + (gx * (r.x1 - r.x0 + 1)) / cols), Math.round(r.y0 + (gy * (r.y1 - r.y0 + 1)) / rows), Math.round(r.x0 + ((gx + 1) * (r.x1 - r.x0 + 1)) / cols) - 1, Math.round(r.y0 + ((gy + 1) * (r.y1 - r.y0 + 1)) / rows) - 1]);
+    }
+    const groups = rects.map(() => []);
+    for (const i of cells) { const x = i % Wd.w, y = (i / Wd.w) | 0; const k = rects.findIndex((q) => x >= q[0] && x <= q[2] && y >= q[1] && y <= q[3]); if (k >= 0) groups[k].push(i); }
+    w.state = 'falling';
+    let n = 0;
+    groups.forEach((g, k) => {
+      if (!g.length) return;
+      const s = g.length >= 260 ? makeSlab(g, w, null) : (detach(g, w, null), null);
+      if (s) { const cx = (rects[k][0] + rects[k][2]) / 2 - (r.x0 + r.x1) / 2, cy = (rects[k][1] + rects[k][3]) / 2 - (r.y0 + r.y1) / 2; s.vx = cx * 2 + WTP.rand(-20, 20); s.vy = cy * 1.5 - 80; s.va = WTP.rand(-1.2, 1.2); n++; }
+    });
+    for (const b of w.bolts) b.alive = false;
+    return n;
   };
   ST.windowAt = (x, y) => {
     const Wd = W();

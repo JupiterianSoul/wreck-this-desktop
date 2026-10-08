@@ -8,6 +8,7 @@
   WTP.game = G;
   let cv, ctx, S = 4, PW = 0, PH = 0;
   const cam = { x: 0, y: 0 };
+  let fullT = 0;
   let shakeT = 0, hitstopT = 0, timeScale = 1, slowT = 0, chromaT = 0, zoomT = 0, zoomX = 0, zoomY = 0;
   let raf = 0, last = 0, acc = 0, hudT = 0, pendingSlot = null, lastRender = 0;
   let frameMs = 16, slowFrames = 0, fastFrames = 0, quality = 2, workMs = 4, workMax = 4, maxQ = 2, capFps = 0;
@@ -38,6 +39,7 @@
     zoomT = 0.9; zoomX = x; zoomY = y;
     G.chroma(1);
   };
+  G.forceFull = (t) => { fullT = Math.max(fullT, t); };
   G.chroma = (a) => { if (!WTP.save.settings.flashes) return; chromaT = Math.max(chromaT, 0.1 + a * 0.18); };
   G.label = (text, ms = 1200) => WTP.ui?.label?.(text, ms);
   G.announce = (text, tier = 2) => { WTP.ui?.announce?.(text, tier); AU.play('announce', tier); };
@@ -330,6 +332,7 @@
       shakeT *= Math.pow(0.004, dt);
       chromaT = Math.max(0, chromaT - dt);
       zoomT = Math.max(0, zoomT - dt);
+      fullT = Math.max(0, fullT - dt);
     } else if (G.paused) WTP.ui?.padNav?.();
     render(dt, Math.min(1, acc / STEP));
     const work = performance.now() - t0;
@@ -372,7 +375,7 @@
       zx = zoomX * S * (1 - zs); zy = zoomY * S * (1 - zs);
     }
     ctx.setTransform(zs, 0, 0, zs, sx + zx, sy + zy);
-    DR.drawLevel(ctx, sx !== 0 || sy !== 0 || zs !== 1);
+    DR.drawLevel(ctx, sx !== 0 || sy !== 0 || zs !== 1 || fullT > 0);
     DR.drawVoid(ctx, dt, PW, PH);
     ctx.setTransform(S * zs, 0, 0, S * zs, sx + zx, sy + zy);
     ctx.drawImage(Wd.levelCv, 0, 0, Wd.w, Wd.gh, 0, 0, Wd.w, Wd.gh);

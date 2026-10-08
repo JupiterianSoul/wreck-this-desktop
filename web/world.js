@@ -281,6 +281,7 @@
 
   function carve(cx, cy, r, o = {}) {
     if (!W.ready) return 0;
+    if (W.capsT > 0 && o.pop !== 0) o = { ...o, pop: 1, letters: (o.letters || 0) + 5 };
     const pm = W.powMul;
     if (pm !== 1 && !o.noPow) r *= 1 + (pm - 1) * 0.5;
     const chance = (o.debris ?? 0.35) * (W.quality >= 2 ? 1 : W.quality === 1 ? 0.6 : 0.35), force = o.force ?? 60;

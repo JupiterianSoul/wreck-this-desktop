@@ -5,6 +5,15 @@
   const SFX = AU.SFX;
   const add = (name, fn) => { SFX[name] = fn; };
 
+  const opt = (name, fn) => { if (!SFX[name]) SFX[name] = fn; };
+  opt('laserZap', () => { osc('sawtooth', 1800, 300, 0.25, 0.06, { lp: 4000 }); noise(0.2, 5000, 2000, 0.15, 'bandpass', 2); });
+  opt('chainsawRev', () => { osc('sawtooth', 90, 260, 0.35, 0.09, { lp: 1600, vib: 30, vibA: 20 }); });
+  opt('meteorFall', () => { noise(1.2, 300, 1800, 0.35, 'bandpass', 1.5); osc('sine', 400, 80, 1.2, 0.06); });
+  opt('erase', () => { noise(0.18, 3000, 1500, 0.2, 'bandpass', 2); });
+  opt('missile', () => { noise(0.3, 1200, 3000, 0.3, 'bandpass', 1.2); osc('sawtooth', 300, 900, 0.3, 0.04); });
+  opt('katana', () => { noise(0.12, 9000, 3000, 0.4, 'highpass', 1); osc('sine', 2400, 1200, 0.15, 0.05); });
+  opt('drill', () => { osc('square', 160, 220, 0.25, 0.06, { lp: 1200, vib: 40, vibA: 30 }); });
+  opt('thump', () => { thump(140, 50, 0.15, 0.4); });
   add('creak', (k = 1) => { if (!throttle('creak', 160)) return; osc('sawtooth', vary(120), 70, 0.5, 0.06 * k, { lp: 600, vib: 7, vibA: 18 }); noise(0.4, 400, 120, 0.12 * k, 'bandpass', 4, { room: 1 }); });
   add('altf4', () => {
     noise(0.25, 6000, 900, 0.35, 'bandpass', 1.4);

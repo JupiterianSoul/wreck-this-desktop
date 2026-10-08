@@ -64,7 +64,7 @@
 .hud .ring { position: relative; width: 760px; height: 760px; }
 .hud .ring .cat { position: absolute; width: 96px; height: 70px; margin: -35px 0 0 -48px; border-radius: 10px; display: grid; place-items: center; text-align: center; font-size: 11px; color: var(--fg2); background: var(--glass); border: 1px solid var(--line); padding: 4px; }
 .hud .ring .cat.on { border-color: var(--accent); color: var(--accent); transform: scale(1.12); }
-.hud .ring .center { position: absolute; left: 50%; top: 50%; width: 330px; transform: translate(-50%, -50%); text-align: center; display: grid; gap: 6px; }
+.hud .ring .center { position: absolute; left: 50%; top: 50%; width: 420px; height: 420px; border-radius: 50%; padding: 60px 46px; box-sizing: border-box; background: color-mix(in srgb, var(--bg) 90%, transparent); border: 1px solid var(--line); transform: translate(-50%, -50%); text-align: center; display: grid; gap: 6px; align-content: center; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
 .hud .ring .center .nm { font-size: 18px; color: var(--accent); font-weight: 700; }
 .hud .ring .center .ds { font-size: 12px; color: var(--fg2); min-height: 32px; }
 .hud .ring .items { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
@@ -72,3 +72,8 @@
 .hud .ring .items .slot.cur { border-color: var(--accent); }
 .hud .hint { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); color: var(--fg2); font-size: 11px; }
 .hud .fpsbox { position: absolute; left: 10px; bottom: 10px; font-size: 11px; }
+.hud .ring .sub { margin-top: 8px; font-size: 10px; color: var(--fg2); text-transform: uppercase; letter-spacing: .08em; }
+.hud .ring .gads { display: flex; gap: 4px; justify-content: center; }
+.hud .ring .gads .slot { width: 40px; height: 34px; background: var(--glass); border-color: var(--line); }
+.hud .ring .gads .slot.cur { border-color: var(--accent); }
+.hud .ring .cat img { image-rendering: pixelated; display: block; margin: 0 auto 2px; max-height: 18px; }

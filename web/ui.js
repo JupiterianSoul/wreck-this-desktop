@@ -42,6 +42,15 @@
     return url;
   }
   U.wImg = wImg;
+  function gImg(id) {
+    const k = 'g:' + id;
+    if (imgCache.has(k)) return imgCache.get(k);
+    const d = WTP.gadgets.BY[id];
+    const c = document.createElement('canvas');
+    c.width = d.sprite.w * 3; c.height = d.sprite.h * 3;
+    const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(d.sprite.cv, 0, 0, c.width, c.height);
+    const url = c.toDataURL(); imgCache.set(k, url); return url;
+  }
 
   const LAYOUT_FR = { KeyQ: 'A', KeyW: 'Z', KeyA: 'Q', KeyZ: 'W', KeyM: ',', Semicolon: 'M', Comma: ';', Period: ':', Slash: '!', Digit1: '1', Digit2: '2', Digit3: '3', Digit4: '4', Digit5: '5', Digit6: '6', Digit7: '7', Digit8: '8', Digit9: '9', Digit0: '0' };
   U.keyName = (code) => {
@@ -162,8 +171,15 @@
     });
     const list = WP.DEFS.filter((d) => d.cat === cats[wheelCat].id);
     const hov = WP.BY[wheelHover] || WP.BY[WP.st.cur];
-    html += `<div class="center"><div class="nm">${esc(hov ? hov.name : '')}</div><div class="ds">${esc(hov ? hov.does || '' : '')}${hov && hov.altDoes ? `<br>Alt: ${esc(hov.altDoes)}` : ''}</div><div class="items">${list.map((d) => `<button class="slot${d.id === WP.st.cur ? ' cur' : ''}" data-w="${d.id}" title="${esc(d.name)}"><img alt="" src="${wImg(d.id)}"></button>`).join('')}</div></div>`;
+    const GD = WTP.gadgets;
+    const gcur = GD.curId();
+    const gadgets = `<div class="gads">${GD.DEFS.map((g) => `<button class="slot gad${g.id === gcur ? ' cur' : ''}" data-g="${g.id}" title="${esc(g.name)}"><img alt="" src="${gImg(g.id)}"></button>`).join('')}</div>`;
+    html += `<div class="center"><div class="nm">${esc(hov ? hov.name : '')}</div><div class="ds">${esc(hov ? hov.does || '' : '')}${hov && hov.altDoes ? `<br>Alt: ${esc(hov.altDoes)}` : ''}</div><div class="items">${list.map((d) => `<button class="slot${d.id === WP.st.cur ? ' cur' : ''}" data-w="${d.id}" title="${esc(d.name)}"><img alt="" src="${wImg(d.id)}"></button>`).join('')}</div><div class="sub">gadget, key ${esc(U.keyName(S().keys.gadget?.[0]))}</div>${gadgets}</div>`;
     ring.innerHTML = html;
+    ring.querySelectorAll('[data-g]').forEach((b) => {
+      b.addEventListener('mouseenter', () => { const g = WTP.gadgets.BY[b.dataset.g]; ring.querySelector('.center .nm').textContent = g.name; ring.querySelector('.center .ds').textContent = g.tip; });
+      b.addEventListener('click', () => { S().gadget = b.dataset.g; WTP.persist(); WTP.gadgets.reset?.(); AU.play('select'); renderWheel(); });
+    });
     ring.querySelectorAll('.cat').forEach((el) => el.addEventListener('mouseenter', () => { if (wheelCat !== +el.dataset.k) { wheelCat = +el.dataset.k; wheelHover = null; renderWheel(); AU.play('tick'); } }));
     ring.querySelectorAll('[data-w]').forEach((b) => {
       b.addEventListener('mouseenter', () => { wheelHover = b.dataset.w; const c = ring.querySelector('.center .nm'); const d = WP.BY[wheelHover]; c.textContent = d.name; ring.querySelector('.center .ds').innerHTML = esc(d.does || '') + (d.altDoes ? `<br>Alt: ${esc(d.altDoes)}` : ''); });
