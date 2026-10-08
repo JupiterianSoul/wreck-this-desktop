@@ -9,6 +9,7 @@ const { launch } = require('./harness.js');
   fs.rmSync(out, { recursive: true, force: true }); fs.mkdirSync(out, { recursive: true });
   const h = await launch({ fixture: 'tiled3' });
   await h.wait('window.WTD && WTD.ready', 30000);
+    await h.ev('WTP.save.settings.unlockAll = true');
   await h.ev('__wtd.step(60); WTP.game.stopLoop(); WTP.game.allWeapons = () => true');
   const files = [];
   for (const id of ids) {

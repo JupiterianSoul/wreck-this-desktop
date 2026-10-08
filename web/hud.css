@@ -177,3 +177,26 @@
 .hud .ring .items.compact .witem { width: 50px; height: 40px; }
 .hud .ring .items.compact .witem span { display: none; }
 .hud .ring .items.compact .witem img { max-width: 44px; max-height: 26px; }
+
+.hud .trophy { display: inline-block; width: 20px; height: 20px; background: var(--warn); clip-path: polygon(15% 0, 85% 0, 85% 12%, 100% 12%, 100% 35%, 80% 50%, 62% 58%, 58% 74%, 72% 80%, 72% 100%, 28% 100%, 28% 80%, 42% 74%, 38% 58%, 20% 50%, 0 35%, 0 12%, 15% 12%); }
+.hud .ach-head { display: flex; gap: 22px; font-size: 14px; color: var(--fg2); margin: 2px 0 10px; }
+.hud .ach-head b { color: var(--fg); font-size: 16px; }
+.hud .ach-filter { display: flex; gap: 6px; margin-bottom: 10px; }
+.hud .ach-filter .b.on { background: var(--hi); border-color: var(--accent); color: var(--accent); }
+.hud .ach-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.hud .ach { display: grid; grid-template-columns: 48px 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--glass2); }
+.hud .ach .ai { width: 48px; height: 36px; display: grid; place-items: center; border-radius: 8px; background: var(--hi); }
+.hud .ach .ai img { image-rendering: pixelated; max-width: 44px; max-height: 32px; }
+.hud .ach .at { display: grid; gap: 3px; min-width: 0; }
+.hud .ach .at b { font-family: var(--ui); font-size: 14px; font-weight: 700; color: var(--fg); letter-spacing: 0; }
+.hud .ach .at span { font-size: 12.5px; color: var(--fg2); line-height: 1.3; }
+.hud .ach .at small { font-size: 11px; color: var(--fg2); font-family: var(--font); }
+.hud .ach .ap { height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--fg2) 22%, transparent); overflow: hidden; }
+.hud .ach .ap i { display: block; height: 100%; background: var(--accent); }
+.hud .ach .ar { font-family: var(--font); font-size: 12px; color: var(--shard); white-space: nowrap; display: flex; gap: 4px; align-items: center; }
+.hud .ach.done { border-color: color-mix(in srgb, var(--good) 45%, transparent); }
+.hud .ach.done .at b { color: var(--good); }
+.hud .ach.secret .at b { color: var(--warn); }
+.hud .ach:not(.done) .trophy { background: var(--fg2); opacity: .5; }
+.hud .slot.locked img { filter: brightness(0); opacity: .7; }
+.hud .slot.locked::after { content: ''; position: absolute; right: 4px; bottom: 4px; width: 9px; height: 11px; background: var(--warn); clip-path: path('M2 5 V3 A2.5 2.5 0 0 1 7 3 V5 H9 V11 H0 V5 Z M3.5 5 H5.5 V3 A1 1 0 0 0 3.5 3 Z'); }

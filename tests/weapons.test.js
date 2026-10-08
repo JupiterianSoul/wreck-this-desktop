@@ -6,6 +6,7 @@ const { launch } = require('./harness.js');
   let fail = 0;
   try {
     await h.wait('window.WTD && WTD.ready', 30000);
+    await h.ev('WTP.save.settings.unlockAll = true');
     await h.ev('__wtd.step(60); WTP.game.stopLoop()');
     const ids = only || await h.ev('__wtd.weapons()');
     const noAlt = await h.ev(`__wtd.weapons().filter((id) => !WTP.weapons.ALT[id])`);

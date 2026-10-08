@@ -6,6 +6,7 @@ const { launch } = require('./harness.js');
   const ok = (c, m) => { if (!c) { fail++; console.log('FAIL', m); } else console.log('ok  ', m); };
   try {
     await h.wait('window.WTD && WTD.ready', 30000);
+    await h.ev('WTP.save.settings.unlockAll = true');
     await h.ev('__wtd.step(60); WTP.game.stopLoop(); WTP.player.maxHp = 999; WTP.player.hp = 999');
     const types = await h.ev('WTP.enemies.ORDER.slice()');
     console.log('enemy types', types.length, types.join(','));

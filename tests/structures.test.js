@@ -10,6 +10,7 @@ fs.mkdirSync(OUT, { recursive: true });
   const ok = (c, m) => { if (!c) { fail++; console.log('FAIL', m); } else console.log('ok  ', m); };
   try {
     await h.wait('window.WTD && WTD.ready', 30000);
+    await h.ev('WTP.save.settings.unlockAll = true');
     await h.ev('__wtd.step(120)');
     const wins = await h.ev(`WTP.structs.wins.filter(Boolean).map((w) => ({ id: w.id, type: w.reg.type, app: w.reg.app, bolts: w.bolts.length, state: w.state, x0: w.reg.x0, y0: w.reg.y0, x1: w.reg.x1, y1: w.reg.y1 }))`);
     console.log(JSON.stringify(wins));

@@ -1,0 +1,55 @@
+const { launch } = require('./harness.js');
+(async () => {
+  const h = await launch({ fixture: 'tiled3' });
+  let ok = true;
+  const t = (name, cond, info = '') => { console.log(cond ? 'ok  ' : 'FAIL', name, info); if (!cond) ok = false; };
+  try {
+    await h.wait('window.WTD && WTD.ready', 30000);
+    await h.ev('__wtd.step(30); WTP.game.stopLoop()');
+    const r = await h.ev(`(() => {
+      const A = WTP.ach, WP = WTP.weapons;
+      const out = {};
+      out.total = A.ACH.length;
+      out.weaponAch = A.ACH.filter((a) => a.weapon).length;
+      out.secret = A.ACH.filter((a) => a.secret).length;
+      out.missing = WP.DEFS.filter((d) => !A.STARTERS.includes(d.id) && !A.BY['w:' + d.id]).map((d) => d.id);
+      out.starters = A.STARTERS.every((id) => A.weaponOwned(id));
+      out.rocketLocked = !A.weaponOwned('rocket');
+      out.selRocket = WTP.game.selectWeapon('rocket', true);
+      out.cur = WP.st.cur;
+      const g = A.goalFor('revolver');
+      out.revGoal = g.desc;
+      const sh0 = WTP.save.shards;
+      A.stats()['dw:pistol'] = g.n;
+      A.check();
+      out.revOwned = A.weaponOwned('revolver');
+      out.shardGain = WTP.save.shards - sh0;
+      out.toast = document.querySelectorAll('#hToasts .toast').length;
+      out.selRev = WTP.game.selectWeapon('revolver', true);
+      WTP.save.settings.unlockAll = true; A.changed();
+      out.allOwned = A.ownedCount() === WP.DEFS.length;
+      WTP.save.settings.unlockAll = false; A.changed();
+      const div = document.createElement('div'); A.renderTab(div);
+      out.cards = div.querySelectorAll('.ach').length;
+      out.saved = !!WTP.save.ach.done['w:revolver'];
+      return out;
+    })()`);
+    t('around 160 achievements', r.total >= 150, r.total);
+    t('every locked weapon has an unlock', r.missing.length === 0, r.missing.join(','));
+    t('secret weapons', r.secret >= 12, r.secret);
+    t('starters owned', r.starters);
+    t('rocket locked', r.rocketLocked);
+    t('locked weapon cannot be selected', r.selRocket === false && r.cur !== 'rocket', r.cur);
+    t('stat unlocks the next weapon', r.revOwned, r.revGoal);
+    t('unlock grants shards', r.shardGain > 0, r.shardGain);
+    t('unlock shows a popup', r.toast > 0);
+    t('unlocked weapon selectable', r.selRev === true);
+    t('unlock all switch', r.allOwned);
+    t('achievements tab renders', r.cards === r.total, r.cards);
+    t('progress saved', r.saved);
+    const errs = await h.ev('WTD.errors');
+    t('no page errors', !errs.length, JSON.stringify(errs).slice(0, 300));
+  } finally { await h.close(); }
+  console.log(ok ? 'ACH OK' : 'ACH FAIL');
+  process.exit(ok ? 0 : 1);
+})();

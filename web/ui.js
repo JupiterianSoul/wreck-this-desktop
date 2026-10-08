@@ -134,7 +134,7 @@
     if (!id) return `<button class="slot empty" data-slot="${i}" title="Empty slot ${num}: right click or drop a weapon here"><span class="k">${num}</span><span class="plus">+</span></button>`;
     const ammo = WP.ammo();
     const a = ammo ? ammo[id] : null;
-    return `<button class="slot${id === cur ? ' cur' : ''}" data-slot="${i}" data-w="${id}" draggable="${opts.drag ? 'true' : 'false'}" title="${esc(WP.BY[id].name)} (${num}), right click to change"><span class="k">${num}</span><img alt="" src="${wImg(id)}">${a != null ? `<span class="a${a <= 3 ? ' warn' : ''}">${a}</span>` : ''}</button>`;
+    return `<button class="slot${id === cur ? ' cur' : ''}${locked(id) ? ' locked' : ''}" data-slot="${i}" data-w="${id}" draggable="${opts.drag ? 'true' : 'false'}" title="${esc(WP.BY[id].name)} (${num}), right click to change"><span class="k">${num}</span><img alt="" src="${wImg(id)}">${a != null ? `<span class="a${a <= 3 ? ' warn' : ''}">${a}</span>` : ''}</button>`;
   }
   function bindDrop(root, after) {
     root.querySelectorAll('[data-slot]').forEach((b) => {

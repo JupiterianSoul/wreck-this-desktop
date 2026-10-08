@@ -9,6 +9,7 @@ fs.mkdirSync(OUT, { recursive: true });
   let fail = 0;
   try {
     await h.wait('window.WTD && WTD.ready', 30000);
+    await h.ev('WTP.save.settings.unlockAll = true');
     await h.wait('window.WTP && WTP.game && WTP.game.shownCanvas', 10000);
     await h.shot(path.join(OUT, `${fixture}-0-start.png`));
     await h.ev('__wtd.step(150)');
