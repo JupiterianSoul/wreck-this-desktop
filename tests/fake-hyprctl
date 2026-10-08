@@ -1,0 +1,6 @@
+#!/bin/sh
+echo "$*" >> "${WTD_FAKE_LOG:-/dev/null}"
+case "$*" in
+  *"-j"*) echo '{}' ;;
+  *) echo ok ;;
+esac

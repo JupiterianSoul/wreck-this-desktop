@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wreck This Desktop</title>
+<style>
+html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+#shot { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; image-rendering: pixelated; visibility: hidden; pointer-events: none; z-index: 1; }
+#cv { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; image-rendering: pixelated; display: block; outline: none; visibility: hidden; z-index: 2; }
+</style>
+<link rel="stylesheet" href="hud.css">
+</head>
+<body>
+<img id="shot" alt="">
+<canvas id="cv" tabindex="0"></canvas>
+<div id="hud" class="hud" hidden></div>
+<script>
+(() => {
+  const q = new URLSearchParams(location.search);
+  const mon = q.get('mon') || 'eDP-2';
+  const img = document.getElementById('shot');
+  const post = (m) => { try { window.webkit.messageHandlers.wtd.postMessage(m); } catch (e) { (window.__wtdOut = window.__wtdOut || []).push(m); } };
+  window.WTD = { mon, post, test: q.has('test'), probe: q.has('probe'), under: q.has('under'), t0: performance.now() };
+  img.onload = () => { if (!window.WTD.under) img.style.visibility = 'visible'; requestAnimationFrame(() => requestAnimationFrame(() => post({ t: 'shown' }))); };
+  img.onerror = () => post({ t: 'log', msg: 'shot failed to load' });
+  img.src = 'session/shot-' + mon + '.png';
+})();
+</script>
+<script src="boot.js"></script>
+</body>
+</html>
