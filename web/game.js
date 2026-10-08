@@ -67,7 +67,7 @@
     if (e.T.boss) { run.bossKilled = true; G.announce('PROCESS TERMINATED!', 6); }
     G.comboBump(8);
   };
-  G.playerDied = () => { if (G.run && !G.run.ended) setTimeout(() => { if (G.run && G.run.mode.respawn !== false) { PL.spawn(PL.x, -20); PL.hp = PL.maxHp; } else G.end('dead'); }, 1400); };
+  G.playerDied = () => { if (G.run && !G.run.ended) setTimeout(() => { if (G.run && G.run.mode.respawn !== false) { PL.spawn(PL.x, -26); PL.hp = PL.maxHp; } else G.end('dead'); }, 1400); };
 
   const TIERS = [[10, 'NICE!'], [25, 'GREAT!'], [50, 'WRECKED!'], [100, 'DEVASTATING!'], [200, 'CATASTROPHIC!'], [350, 'UNSTOPPABLE!'], [500, 'SEGMENTATION FAULT!'], [750, 'KERNEL PANIC!'], [1000, 'DESKTOP DESTROYER!'], [1500, 'BLUE SCREEN!'], [2500, 'rm -rf /']];
   G.comboBump = (n) => {
@@ -187,18 +187,18 @@
     const regs = Wd.regions || [];
     const act = regs.find((r) => r.type === 'window' && r.address === opts.session.active) || regs.find((r) => r.type === 'window');
     const cx = act ? Math.round((act.x0 + act.x1) / 2) : Math.round(Wd.w / 2);
-    const firstSolid = (x) => { for (let y = 0; y < Wd.gh; y++) for (let dx = -3; dx <= 3; dx++) if (Wd.solid(x + dx, y)) return y; return Wd.gh; };
+    const firstSolid = (x) => { for (let y = 0; y < Wd.gh; y++) for (let dx = -5; dx <= 5; dx++) if (Wd.solid(x + dx, y)) return y; return Wd.gh; };
     let best = cx, bs = -1;
     for (let d = 0; d < Wd.w / 2; d += 2) {
       for (const x of [cx + d, cx - d]) {
         if (x < 8 || x > Wd.w - 8) continue;
         const y = firstSolid(x);
         const score = Math.min(y, 40) * 4 - d * 0.35;
-        if (y >= 14 && score > bs) { bs = score; best = x; }
+        if (y >= 22 && score > bs) { bs = score; best = x; }
       }
       if (bs > 120) break;
     }
-    return { x: best, y: -18 };
+    return { x: best, y: -26 };
   }
   G.restart = () => { if (!G.run) return; WTP.ui?.closeOverlays?.(); G.prepare(G.opts); };
   G.stopLoop = () => { G.playing = false; cancelAnimationFrame(raf); AU.stopLoops(); };
@@ -279,10 +279,10 @@
     updateAim(dt);
     const ended = run.ended;
     PL.update(dt, ended);
-    { const bx0 = PL.x + PL.w / 2, by0 = PL.y + 5; if (!PL.gunPos || Math.hypot(PL.gunPos.x - bx0, PL.gunPos.y - by0) > 14) { PL.gunPos = { x: bx0 + aim.x * 4, y: by0 + aim.y * 4 }; PL.muzzle = { x: bx0 + aim.x * 9, y: by0 + aim.y * 9 }; } }
+    { const bx0 = PL.x + PL.w / 2, by0 = PL.y + 7; if (!PL.gunPos || Math.hypot(PL.gunPos.x - bx0, PL.gunPos.y - by0) > 14) { PL.gunPos = { x: bx0 + aim.x * 4, y: by0 + aim.y * 4 }; PL.muzzle = { x: bx0 + aim.x * 9, y: by0 + aim.y * 9 }; } }
     const hand = PL.gunPos || PL.gun();
     let gun = PL.muzzle || hand;
-    const bx = PL.x + PL.w / 2, by = PL.y + 5;
+    const bx = PL.x + PL.w / 2, by = PL.y + 7;
     const gdx = gun.x - bx, gdy = gun.y - by, gd = Math.hypot(gdx, gdy);
     if (gd > 0.01) for (let t = 0; t <= gd; t += 0.5) { const x = bx + (gdx * t) / gd, y = by + (gdy * t) / gd; if (Wd.solid(Math.floor(x), Math.floor(y))) { gun = { x, y }; break; } }
     const wheelOpen = WTP.ui?.wheelOpen?.();
@@ -306,7 +306,7 @@
       run.comboPop = Math.max(0, (run.comboPop || 0) - dt * 3);
       if (run.comboT <= 0 && run.combo) { run.combo = 0; run.comboShown = 0; run.mult = 1; }
       run.mode.tick(run, dt);
-      if (PL.y > Wd.h + 30) { PL.spawn(PL.x, -20); prevP.x = PL.x; prevP.y = PL.y; }
+      if (PL.y > Wd.h + 30) { PL.spawn(PL.x, -26); prevP.x = PL.x; prevP.y = PL.y; }
     }
     run.frame++;
   }
@@ -413,6 +413,7 @@
       if (WP.st.reload > 0) WTP.font.draw(ctx, 'RELOAD', Math.round(PL.x + 3), Math.round(PL.y - 14), { align: 'center', color: 'y', outline: '0' });
     }
     FX.drawAnims(ctx, 1);
+    WTP.booms.draw(ctx, dt * (G.paused ? 0 : timeScale));
     ctx.drawImage(fxr.front, fxr.ox, fxr.oy);
     for (const p of FX.pops) {
       const k = p.t / p.life;
@@ -450,7 +451,7 @@
     ctx.fillStyle = c; ctx.fillRect(x - 1.5, y - 1.5, 3, 3);
   }
 
-  G.renderNow = () => render(0.016, 1);
+  G.renderNow = (dt = 0.016) => render(dt, 1);
   G.aim = aim;
   G.cam = cam;
   G.scale = () => S;

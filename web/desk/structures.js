@@ -438,8 +438,7 @@
         if (G()?.inPlayer?.(x, y)) continue;
         if (s.kind[l] === 1) placed++;
         Wd.under[i] = Wd.mat[i];
-        Wd.mat[i] = DEBRIS; Wd.col[i] = s.col[l]; Wd.src[i] = s.src[l]; Wd.mtl[i] = s.mtl[l]; Wd.rid[i] = 0; Wd.kind[i] = 0; Wd.gid[i] = 0;
-        Wd.rubbleN++;
+        Wd.mat[i] = SOLID; Wd.col[i] = s.col[l]; Wd.src[i] = s.src[l]; Wd.mtl[i] = s.mtl[l]; Wd.rid[i] = 0; Wd.kind[i] = 0; Wd.gid[i] = 0; Wd.flag[i] = Wd.F_PIN; Wd.back[i] = 0;
         Wd.touch(i);
       }
     }

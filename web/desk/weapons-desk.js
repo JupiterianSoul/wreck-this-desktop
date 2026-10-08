@@ -48,7 +48,8 @@
     const r0 = K.regionAt(o.x, o.y);
     for (let d = 0; d < range; d += 0.6) {
       x += o.ax * 0.6; y += o.ay * 0.6;
-      if (x < 0 || y < 0 || x >= Wd.w || y >= Wd.gh) return { x, y, rid: 0, d };
+      if (x < 0 || x >= Wd.w || y >= Wd.gh || (y < 0 && o.ay <= 0)) return { x, y, rid: 0, d };
+      if (y < 0) continue;
       const r = K.regionAt(x, y);
       if (r && r === r0 && !(d > 4 && Wd.solid(Math.floor(x), Math.floor(y)))) continue;
       if (stopAt(r, Math.floor(x), Math.floor(y))) return { x, y, rid: r, d };

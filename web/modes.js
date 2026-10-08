@@ -15,22 +15,24 @@
       setup(run) { run.goal = 80; run.enT = 35; G().label('WRECK THIS DESKTOP', 2200); },
       tick(run, dt) {
         if (!run.goalHit && pct() >= run.goal) { run.goalHit = true; G().announce('DESKTOP FLATTENED!', 4); G().showFinish(true); }
-        run.enT -= dt;
-        if (run.enT <= 0) { run.enT = rand(28, 45); if (EN().count() < 2) EN().spawnEdge(pick(EN().LIGHT || ['cursor']), { hpMul: 0.8 }); }
       },
       grade() { return gradeBy(pct(), 90, 70, 45, 20); },
       bestKey: () => `free:${deskKey()}`, bestVal: (run) => Math.round(run.score), higher: true,
       rows(run) { return [['Destroyed', `${pct().toFixed(1)}%`], ['Time', WTP.fmtTime(run.t)], ['Score', WTP.fmtInt(run.score)], ['Best combo', run.maxCombo]]; }
     },
-    speed: {
-      name: 'Speedrun', short: 'Speed', music: 'wreck2', respawn: true,
-      desc: 'Destroy a share of the screen as fast as you can. The clock starts with your first hit.',
-      hud: { pct: true, time: true, score: false, big: 'time' },
-      setup(run) { run.goal = WTP.save.settings.speedGoal || 50; run.goalPar = par(run.goal); run.hud = { ...this.hud, goal: run.goal }; G().label(`${run.goal}% AS FAST AS YOU CAN, PAR ${run.goalPar}s`, 2400); },
-      tick(run) { if (pct() >= run.goal) G().end('goal'); },
-      grade(run) { return run.reason !== 'goal' ? 'D' : gradeBy(run.t, run.goalPar * 0.6, run.goalPar, run.goalPar * 1.5, run.goalPar * 2.2, true); },
-      bestKey: (run) => `speed:${run.goal}:${deskKey()}`, bestVal: (run) => run.reason === 'goal' ? Math.round(run.t * 10) / 10 : null, higher: false, fmt: (v) => WTP.fmtTime(v),
-      rows(run) { return [['Goal', `${run.goal}%`], ['Time', run.reason === 'goal' ? WTP.fmtTime(run.t) : 'DNF'], ['Par', `${run.goalPar}s`]]; }
+    time: {
+      name: 'Time Attack', short: 'Time', music: 'wreck2', respawn: true,
+      desc: 'Sixty seconds on the clock. Destroy as much of the screen as you can before it hits zero.',
+      hud: { pct: true, time: true, score: true, countdown: true, big: 'time' },
+      setup(run) { run.limit = 60; G().label('60 SECONDS. WRECK EVERYTHING.', 2200); G().startTimer(); },
+      tick(run) {
+        const left = run.limit - run.t;
+        if (left <= 5 && Math.ceil(left) !== run.lastBeep) { run.lastBeep = Math.ceil(left); WTP.audio.play('countdown'); if (left > 0) G().announce(String(Math.ceil(left)), 3); }
+        if (left <= 0) G().end('time');
+      },
+      grade() { return gradeBy(pct(), 60, 40, 25, 12); },
+      bestKey: () => `time:${deskKey()}`, bestVal: () => Math.round(pct() * 10) / 10, higher: true, fmt: (v) => `${v}%`,
+      rows(run) { return [['Destroyed', `${pct().toFixed(1)}%`], ['Score', WTP.fmtInt(run.score)], ['Best combo', run.maxCombo]]; }
     },
     zen: {
       name: 'Zen', short: 'Zen', music: 'zen', respawn: true, noHp: true, infinite: true,
@@ -70,5 +72,5 @@
     G().announce(boss ? 'BOSS INCOMING' : `WAVE ${run.wave}`, boss ? 4 : 2);
     WTP.audio.play('alarm');
   }
-  WTP.modes = { MODES, pct, startWave, ORDER: ['free', 'speed', 'zen', 'chaos'] };
+  WTP.modes = { MODES, pct, startWave, ORDER: ['free', 'time', 'zen', 'chaos'] };
 })();

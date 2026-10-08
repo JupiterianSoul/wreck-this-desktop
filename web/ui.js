@@ -190,14 +190,17 @@
   window.addEventListener('keydown', (e) => {
     if (U.wheelOpen()) {
       e.preventDefault();
+      e.stopImmediatePropagation();
       if (e.code === 'Tab' || e.code === 'Escape') { U.wheel(false); return; }
       if (/^Digit[0-9]$/.test(e.code) && wheelHover) { const n = Number(e.code.slice(5)); G.assignSlot(n === 0 ? 9 : n - 1, wheelHover); U.label(`${WP.BY[wheelHover].name.toUpperCase()} ON SLOT ${n}`, 900); AU.play('select'); return; }
       if (e.code === 'ArrowRight' || e.code === 'ArrowLeft') { wheelCat = (wheelCat + (e.code === 'ArrowRight' ? 1 : -1) + CATS().length) % CATS().length; wheelHover = null; renderWheel(); }
       return;
     }
     if (!$('hPause').hidden && rebinding == null) {
-      if (e.code === 'Escape') { e.preventDefault(); G.pause(false); }
+      e.stopImmediatePropagation();
+      if (e.code === 'Escape') { e.preventDefault(); if (pauseTab !== 'main') { pauseTab = 'main'; renderPause(); } else G.pause(false); }
     }
+    if (!$('hRes').hidden && e.code === 'Escape') { e.stopImmediatePropagation(); e.preventDefault(); }
   }, true);
 
   let rebinding = null;
@@ -220,7 +223,6 @@
       p.innerHTML = `<h2>Paused</h2><p>${esc(run.mode.name)}: ${esc(run.mode.desc)}</p>
         <div class="btns"><button class="b" data-a="resume">Resume</button><button class="b" data-a="restart">Restart this desktop</button><button class="b" data-a="finish">Finish and grade</button>${st.nextLevel ? '<button class="b" data-a="next">Next workspace</button>' : ''}</div>
         <div class="btns">${MD.ORDER.map((m) => `<button class="b${run.modeId === m ? ' on' : ''}" data-mode="${m}">${esc(MD.MODES[m].name)}</button>`).join('')}</div>
-        ${run.modeId === 'speed' ? `<div class="btns">${[25, 50, 75, 90].map((g) => `<button class="b${(st.speedGoal || 50) === g ? ' on' : ''}" data-goal="${g}">${g}%</button>`).join('')}</div>` : ''}
         <div class="set">${setRow('Master volume', slider('sMaster', st.master))}${setRow('Music', slider('sMusic', st.music))}${setRow('Effects', slider('sSfx', st.sfx))}${setRow('Sound', toggle('muted', !st.muted, 'On', 'Muted'))}</div>
         <div class="btns"><button class="b" data-tab="settings">Settings</button><button class="b" data-tab="keys">Controls</button><button class="b" data-a="quit">Quit to desktop</button></div>`;
     } else if (pauseTab === 'settings') {

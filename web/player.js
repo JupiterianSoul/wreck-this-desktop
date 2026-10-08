@@ -2,10 +2,10 @@
   const WTP = window.WTP;
   const { rand, P32 } = WTP;
   const P = {
-    x: 0, y: 0, vx: 0, vy: 0, w: 6, h: 14, ground: false, wall: 0, face: 1, jumps: 1, airDash: 1, coyote: 0, buffer: 0,
+    x: 0, y: 0, vx: 0, vy: 0, w: 9, h: 22, ground: false, wall: 0, face: 1, jumps: 1, airDash: 1, coyote: 0, buffer: 0,
     dashT: 0, dashCd: 0, dashDir: 1, wallLock: 0, land: 0, landV: 0, hurtT: 0, iframes: 0, hp: 6, maxHp: 6, dead: false, anim: 'idle', animT: 0,
     ghosts: [], recoil: 0, swing: 0, swingDir: 1, victory: false, peakY: 0, rocketJumpStart: null, stepT: 0, frames: null, skin: 'hero', lastGround: 0, blink: 0,
-    kickT: 0, kickDir: 0, idleT: 0, skidT: 0, stuckT: 0, gravMul: 1, maxFall: 330, ctrl: 1, pose: null, squash: 0, stretch: 0, airT: 0, extraJumps: 0
+    kickT: 0, kickDir: 0, idleT: 0, skidT: 0, stuckT: 0, gravMul: 1, maxFall: 410, ctrl: 1, pose: null, squash: 0, stretch: 0, airT: 0, extraJumps: 0
   };
   WTP.player = P;
   const W = () => WTP.world;
@@ -44,15 +44,15 @@
   P.spawn = (x, y) => {
     if (P.carry) { WTP.world.releaseChunk(P.carry, 0, 0); P.carry = null; }
     WTP.rig?.reset?.();
-    Object.assign(P, { h: 14, crouch: false, rollT: 0, ragdoll: false, ragT: 0, on: 0, x, y, vx: 0, vy: 0, ground: false, wall: 0, jumps: 1, airDash: 1, coyote: 0, buffer: 0, dashT: 0, dashCd: 0, land: 0, hurtT: 0, iframes: 0, hp: P.maxHp, dead: false, victory: false, ghosts: [], recoil: 0, swing: 0, kickT: 0, idleT: 0, stuckT: 0, gravMul: 1, maxFall: 330, ctrl: 1, pose: null, squash: 0, stretch: 0, airT: 0 });
+    Object.assign(P, { h: 22, crouch: false, rollT: 0, ragdoll: false, ragT: 0, on: 0, x, y, vx: 0, vy: 0, ground: false, wall: 0, jumps: 1, airDash: 1, coyote: 0, buffer: 0, dashT: 0, dashCd: 0, land: 0, hurtT: 0, iframes: 0, hp: P.maxHp, dead: false, victory: false, ghosts: [], recoil: 0, swing: 0, kickT: 0, idleT: 0, stuckT: 0, gravMul: 1, maxFall: 410, ctrl: 1, pose: null, squash: 0, stretch: 0, airT: 0 });
     P.setSkin(WTP.save.skin);
     GD()?.reset?.();
   };
   P.setSkin = (id) => { P.skin = id; P.frames = WTP.sprites.playerFrames(id); };
   P.impulse = (ix, iy) => { P.vx += ix; P.vy += iy; if (iy < -40) { P.ground = false; P.rocketJumpStart = P.rocketJumpStart ?? P.y; } };
   function setCrouch(on) {
-    if (on && !P.crouch) { P.crouch = true; P.y += 5; P.h = 9; return true; }
-    if (!on && P.crouch) { if (collide(P.x, P.y - 5, P.w, 14)) return false; P.crouch = false; P.y -= 5; P.h = 14; return true; }
+    if (on && !P.crouch) { P.crouch = true; P.y += 8; P.h = 14; return true; }
+    if (!on && P.crouch) { if (collide(P.x, P.y - 8, P.w, 22)) return false; P.crouch = false; P.y -= 8; P.h = 22; return true; }
     return true;
   }
   P.setCrouch = setCrouch;
@@ -99,7 +99,7 @@
     if (P.iframes > 0 || P.dead || P.dashT > 0 || P.victory) return false;
     const hp = WTP.game?.run?.hud?.hp;
     if (hp) P.hp -= dmg;
-    P.hurtT = 0.35; P.iframes = hp ? 1.1 : 0.6;
+    P.hurtT = 0.35; P.iframes = hp ? 1.1 : 0.6; P.knocked = true;
     P.vx = (P.x + P.w / 2 < fromX ? -1 : 1) * (o.knock || 120); P.vy = -150; P.ground = false;
     WTP.audio.play('hurt');
     WTP.game?.shake?.(8); WTP.game?.hitstop?.(0.06);
@@ -129,16 +129,19 @@
   function unstick() {
     if (!collide(P.x, P.y, P.w, P.h)) { P.stuckT = 0; return; }
     let best = null, bd = 1e9;
-    for (let dy = -18; dy <= 8; dy++) for (let dx = -10; dx <= 10; dx++) {
+    for (let dy = -30; dy <= 10; dy++) for (let dx = -16; dx <= 16; dx++) {
       const d = dx * dx * 1.2 + dy * dy * (dy > 0 ? 3 : 1);
       if (d >= bd) continue;
       if (!collide(P.x + dx, P.y + dy, P.w, P.h)) { bd = d; best = [dx, dy]; }
     }
     if (best) { P.x += best[0]; P.y += best[1]; if (best[1] < 0) P.vy = Math.min(P.vy, 0); return; }
-    const c = P.center();
-    W().carve(c.x, c.y, 9, { debris: 0.6, force: 120, cause: 'unstick', pow: 99, back: 0 });
-    WTP.audio.play('kick');
-    WTP.game?.label?.('BUSTED OUT!', 700);
+    P.stuckT += 1 / 60;
+    if (P.stuckT > 0.6) {
+      P.stuckT = 0;
+      const c = P.center();
+      W().carve(c.x, c.y, 6, { debris: 0.6, force: 120, cause: 'unstick', pow: 6, back: 0, noCrack: true });
+      WTP.audio.play('kick');
+    }
   }
   P.unstick = unstick;
 
@@ -173,7 +176,7 @@
     P.squash *= Math.pow(0.0004, dt); P.stretch *= Math.pow(0.0004, dt);
     P.recoil *= Math.pow(0.0005, dt);
     P.swing = Math.max(0, P.swing - dt);
-    P.gravMul = 1; P.maxFall = 330; P.ctrl = 1; P.pose = null; P.noGrav = false;
+    P.gravMul = 1; P.maxFall = 410; P.ctrl = 1; P.pose = null; P.noGrav = false;
     if (P.dead) { P.vy += 600 * dt; P.vx *= 0.95; move(dt); return; }
     if (P.carry) { P.carry.x = P.x + P.w / 2; P.carry.y = P.y - P.carry.rad * 0.6; }
     if (P.ragdoll) {
@@ -199,15 +202,15 @@
 
     if (P.dashT > 0) {
       P.dashT -= dt;
-      P.vx = P.dashDir * 300; P.vy = 0;
+      P.vx = P.dashDir * 370; P.vy = 0;
       if (Math.random() < 0.9) P.ghosts.push({ x: P.x, y: P.y, face: P.face, t: 0.22, anim: 'dash' });
-      if (P.dashT <= 0) { P.vx = P.dashDir * 110; }
+      if (P.dashT <= 0) { P.vx = P.dashDir * 135; }
       move(dt);
       return;
     }
     const gctl = gd ? gd.update(dt, P, { mx, down, held, ctl }) : null;
     if (gctl && gctl.skip) { move(dt); afterMove(dt, P.ground, P.vy); return; }
-    const RUN = P.crouch ? 36 : P.carry ? 70 : 84;
+    const RUN = P.crouch ? 45 : P.carry ? 88 : 104;
     const accel = (P.ground ? 1100 : 640) * P.ctrl;
     const target = mx * RUN;
     if (P.wallLock <= 0) {
@@ -230,12 +233,12 @@
     if (P.vy > P.maxFall) P.vy = P.maxFall;
     P.coyote = P.ground ? 0.1 : Math.max(0, P.coyote - dt);
     if (P.buffer > 0 && !(gctl && gctl.noJump)) {
-      if (P.ground || P.coyote > 0) { P.vy = -222; P.ground = false; P.coyote = 0; P.buffer = 0; P.stretch = 1; WTP.audio.play('jump'); puff(5); WTP.game?.stat?.('jumps', 1); }
+      if (P.ground || P.coyote > 0) { P.vy = -278; P.ground = false; P.coyote = 0; P.buffer = 0; P.stretch = 1; WTP.audio.play('jump'); puff(5); WTP.game?.stat?.('jumps', 1); }
       else if (P.wall !== 0 || wallNear()) {
         const wd = P.wall || wallNear();
-        P.vy = -212; P.vx = -wd * 150; P.face = -wd; P.wall = 0; P.buffer = 0; P.wallLock = 0.12; P.jumps = 1 + P.extraJumps; P.airDash = 1; P.stretch = 1;
+        P.vy = -265; P.vx = -wd * 185; P.face = -wd; P.wall = 0; P.buffer = 0; P.wallLock = 0.12; P.jumps = 1 + P.extraJumps; P.airDash = 1; P.stretch = 1;
         WTP.audio.play('walljump'); puff(4); WTP.game?.stat?.('walljumps', 1);
-      } else if (P.jumps > 0) { P.jumps--; P.vy = -198; P.buffer = 0; P.stretch = 1; WTP.audio.play('djump'); ring(); WTP.game?.stat?.('jumps', 1); gd?.airJump?.(P); }
+      } else if (P.jumps > 0) { P.jumps--; P.vy = -248; P.buffer = 0; P.stretch = 1; WTP.audio.play('djump'); ring(); WTP.game?.stat?.('jumps', 1); gd?.airJump?.(P); }
     }
     P.boosted = P.vy < -280;
     const wasGround = P.ground;
@@ -245,7 +248,8 @@
   };
   function afterMove(dt, wasGround, vyBefore) {
     if (P.ground && !wasGround) {
-      if (vyBefore > 140) { P.land = 0.16; P.squash = Math.min(1, vyBefore / 330); puff(Math.round(3 + vyBefore / 60)); WTP.audio.play('land', vyBefore); if (vyBefore > 320) WTP.game?.shake?.(2); }
+      if (P.knocked && !P.crouch && !P.dead) { P.knocked = false; if (Math.abs(P.vx) > 40 || vyBefore > 200) { setCrouch(true); P.rollT = 0.32; P.rollDir = Math.sign(P.vx) || -P.face; WTP.audio.play('dash'); puff(5); } }
+      if (vyBefore > 175) { P.land = 0.16; P.squash = Math.min(1, vyBefore / 410); puff(Math.round(3 + vyBefore / 60)); WTP.audio.play('land', vyBefore); if (vyBefore > 400) WTP.game?.shake?.(2); }
       if (P.rocketJumpStart != null) { const hgt = P.rocketJumpStart - P.peakY; if (hgt > 25) WTP.game?.rocketJump?.(hgt); P.rocketJumpStart = null; }
       GD()?.landed?.(P, vyBefore);
     }
@@ -260,8 +264,8 @@
     }
     if (P.ground && Math.abs(P.vx) < 5 && !P.kickT) P.idleT += dt; else P.idleT = 0;
     const boxed = collide(P.x - 1, P.y, P.w, P.h) && collide(P.x + 1, P.y, P.w, P.h) && collide(P.x, P.y - 1, P.w, P.h) && !P.ground;
-    if (boxed) { P.stuckT += dt; if (P.stuckT > 0.5) { P.stuckT = 0; const c = P.center(); W().carve(c.x, c.y - 1, 8.5, { debris: 0.6, force: 100, cause: 'unstick', pow: 99 }); WTP.audio.play('kick'); } }
-    else P.stuckT = 0;
+    if (boxed) { P.boxT = (P.boxT || 0) + dt; if (P.boxT > 1.5) { P.boxT = 0; const c = P.center(); W().carve(c.x, c.y - 2, 5, { debris: 0.6, force: 100, cause: 'unstick', pow: 5, noCrack: true }); WTP.audio.play('kick'); } }
+    else P.boxT = 0;
   }
   function wallNear() {
     if (collide(P.x - 1.2, P.y + 2, P.w, P.h - 5)) return -1;
@@ -290,7 +294,7 @@
       if (!collide(nx, P.y, P.w, P.h)) {
         if (collideAny(nx, P.y, P.w, P.h)) {
           let climbed = false;
-          if (P.ground || P.vy >= 0) for (let up = 1; up <= 5; up++) if (!collideAny(nx, P.y - up, P.w, P.h) && !collide(nx, P.y - up, P.w, P.h)) { P.x = nx; P.y -= up; climbed = true; break; }
+          if (P.ground || P.vy >= 0) for (let up = 1; up <= 7; up++) if (!collideAny(nx, P.y - up, P.w, P.h) && !collide(nx, P.y - up, P.w, P.h)) { P.x = nx; P.y -= up; climbed = true; break; }
           if (!climbed) {
             const dir = Math.sign(dx);
             kickSoft(Math.floor(nx), Math.floor(P.y), Math.floor(nx + P.w - 0.001), Math.floor(P.y + P.h - 0.001) - (P.ground ? 1 : 0), dir, 0);
@@ -301,7 +305,7 @@
         continue;
       }
       let stepped = false;
-      if (P.ground || P.vy >= 0 || P.dashT > 0) for (let up = 1; up <= 5; up++) if (!collide(nx, P.y - up, P.w, P.h)) { P.x = nx; P.y -= up; stepped = true; break; }
+      if (P.ground || P.vy >= 0 || P.dashT > 0) for (let up = 1; up <= 7; up++) if (!collide(nx, P.y - up, P.w, P.h)) { P.x = nx; P.y -= up; stepped = true; break; }
       if (!stepped) { P.wall = Math.sign(dx); if (P.dashT > 0) P.dashT = 0; P.vx = 0; break; }
     }
     const dy = P.vy * dt;

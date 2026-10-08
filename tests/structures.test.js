@@ -15,7 +15,7 @@ fs.mkdirSync(OUT, { recursive: true });
     console.log(JSON.stringify(wins));
     ok(wins.every((w) => w.bolts >= 2), 'every structure has bolts');
     const term = wins.find((w) => w.app === 'terminal') || wins.find((w) => w.type === 'window');
-    await h.ev(`__wtd.tp(${term.x0} + 30, ${term.y0} - 15); __wtd.select('altf4')`);
+    await h.ev(`__wtd.tp(${term.x0} + 30, ${term.y0} - 23); __wtd.select('altf4')`);
     await new Promise((r) => setTimeout(r, 300));
     await h.ev(`(() => { window.__log = []; const f = WTP.weapons.FIRE.altf4; WTP.weapons.FIRE.altf4 = (o) => { window.__log.push(JSON.stringify(o)); return f(o); }; const P = WTP.player; const t = ${JSON.stringify(term)}; const tx = (t.x0 + t.x1) / 2, ty = (t.y0 + t.y1) / 2; __wtd.setAim(tx - (P.x + 3), ty - (P.y + 5)); __wtd.fire(true); __wtd.step(2); __wtd.fire(false); })()`);
     await h.ev('__wtd.step(30)');

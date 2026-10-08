@@ -18,7 +18,7 @@ const { launch } = require('./harness.js');
   };
   await h.ev(SCRIPTS[script] || script);
   for (let k = 0; k < +count; k++) {
-    await h.ev(`__wtd.step(${every}); WTP.game.renderNow && WTP.game.renderNow()`);
+    await h.ev(`__wtd.step(${every}); WTP.game.renderNow && WTP.game.renderNow(${every} / 60)`);
     await h.shot(path.join(out, `f${String(k).padStart(2, '0')}.png`));
   }
   const errs = await h.ev('WTD.errors');

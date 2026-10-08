@@ -773,6 +773,7 @@
       if (!shatter && !glassy && x >= 0 && x < W.w && y >= 0 && y < W.h - 3) {
         const i = y * W.w + x;
         if ((mat[i] === AIR || mat[i] === HOLE) && !(G()?.inPlayer?.(x, y)) && W.rubbleN < 9000) {
+          if (c.n > 120 && !c.letter) { under[i] = mat[i]; mat[i] = SOLID; col[i] = shade(col0, 0.9); src[i] = c.srcs ? c.srcs[j] : -1; flag[i] = F_PIN; kind[i] = 0; gid[i] = 0; rid[i] = 0; mtl[i] = c.mtl >= 0 ? c.mtl : M.PLASTIC; touch(i); placed++; continue; }
           under[i] = mat[i]; mat[i] = DEBRIS; col[i] = shade(col0, 0.88); src[i] = c.srcs ? c.srcs[j] : -1; W.rubbleN++; touch(i); placed++;
           continue;
         }

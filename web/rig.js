@@ -4,7 +4,10 @@
   const W = () => WTP.world;
   const R = { phase: 0, crouchK: 0, lean: 0, look: 0, blinkT: 2, blink: 0, scarf: null, rag: null, ghosts: [], roll: 0, land: 0, idleKind: 0, swayT: 0, lastPose: null, sitK: 0 };
   WTP.rig = R;
-  const TH = 3.15, SH = 3.15, UA = 2.35, FA = 2.35, TORSO = 4.5, HEAD = 1.6;
+  const K = 22 / 14;
+  const TH = 3.15 * K, SH = 3.15 * K, UA = 2.35 * K, FA = 2.35 * K, TORSO = 4.5 * K, HEAD = 1.6 * K;
+  const LW = 1.55 * 1.35, FW = 0.78 * 1.4;
+  R.K = K;
   const lerp = (a, b, t) => a + (b - a) * t;
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
@@ -34,27 +37,29 @@
     const ground = P.ground;
     R.crouchK = lerp(R.crouchK, P.crouch || P.rollT > 0 ? 1 : 0, Math.min(1, dt * 14));
     let targetLean = 0;
-    if (ground && sp > 12) targetLean = face * Math.min(0.28, sp / 380) * Math.sign(P.vx) * face;
+    if (ground && sp > 12) targetLean = Math.min(0.28, sp / 470) * Math.sign(P.vx) * face;
     if (P.dashT > 0) targetLean = 0.55;
     if (R.crouchK > 0.5) targetLean = 0.3;
     if (!ground && P.vy < -60) targetLean = -0.1;
     R.lean = lerp(R.lean, targetLean, Math.min(1, dt * 10));
-    if (ground && sp > 6) R.phase += dt * sp * 0.34;
+    if (ground && sp > 6) R.phase += dt * sp * 0.27;
     else if (ground) R.phase = lerp(R.phase, Math.round(R.phase / Math.PI) * Math.PI, Math.min(1, dt * 8));
     const idle = ground && sp < 6 && P.idleT > 0.4;
     R.swayT += dt;
-    const breathe = Math.sin(R.swayT * 2.2) * (idle ? 0.18 : 0.08);
-    const stepBob = ground && sp > 12 ? Math.abs(Math.cos(R.phase)) * 0.55 : 0;
+    const breathe = Math.sin(R.swayT * 2.2) * (idle ? 0.18 : 0.08) * K;
+    const stepBob = ground && sp > 12 ? Math.abs(Math.cos(R.phase)) * 0.55 * K : 0;
     const legReach = TH + SH;
-    const crouchDrop = R.crouchK * 2.6;
-    const landDrop = Math.max(0, P.land) * 6;
+    const crouchDrop = R.crouchK * 2.6 * K;
+    const landDrop = Math.max(0, P.land) * 6 * K;
     let hipY = base - legReach * 0.93 + crouchDrop + landDrop + stepBob * 0.6 - breathe * 0.3;
-    if (!ground) hipY = base - legReach * 0.9 + (P.vy < -40 ? 0.8 : 0);
-    const hipX = cx - face * 0.2;
-    const lean = R.lean * face;
+    if (!ground) hipY = base - legReach * 0.9 + (P.vy < -40 ? 0.8 * K : 0);
+    if (P.hurtT > 0) hipY += 0.8 * K;
+    const hipX = cx - face * 0.2 * K;
+    const flinch = P.hurtT > 0 ? -0.35 * face : 0;
+    const lean = R.lean * face + flinch;
     const nx = hipX + Math.sin(lean) * TORSO, ny = hipY - Math.cos(lean) * TORSO + breathe * 0.2;
-    const lookY = clamp(aim.y, -0.8, 0.8) * 0.5;
-    const hx = nx + Math.sin(lean) * HEAD * 1.05 + face * 0.15, hy = ny - Math.cos(lean) * HEAD * 1.05 + lookY * 0.3;
+    const lookY = clamp(aim.y, -0.8, 0.8) * 0.5 * K;
+    const hx = nx + Math.sin(lean) * HEAD * 1.05 + face * 0.15 * K, hy = ny - Math.cos(lean) * HEAD * 1.05 + lookY * 0.3;
     const shX = lerp(nx, hipX, 0.14), shY = lerp(ny, hipY, 0.14);
     const legs = [];
     for (let k = 0; k < 2; k++) {
@@ -64,31 +69,31 @@
       if (P.kickT > 0 && k === 0) {
         const kk = 1 - P.kickT / 0.22;
         const dir = P.kickDir || 0;
-        fx = hipX + face * Math.sin(kk * Math.PI) * 5.2;
-        fy = hipY + (dir > 0.5 ? 6 : dir < -0.5 ? -2.5 : 2.2) - Math.sin(kk * Math.PI) * (dir < -0.5 ? 2 : 1);
+        fx = hipX + face * Math.sin(kk * Math.PI) * 5.2 * K;
+        fy = hipY + (dir > 0.5 ? 6 : dir < -0.5 ? -2.5 : 2.2) * K - Math.sin(kk * Math.PI) * (dir < -0.5 ? 2 : 1) * K;
       } else if (ground) {
         if (sp > 6) {
-          const stride = Math.min(2.8, 0.9 + sp / 55);
-          fx = hipX + face * Math.sin(ph) * stride * Math.sign(P.vx) * face;
-          const lift = Math.max(0, -Math.cos(ph)) * Math.min(2, 0.6 + sp / 70);
-          const g = groundAt(fx, base - 3, base + 3);
+          const stride = Math.min(2.8, 0.9 + sp / 70) * K;
+          fx = hipX + Math.sin(ph) * stride * Math.sign(P.vx);
+          const lift = Math.max(0, -Math.cos(ph)) * Math.min(2, 0.6 + sp / 90) * K;
+          const g = groundAt(fx, base - 4, base + 4);
           fy = (g != null ? g : base) - lift;
         } else {
-          fx = hipX + side * (0.9 + R.crouchK * 0.6) + face * 0.3;
-          const g = groundAt(fx, base - 3, base + 3);
+          fx = hipX + side * (0.9 + R.crouchK * 0.6) * K + face * 0.3 * K;
+          const g = groundAt(fx, base - 4, base + 4);
           fy = g != null ? g : base;
-          if (idle && R.idleKind === 1 && k === 0) fy -= Math.max(0, Math.sin(R.swayT * 7)) * 0.5;
+          if (idle && R.idleKind === 1 && k === 0) fy -= Math.max(0, Math.sin(R.swayT * 7)) * 0.5 * K;
         }
       } else if (P.sliding || P.wall) {
         const wd = P.wall || P.wallNear?.() || face;
-        fx = hipX + wd * (k ? 2.2 : 1.2);
-        fy = hipY + (k ? 3.5 : 5.4);
+        fx = hipX + wd * (k ? 2.2 : 1.2) * K;
+        fy = hipY + (k ? 3.5 : 5.4) * K;
       } else if (P.vy < -40) {
-        fx = hipX + side * 0.6 + face * (k ? -0.4 : 0.9);
-        fy = hipY + (k ? 3.6 : 4.6);
+        fx = hipX + (side * 0.6 + face * (k ? -0.4 : 0.9)) * K;
+        fy = hipY + (k ? 3.6 : 4.6) * K;
       } else {
-        fx = hipX + side * 1.4 - face * 0.2 + Math.sin(R.swayT * 9 + k) * 0.25;
-        fy = hipY + 5.6;
+        fx = hipX + (side * 1.4 - face * 0.2 + Math.sin(R.swayT * 9 + k) * 0.25) * K;
+        fy = hipY + 5.6 * K;
       }
       const s = ik(hipX, hipY, fx, fy, TH, SH, face > 0 ? -1 : 1);
       legs.push(s);
@@ -98,20 +103,22 @@
     let fhx, fhy, bhx, bhy;
     const holding = !!P.carry;
     if (holding) {
-      fhx = nx + face * 0.6; fhy = ny - 3.2; bhx = nx - face * 0.6; bhy = ny - 3.2;
+      fhx = nx + face * 0.6 * K; fhy = ny - 3.2 * K; bhx = nx - face * 0.6 * K; bhy = ny - 3.2 * K;
     } else if (P.victory) {
-      fhx = shX + face * 1.2; fhy = shY - 4.2; bhx = shX - face * 1.2; bhy = shY - 4.2;
+      fhx = shX + face * 1.2 * K; fhy = shY - 4.2 * K; bhx = shX - face * 1.2 * K; bhy = shY - 4.2 * K;
+    } else if (P.hurtT > 0 && !weaponSprite) {
+      fhx = shX - face * 1.5 * K; fhy = shY - 2.5 * K; bhx = shX - face * 2 * K; bhy = shY - 1 * K;
     } else if (weaponSprite && !P.dead) {
-      const reach = 3.7 - rec * 0.6;
+      const reach = (3.7 - rec * 0.6) * K;
       fhx = shX + Math.cos(aimA) * reach; fhy = shY + Math.sin(aimA) * reach;
       const two = !opts.oneHand;
-      if (two) { bhx = shX + Math.cos(aimA) * (reach + 1.6) - face * 0.2; bhy = shY + Math.sin(aimA) * (reach + 1.6) + 0.4; }
-      else { bhx = shX - face * 1 + Math.sin(R.phase) * 1.2; bhy = shY + 3.8; }
+      if (two) { bhx = shX + Math.cos(aimA) * (reach + 1.6 * K) - face * 0.2 * K; bhy = shY + Math.sin(aimA) * (reach + 1.6 * K) + 0.4 * K; }
+      else { bhx = shX + (-face * 1 + Math.sin(R.phase) * 1.2) * K; bhy = shY + 3.8 * K; }
     } else {
-      fhx = shX + face * 1.3; fhy = shY + 3.6;
-      bhx = shX - face * 1.1 + Math.sin(R.phase) * 1.4; bhy = shY + 3.6;
+      fhx = shX + face * 1.3 * K; fhy = shY + 3.6 * K;
+      bhx = shX + (-face * 1.1 + Math.sin(R.phase) * 1.4) * K; bhy = shY + 3.6 * K;
     }
-    if (!ground && !holding && !P.victory && P.vy < -60 && !weaponSprite) { bhy -= 3; fhy -= 3; }
+    if (!ground && !holding && !P.victory && P.vy < -60 && !weaponSprite) { bhy -= 3 * K; fhy -= 3 * K; }
     const armF = ik(shX, shY, fhx, fhy, UA, FA, face > 0 ? 1 : -1);
     const armB = ik(shX, shY, bhx, bhy, UA, FA, face > 0 ? 1 : -1);
     return { hipX, hipY, nx, ny, hx, hy, shX, shY, legs, armF, armB, aimA, face, anim };
@@ -132,7 +139,7 @@
     for (let it = 0; it < 3; it++) for (let k = 1; k < n; k++) {
       const a = S[k - 1], b = S[k];
       const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 0.001;
-      const L = 0.75;
+      const L = 1.15;
       const f = (d - L) / d;
       b.x -= dx * f; b.y -= dy * f;
     }
@@ -208,12 +215,12 @@
     const front = [[p.shX, p.shY, p.armF.jx, p.armF.jy, p.armF.ex, p.armF.ey]];
     ctx.globalAlpha = alpha;
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    strokeSet(ctx, segs, 1.55, c.out);
-    ctx.fillStyle = c.out; ctx.beginPath(); ctx.arc(p.hx, p.hy, HEAD + 0.42, 0, Math.PI * 2); ctx.fill();
-    strokeSet(ctx, segs, 0.78, c.fg);
+    strokeSet(ctx, segs, LW, c.out);
+    ctx.fillStyle = c.out; ctx.beginPath(); ctx.arc(p.hx, p.hy, HEAD + 0.6, 0, Math.PI * 2); ctx.fill();
+    strokeSet(ctx, segs, FW, c.fg);
     ctx.fillStyle = c.fg; ctx.beginPath(); ctx.arc(p.hx, p.hy, HEAD, 0, Math.PI * 2); ctx.fill();
-    if (!R.blink) { ctx.fillStyle = c.eye; ctx.beginPath(); ctx.arc(p.hx + p.face * 0.75, p.hy - 0.15 + Math.sin(p.aimA) * 0.35, 0.36, 0, Math.PI * 2); ctx.fill(); }
-    else { ctx.fillStyle = c.eye; ctx.fillRect(p.hx + p.face * 0.75 - 0.4, p.hy - 0.1, 0.8, 0.22); }
+    if (!R.blink) { ctx.fillStyle = c.eye; ctx.beginPath(); ctx.arc(p.hx + p.face * 1.15, p.hy - 0.2 + Math.sin(p.aimA) * 0.5, 0.55, 0, Math.PI * 2); ctx.fill(); }
+    else { ctx.fillStyle = c.eye; ctx.fillRect(p.hx + p.face * 1.15 - 0.6, p.hy - 0.15, 1.2, 0.35); }
     ctx.globalAlpha = 1;
     return front;
   }
@@ -223,8 +230,8 @@
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     const pts = [];
     for (const q of S) pts.push(q.x, q.y);
-    strokeSet(ctx, [pts], 1.5, c.out);
-    strokeSet(ctx, [pts], 0.8, c.scarf);
+    strokeSet(ctx, [pts], 2.1, c.out);
+    strokeSet(ctx, [pts], 1.15, c.scarf);
   }
 
   R.draw = (ctx, dt, weaponSprite, aim, opts = {}) => {
@@ -238,11 +245,11 @@
       const q = R.rag.pts;
       const segs = [[q[0].x, q[0].y, q[1].x, q[1].y, q[2].x, q[2].y], [q[2].x, q[2].y, q[3].x, q[3].y, q[4].x, q[4].y], [q[2].x, q[2].y, q[5].x, q[5].y, q[6].x, q[6].y], [q[1].x, q[1].y, q[7].x, q[7].y, q[8].x, q[8].y], [q[1].x, q[1].y, q[9].x, q[9].y, q[10].x, q[10].y]];
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      strokeSet(ctx, segs.slice(1), 1.55, c.out);
-      strokeSet(ctx, [[q[1].x, q[1].y, q[2].x, q[2].y]], 1.55, c.out);
-      strokeSet(ctx, segs.slice(1), 0.78, c.fg);
-      strokeSet(ctx, [[q[1].x, q[1].y, q[2].x, q[2].y]], 0.78, c.fg);
-      ctx.fillStyle = c.out; ctx.beginPath(); ctx.arc(q[0].x, q[0].y, HEAD + 0.42, 0, Math.PI * 2); ctx.fill();
+      strokeSet(ctx, segs.slice(1), LW, c.out);
+      strokeSet(ctx, [[q[1].x, q[1].y, q[2].x, q[2].y]], LW, c.out);
+      strokeSet(ctx, segs.slice(1), FW, c.fg);
+      strokeSet(ctx, [[q[1].x, q[1].y, q[2].x, q[2].y]], FW, c.fg);
+      ctx.fillStyle = c.out; ctx.beginPath(); ctx.arc(q[0].x, q[0].y, HEAD + 0.6, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = c.fg; ctx.beginPath(); ctx.arc(q[0].x, q[0].y, HEAD, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = c.eye; ctx.lineWidth = 0.25; ctx.beginPath(); ctx.moveTo(q[0].x - 0.5, q[0].y - 0.5); ctx.lineTo(q[0].x + 0.5, q[0].y + 0.5); ctx.moveTo(q[0].x + 0.5, q[0].y - 0.5); ctx.lineTo(q[0].x - 0.5, q[0].y + 0.5); ctx.stroke();
       if (R.scarf) { R.scarf[0].x = q[1].x; R.scarf[0].y = q[1].y; }
@@ -252,13 +259,13 @@
     }
     if (P.rollT > 0) {
       R.roll += dt * 16 * P.face;
-      const cx = P.x + P.w / 2, cy = P.y + P.h - 3.2;
-      ctx.save(); ctx.translate(cx, cy); ctx.rotate(R.roll);
+      const cx = P.x + P.w / 2, cy = P.y + P.h - 3.2 * K;
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(R.roll); ctx.scale(K, K);
       ctx.lineCap = 'round';
       const segs = [[0, 0, 1.6, 1.6, 0.2, 2.6], [0, 0, -1.4, 1.8, 0.4, 2.4], [0, 0, 2.2, -0.4]];
-      strokeSet(ctx, segs, 1.55, c.out); strokeSet(ctx, segs, 0.78, c.fg);
-      ctx.fillStyle = c.out; ctx.beginPath(); ctx.arc(0.8, -1.6, HEAD + 0.42, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = c.fg; ctx.beginPath(); ctx.arc(0.8, -1.6, HEAD, 0, Math.PI * 2); ctx.fill();
+      strokeSet(ctx, segs, LW, c.out); strokeSet(ctx, segs, FW, c.fg);
+      ctx.fillStyle = c.out; ctx.beginPath(); ctx.arc(0.8, -1.6, 1.6 + 0.42, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = c.fg; ctx.beginPath(); ctx.arc(0.8, -1.6, 1.6, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
       P.gunPos = { x: cx, y: cy }; P.muzzle = { x: cx, y: cy };
       return;
@@ -301,8 +308,8 @@
       P.muzzle = { x: p.armF.ex + Math.cos(p.aimA) * 1.5, y: p.armF.ey + Math.sin(p.aimA) * 1.5 };
     }
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    strokeSet(ctx, front, 1.55, c.out);
-    strokeSet(ctx, front, 0.78, c.fg);
+    strokeSet(ctx, front, LW, c.out);
+    strokeSet(ctx, front, FW, c.fg);
     WTP.rigGadgets?.draw?.(ctx, p, 'front', c);
     ctx.restore();
   };

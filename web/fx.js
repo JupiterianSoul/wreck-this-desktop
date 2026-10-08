@@ -47,7 +47,7 @@
   FX.splinter = (x, y, ivx, ivy, c) => add(K.SPLINTER, x, y, ivx, ivy, (Math.random() < 0.3 ? shade(c, 1.2, 10) : c), rand(1.2, 2.4), rand(0, 6.28), rand(-14, 14));
   FX.paper = (x, y, ivx, ivy, c) => add(K.PAPER, x, y, ivx, ivy, c, rand(2.2, 3.6), rand(0, 6.28));
   FX.ash = (x, y) => add(K.ASH, x, y, rand(-6, 6), rand(-18, -6), Math.random() < 0.5 ? P32['3'] : P32['2'], rand(1, 2.4), rand(0, 6.28));
-  FX.clear = () => { FX.np = 0; FX.anims = []; FX.beams = []; FX.pops = []; FX.rings = []; FX.flashA = 0; };
+  FX.clear = () => { WTP.booms?.clear?.(); FX.np = 0; FX.anims = []; FX.beams = []; FX.pops = []; FX.rings = []; FX.flashA = 0; };
   FX.count = () => FX.np;
 
   FX.anim = (type, size, x, y, dur = 0.5, o = {}) => {
@@ -65,15 +65,13 @@
   FX.flash = (a, c = '#fff') => { if (!WTP.save.settings.flashes) a *= 0.25; FX.flashA = Math.max(FX.flashA, a); FX.flashC = c; };
 
   FX.explosion = (x, y, r, kind = 'fire') => {
-    const size = r * 2.6;
-    FX.anim(kind, size, x, y, 0.42 + r * 0.008);
-    if (r > 14) FX.anim('ring', r * 3.2, x, y, 0.3);
+    if (WTP.booms) WTP.booms.add(x, y, r, kind);
+    else { FX.anim(kind, r * 2.6, x, y, 0.42 + r * 0.008); if (r > 14) FX.anim('ring', r * 3.2, x, y, 0.3); }
     const n = Math.min(40, r * 1.5) * (q() + 1) / 3;
     for (let k = 0; k < n; k++) { const a = Math.random() * 6.28, s = rand(60, 200); FX.spark(x, y, Math.cos(a) * s, Math.sin(a) * s - 30, Math.random() < 0.5 ? P32.y : P32.a, rand(0.15, 0.5)); }
-    for (let k = 0; k < Math.min(18, r * 0.8) * (q() + 1) / 3; k++) FX.smoke(x + rand(-r / 2, r / 2), y + rand(-r / 2, r / 2), 1);
+    if (!WTP.booms) for (let k = 0; k < Math.min(18, r * 0.8) * (q() + 1) / 3; k++) FX.smoke(x + rand(-r / 2, r / 2), y + rand(-r / 2, r / 2), 1);
     for (let k = 0; k < Math.min(12, r * 0.5); k++) FX.dust(x + rand(-r, r), y + rand(-r, r));
     if (kind === 'fire') for (let k = 0; k < Math.min(10, r * 0.4); k++) FX.ember(x + rand(-r / 2, r / 2), y + rand(-r / 2, r / 2));
-    if (r >= 10) for (let k = 0; k < Math.min(14, r * 0.4) * (q() + 1) / 3; k++) { const i = add(K.SMOKE, x + rand(-r, r), y + rand(-r * 0.6, r * 0.3), rand(-14, 14), rand(-10, 2), P32['4'], rand(2.2, 4), 0, rand(2, 4)); if (i >= 0) aux2[i] = rand(2.5, 4.5); }
   };
 
   function update(dt) {
