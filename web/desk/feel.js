@@ -91,6 +91,33 @@
     tr.push(s.x, s.y);
     if (tr.length > n * 2) tr.splice(0, tr.length - n * 2);
   }
+  const dith = WTP.sprites.dith;
+  function pxLine(ctx, x0, y0, x1, y1, th, colAt) {
+    let ax = Math.floor(x0), ay = Math.floor(y0);
+    const bx = Math.floor(x1), by = Math.floor(y1);
+    const dx = Math.abs(bx - ax), dy = -Math.abs(by - ay), sx = ax < bx ? 1 : -1, sy = ay < by ? 1 : -1;
+    const N = Math.max(1, Math.max(dx, -dy));
+    let err = dx + dy;
+    for (let n = 0; n <= 256; n++) {
+      const c = colAt(n / N, ax, ay);
+      if (c) { ctx.fillStyle = c; ctx.fillRect(ax, ay, 1 + th, 1 + th); }
+      if (ax === bx && ay === by) break;
+      const e2 = 2 * err;
+      if (e2 >= dy) { err += dy; ax += sx; }
+      if (e2 <= dx) { err += dx; ay += sy; }
+    }
+  }
+  F.pxLine = pxLine;
+  function pxDisc(ctx, x, y, r, col, dens) {
+    const cx = Math.floor(x), cy = Math.floor(y), R = Math.ceil(r);
+    ctx.fillStyle = col;
+    for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+      if (dx * dx + dy * dy > r * r + 0.3) continue;
+      if (dens < 1 && !dith(cx + dx, cy + dy, dens)) continue;
+      ctx.fillRect(cx + dx, cy + dy, 1, 1);
+    }
+  }
+  F.pxDisc = pxDisc;
   function drawTrail(ctx, s, L) {
     const tr = s._tr;
     if (!tr || tr.length < 4) return;
@@ -98,38 +125,24 @@
     if (L.smoke) {
       for (let i = 0; i < n; i++) {
         const k = i / n, x = tr[i * 2], y = tr[i * 2 + 1];
-        const r = (0.8 + (1 - k) * 2.6) * L.smoke * (L.small ? 0.6 : 1);
-        ctx.globalAlpha = k * 0.38;
-        ctx.fillStyle = i % 3 ? '#9aa0aa' : '#c3c8cf';
-        ctx.beginPath(); ctx.arc(x + Math.sin(i * 1.7) * 0.6, y - (1 - k) * 2, r, 0, Math.PI * 2); ctx.fill();
+        const r = (0.6 + (1 - k) * 2.2) * L.smoke * (L.small ? 0.6 : 1);
+        pxDisc(ctx, x + Math.sin(i * 1.7) * 0.6, y - (1 - k) * 2, r, k > 0.7 ? '#c3c8cf' : '#8e949e', 0.15 + k * 0.45);
       }
-      ctx.globalAlpha = 1;
       return;
     }
     const col = L.arc || L.g || '#ffffff';
-    ctx.strokeStyle = col; ctx.lineCap = 'round';
     for (let i = 1; i < n; i++) {
       const k = i / n;
-      ctx.globalAlpha = k * (L.arc ? 0.35 : 0.55);
-      ctx.lineWidth = L.arc ? 0.6 : (L.r || 1) * k * 1.4;
-      ctx.beginPath(); ctx.moveTo(tr[(i - 1) * 2], tr[(i - 1) * 2 + 1]); ctx.lineTo(tr[i * 2], tr[i * 2 + 1]); ctx.stroke();
+      pxLine(ctx, tr[(i - 1) * 2], tr[(i - 1) * 2 + 1], tr[i * 2], tr[i * 2 + 1], 0, (t, x, y) => (dith(x, y, k * (L.arc ? 0.45 : 0.8)) ? col : null));
     }
-    ctx.globalAlpha = 1;
   }
 
   function tracer(ctx, s, L) {
     const sp = Math.hypot(s.vx, s.vy) || 1, ux = s.vx / sp, uy = s.vy / sp;
     const len = Math.min(sp * L.len, 4 + s.age * sp);
-    const tx = s.x - ux * len, ty = s.y - uy * len;
-    const g = ctx.createLinearGradient(tx, ty, s.x, s.y);
-    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.6, L.g); g.addColorStop(1, L.c);
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = 'rgba(8,9,12,.55)'; ctx.lineWidth = L.w + 0.8;
-    ctx.beginPath(); ctx.moveTo(s.x - ux * len * 0.5, s.y - uy * len * 0.5); ctx.lineTo(s.x, s.y); ctx.stroke();
-    ctx.strokeStyle = g; ctx.lineWidth = L.w;
-    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(s.x, s.y); ctx.stroke();
-    glow(ctx, s.x, s.y, L.w * 2.6, L.g, 0.55);
-    ctx.fillStyle = L.c; ctx.beginPath(); ctx.arc(s.x, s.y, L.w * 0.62, 0, Math.PI * 2); ctx.fill();
+    const th = L.w >= 1.6 ? 1 : 0;
+    glow(ctx, s.x, s.y, 2 + L.w * 1.6, L.g, 0.4);
+    pxLine(ctx, s.x - ux * len, s.y - uy * len, s.x, s.y, th, (t, x, y) => (t < 0.45 && !dith(x, y, t / 0.45) ? null : t > 0.8 ? L.c : L.g));
   }
 
   function look(ctx, s) {
@@ -141,11 +154,11 @@
     switch (L.k) {
       case 'tracer': case 'pellet': tracer(ctx, s, L); return true;
       case 'fire': {
-        const k = Math.min(1, s.age / 0.45), r = 1.1 + k * 3.4;
-        const col = k < 0.2 ? 'rgba(255,250,210,.95)' : k < 0.5 ? 'rgba(255,190,60,.8)' : k < 0.8 ? 'rgba(255,100,30,.6)' : 'rgba(110,100,100,.35)';
-        ctx.globalCompositeOperation = k < 0.8 ? 'lighter' : 'source-over';
-        glow(ctx, s.x, s.y, r, col, 1);
-        ctx.globalCompositeOperation = 'source-over';
+        const k = Math.min(1, s.age / 0.45), r = 0.6 + k * 2.6;
+        const col = k < 0.2 ? '#fffad2' : k < 0.45 ? '#ffd34a' : k < 0.75 ? '#ff7a2a' : '#6e6464';
+        if (k < 0.6) glow(ctx, s.x, s.y, r + 2, 'rgba(255,150,40,.35)', 1);
+        pxDisc(ctx, s.x, s.y, r, col, k < 0.75 ? 0.85 : 0.35);
+        if (k < 0.45) pxDisc(ctx, s.x, s.y, r * 0.45, '#fffad2', 1);
         return true;
       }
       case 'nail': {
@@ -286,21 +299,40 @@
     if (f.smoke) for (let k = 0; k < 3 * f.smoke; k++) F.parts.push({ x: x + Math.cos(ang) * 2, y: y + Math.sin(ang) * 2, vx: Math.cos(ang) * 30 + (Math.random() - 0.5) * 20, vy: Math.sin(ang) * 30 - 12 - Math.random() * 10, t: 0, dur: 0.5 + Math.random() * 0.3, c: '#aab0b9', r: 1.2, grow: 3, a: 0.32, g: -10, drag: 3 });
     if (F.flashes.length > 24) F.flashes.shift();
   };
-  function drawFlash(ctx, f) {
-    const k = f.t / f.dur, L = f.L * f.sp * (k < 0.3 ? 0.7 + k : 1.1 - (k - 0.3) * 0.6), a = 1 - k * 0.7;
-    ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.ang + f.rot);
-    glow(ctx, L * 0.25, 0, L * 0.9, f.g, a * 0.7);
+  const flashCache = new Map();
+  function flashSprite(f, stage, step) {
+    const key = `${f.L.toFixed(1)}|${f.side ? 1 : 0}|${f.ring ? 1 : 0}|${f.c}|${f.g}|${stage}|${step}`;
+    let cv = flashCache.get(key);
+    if (cv) return cv;
+    const L = f.L * [0.75, 1.05, 0.85][stage];
+    const pc = new WTP.PixCtx(44, 44);
+    pc.begin(-22, -22);
+    pc.rotate(step * (Math.PI / 16));
     const star = (sc, col) => {
-      ctx.fillStyle = col; ctx.beginPath();
-      ctx.moveTo(-0.5, -1.0 * sc); ctx.lineTo(L * 0.42, -0.9 * sc);
-      if (f.side) { ctx.lineTo(L * 0.25, -L * 0.36 * sc); ctx.lineTo(L * 0.58, -0.6 * sc); }
-      ctx.lineTo(L * sc, 0);
-      if (f.side) { ctx.lineTo(L * 0.58, 0.6 * sc); ctx.lineTo(L * 0.25, L * 0.36 * sc); }
-      ctx.lineTo(L * 0.42, 0.9 * sc); ctx.lineTo(-0.5, 1.0 * sc); ctx.closePath(); ctx.fill();
+      pc.fillStyle = col; pc.beginPath();
+      pc.moveTo(-0.5, -1.2 * sc); pc.lineTo(L * 0.42, -1.0 * sc);
+      if (f.side) { pc.lineTo(L * 0.25, -L * 0.38 * sc); pc.lineTo(L * 0.6, -0.7 * sc); }
+      pc.lineTo(L * sc, 0);
+      if (f.side) { pc.lineTo(L * 0.6, 0.7 * sc); pc.lineTo(L * 0.25, L * 0.38 * sc); }
+      pc.lineTo(L * 0.42, 1.0 * sc); pc.lineTo(-0.5, 1.2 * sc); pc.closePath(); pc.fill();
     };
-    ctx.globalAlpha = a; star(1, f.g); star(0.62, f.c);
-    if (f.ring) { ctx.strokeStyle = f.g; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.ellipse(L * 0.3, 0, 0.8 + k * 1.6, 1.8 + k * 3, 0, 0, Math.PI * 2); ctx.stroke(); }
-    ctx.restore(); ctx.globalAlpha = 1;
+    if (stage < 2) { star(1, f.g); star(0.6, f.c); }
+    else { star(0.8, f.g); }
+    if (f.ring && stage > 0) { pc.strokeStyle = f.g; pc.lineWidth = 1; pc.beginPath(); pc.ellipse(L * 0.3, 0, 1 + stage, 2 + stage * 2, 0, 0, Math.PI * 2); pc.stroke(); }
+    cv = pc.toImage(null, document.createElement('canvas'));
+    if (flashCache.size > 600) flashCache.clear();
+    flashCache.set(key, cv);
+    return cv;
+  }
+  function drawFlash(ctx, f) {
+    const k = f.t / f.dur, stage = k < 0.34 ? 0 : k < 0.67 ? 1 : 2;
+    const ang = f.ang + f.rot, step = ((Math.round(ang / (Math.PI / 16)) % 32) + 32) % 32;
+    glow(ctx, f.x + Math.cos(ang) * f.L * 0.3, f.y + Math.sin(ang) * f.L * 0.3, f.L * 0.9, f.g, 0.5 * (1 - k));
+    const cv = flashSprite({ ...f, L: Math.round(f.L * f.sp * 2) / 2 }, stage, step);
+    const sm = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(cv, Math.round(f.x) - 22, Math.round(f.y) - 22, 44, 44);
+    ctx.imageSmoothingEnabled = sm;
   }
 
   F.impact = (x, y, col, big) => {
@@ -311,22 +343,29 @@
   };
   function drawHit(ctx, h) {
     const k = h.t / h.dur;
-    ctx.globalAlpha = 1 - k;
-    glow(ctx, h.x, h.y, h.r * (0.6 + k), h.c, 0.8);
-    ctx.strokeStyle = h.c; ctx.lineWidth = 0.6 * (1 - k) + 0.2; ctx.lineCap = 'round';
+    glow(ctx, h.x, h.y, h.r * (0.6 + k), h.c, 0.6 * (1 - k));
     for (let q = 0; q < 5; q++) {
       const a = h.a0 + q * 1.2566, r0 = h.r * (0.25 + k * 0.6), r1 = h.r * (0.6 + k * 0.9);
-      ctx.beginPath(); ctx.moveTo(h.x + Math.cos(a) * r0, h.y + Math.sin(a) * r0); ctx.lineTo(h.x + Math.cos(a) * r1, h.y + Math.sin(a) * r1); ctx.stroke();
+      pxLine(ctx, h.x + Math.cos(a) * r0, h.y + Math.sin(a) * r0, h.x + Math.cos(a) * r1, h.y + Math.sin(a) * r1, 0, (t, x, y) => (dith(x, y, 1 - k) ? (t > 0.5 ? h.c : '#ffffff') : null));
     }
-    ctx.globalAlpha = 1;
   }
-  function drawPart(ctx, p) {
-    const k = p.t / p.dur, r = p.r * (1 + (p.grow || 0) * k);
-    ctx.globalAlpha = (p.a ?? 1) * (1 - k);
-    if (p.streak) { ctx.strokeStyle = p.c; ctx.lineWidth = r * 1.4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 0.02, p.y - p.vy * 0.02); ctx.stroke(); }
-    else { ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill(); }
-    ctx.globalAlpha = 1;
+  const c32cache = new Map();
+  const c32 = (c) => {
+    let v = c32cache.get(c);
+    if (v != null) return v;
+    if (c[0] === '#') v = WTP.packHex(c);
+    else { const m = /rgba?\(([^)]+)\)/.exec(c); const q = m ? m[1].split(',').map((x) => +x) : [255, 255, 255]; v = WTP.pack(q[0] | 0, q[1] | 0, q[2] | 0); }
+    if (c32cache.size > 400) c32cache.clear();
+    c32cache.set(c, v);
+    return v;
+  };
+  function part(p) {
+    const FXo = WTP.fx, c = c32(p.c || '#ffffff');
+    if (p.grow) FXo.puff(p.x, p.y, p.vx || 0, p.vy || 0, c, p.dur || 0.6, (p.r || 1) * (1 + p.grow * 0.4));
+    else FXo.spark(p.x, p.y, p.vx || 0, p.vy || 0, c, p.dur || 0.3);
   }
+  F.part = part;
+  F.parts = { push: part };
 
   const live = new Map();
   const TRAIL_N = { tracer: 0, pellet: 0, nail: 0, rocket: 22, missile: 14, warhead: 26, firework: 6, orb: 10, blob: 5, flare: 0, icon: 10, meteor: 16, bolt: 0, harpoon: 0, saw: 0, ball: 6, bee: 0, flak: 0 };
@@ -352,23 +391,12 @@
     F.flashes = F.flashes.filter((f) => f.t < f.dur);
     for (const h of F.hits) h.t += dt;
     F.hits = F.hits.filter((h) => h.t < h.dur);
-    const Wd = WTP.world;
-    for (const p of F.parts) {
-      p.t += dt; p.vy += (p.g || 0) * dt;
-      if (p.drag) { p.vx *= 1 - p.drag * dt; p.vy *= 1 - p.drag * dt; }
-      const nx = p.x + p.vx * dt, ny = p.y + p.vy * dt;
-      if (p.streak && Wd.solid(Math.floor(nx), Math.floor(ny))) { if (Wd.solid(Math.floor(p.x), Math.floor(ny))) p.vy *= -0.45; else p.vx *= -0.5; p.vx *= 0.8; continue; }
-      p.x = nx; p.y = ny;
-    }
-    F.parts = F.parts.filter((p) => p.t < p.dur);
-    if (F.parts.length > 500) F.parts.splice(0, F.parts.length - 500);
   }
   F.step = step;
   WP.EXT.updates.push((dt) => step(dt));
   WP.EXT.after.push((ctx) => {
-    for (const p of F.parts) drawPart(ctx, p);
     for (const h of F.hits) drawHit(ctx, h);
     for (const f of F.flashes) drawFlash(ctx, f);
   });
-  WP.EXT.resets.push(() => { F.flashes = []; F.hits = []; F.parts = []; live.clear(); });
+  WP.EXT.resets.push(() => { F.flashes = []; F.hits = []; live.clear(); });
 })();

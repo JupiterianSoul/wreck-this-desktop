@@ -47,6 +47,8 @@
   FX.splinter = (x, y, ivx, ivy, c) => add(K.SPLINTER, x, y, ivx, ivy, (Math.random() < 0.3 ? shade(c, 1.2, 10) : c), rand(1.2, 2.4), rand(0, 6.28), rand(-14, 14));
   FX.paper = (x, y, ivx, ivy, c) => add(K.PAPER, x, y, ivx, ivy, c, rand(2.2, 3.6), rand(0, 6.28));
   FX.ash = (x, y) => add(K.ASH, x, y, rand(-6, 6), rand(-18, -6), Math.random() < 0.5 ? P32['3'] : P32['2'], rand(1, 2.4), rand(0, 6.28));
+  FX.puff = (x, y, ivx, ivy, c, l, r = 1.5) => add(K.SMOKE, x, y, ivx, ivy, c, l, 0, r);
+  FX.steam = (x, y, n = 3) => { for (let k = 0; k < n; k++) add(K.SMOKE, x + rand(-1.5, 1.5), y + rand(-1, 1), rand(-8, 8), rand(-46, -22), P32['7'], rand(0.5, 1.0), 0, rand(0.8, 1.8), 2); };
   FX.clear = () => { WTP.booms?.clear?.(); FX.np = 0; FX.anims = []; FX.beams = []; FX.pops = []; FX.rings = []; FX.flashA = 0; };
   FX.count = () => FX.np;
 
@@ -92,11 +94,13 @@
         if (solid(Math.floor(px[i]), Math.floor(ny))) {
           if (k === K.STAR) { starHit(i, px[i], ny); continue; }
           if (k === K.SHELL && vy[i] > 40 && !pf[i]) { pf[i] = 1; WTP.audio.play('tink'); }
+          if (k === K.SHARD && vy[i] > 30 && !pf[i] && Math.random() < 0.25) WTP.audio.play('tinkle');
           vy[i] = -vy[i] * (k === K.SHELL ? 0.45 : 0.32); vx[i] *= 0.7;
           if (Math.abs(vy[i]) < 14) {
             vy[i] = 0;
             if (k === K.DEBRIS && !pf[i] && Math.random() < 0.55 && W.placeRubble(Math.floor(px[i]), Math.floor(py[i]), pc[i])) { remove(i); continue; }
             if (k === K.DEBRIS) pf[i] = 1;
+            if (k === K.SHARD && !pf[i]) { pf[i] = 1; life[i] += 2.5 + Math.random() * 2; maxl[i] = life[i]; }
             if (k === K.CONFETTI || k === K.PAPER) { vx[i] = 0; aux2[i] = 1; }
             if (k === K.SPLINTER) { aux2[i] = 0; if (!pf[i] && Math.random() < 0.3 && W.placeRubble(Math.floor(px[i]), Math.floor(py[i]), pc[i])) { remove(i); continue; } pf[i] = 1; }
           }
@@ -272,7 +276,7 @@
       const k = pk[i], t = life[i] / maxl[i];
       switch (k) {
         case K.DEBRIS: case K.PIX: plot(bufB, X, Y, pc[i]); break;
-        case K.SHARD: plot(bufB, X, Y, ((i + (performance.now() / 80) | 0) & 3) === 0 ? P32['7'] : pc[i]); break;
+        case K.SHARD: { const tw = pf[i] ? ((i * 7 + (performance.now() / 90) | 0) % 23) === 0 : ((i + (performance.now() / 80) | 0) & 3) === 0; if (pf[i] && t < 0.35 && !DITH(X, Y, t / 0.35)) break; plot(bufB, X, Y, tw ? P32['7'] : pc[i]); if (tw && pf[i]) { plot(bufF, X - 1, Y, P32.C); plot(bufF, X + 1, Y, P32.C); plot(bufF, X, Y - 1, P32.C); } break; }
         case K.SHELL: plot(bufB, X, Y, pc[i]); if (Math.abs(vx[i]) > 5 || Math.abs(vy[i]) > 5 || (i & 1)) plot(bufB, X + 1, Y, shade(pc[i], 0.75)); else plot(bufB, X, Y - 1, shade(pc[i], 0.75)); break;
         case K.CONFETTI: plot(bufF, X, Y, pc[i]); if (Math.sin(aux[i] * 2) > 0) plot(bufF, X + 1, Y, shade(pc[i], 0.7)); break;
         case K.SPLINTER: { const ca = Math.cos(aux[i]), sa = Math.sin(aux[i]); plot(bufB, X, Y, pc[i]); plot(bufB, Math.round(X + ca), Math.round(Y + sa), shade(pc[i], 0.8)); if (aux2[i]) plot(bufB, Math.round(X - ca), Math.round(Y - sa), shade(pc[i], 1.1, 6)); break; }
@@ -289,7 +293,7 @@
         case K.STAR: plot(bufF, X, Y, pc[i]); plot(bufF, X - Math.sign(vx[i]), Y - Math.sign(vy[i]), shade(pc[i], 0.6)); break;
         case K.SMOKE: {
           const r = aux2[i] * (1.4 - t * 0.6);
-          disc(bufF, X, Y, r, SMOKE_C[Math.min(4, ((1 - t) * 3 + 1) | 0)], 0.25 + t * 0.6);
+          disc(bufF, X, Y, r, pf[i] === 2 ? (t > 0.5 ? P32['7'] : P32['6']) : SMOKE_C[Math.min(4, ((1 - t) * 3 + 1) | 0)], pf[i] === 2 ? 0.2 + t * 0.5 : 0.25 + t * 0.6);
           break;
         }
         case K.FLAME: {

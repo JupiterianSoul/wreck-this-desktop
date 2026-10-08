@@ -560,7 +560,7 @@
           if (!placeRubble(x, y, shade(c, 0.8))) FX().lava(x + 0.5, y + 0.5, rand(-10, 10), rand(0, 30));
           if (Math.random() < 0.08) FX().smoke(x, y - 1, 1, P32['3']);
         }
-        else if (Math.random() < 0.8) { any += kill(i, x, y, x + 0.5, y + 1, 0.04, 20); if (Math.random() < 0.12) FX().smoke(x, y - 1, 1); if (Math.random() < 0.05) FX().ash(x + 0.5, y); }
+        else if (Math.random() < 0.8) { const pm = mtl[i] === M.PAPER || mtl[i] === M.INK, c0 = col[i]; any += kill(i, x, y, x + 0.5, y + 1, 0.04, 20); if (Math.random() < 0.12) FX().smoke(x, y - 1, 1); if (pm && Math.random() < 0.08) FX().paper(x + 0.5, y, rand(-10, 10), rand(-30, -10), mix(c0, P32['1'], 0.75)); if (Math.random() < (pm ? 0.14 : 0.05)) FX().ash(x + 0.5, y); }
         else {
           col[i] = EMBER[hash(x, y) & 3]; flag[i] |= F_CHAR; touch(i);
           if (W.smoulder.length < 3000) W.smoulder.push(i, 60 + ((Math.random() * 160) | 0));

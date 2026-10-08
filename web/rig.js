@@ -45,6 +45,14 @@
     if (ground && sp > 6) R.phase += dt * sp * 0.27;
     else if (ground) R.phase = lerp(R.phase, Math.round(R.phase / Math.PI) * Math.PI, Math.min(1, dt * 8));
     const idle = ground && sp < 6 && P.idleT > 0.4;
+    const WPs = WTP.weapons?.st || {}, firing = !!WTP.input?.wantFire?.();
+    const aim0 = Math.atan2(aim.y, aim.x);
+    if (idle && !firing && !P.carry && !P.victory && Math.abs(aim0 - (R.aimLast ?? aim0)) < 0.04 && !(WPs.reload > 0)) R.relax = (R.relax || 0) + dt; else R.relax = 0;
+    R.aimLast = aim0;
+    const relax = R.relax;
+    const iSet = relax > 10 ? 3 : relax > 4 ? Math.floor((relax - 4) / 2) % 3 : -1;
+    let edge = false;
+    if (iSet === 3) edge = groundAt(cx + face * 3.2 * K, base - 1, base + 3) == null;
     R.swayT += dt;
     const breathe = Math.sin(R.swayT * 2.2) * (idle ? 0.18 : 0.08) * K;
     const stepBob = ground && sp > 12 ? Math.abs(Math.cos(R.phase)) * 0.55 * K : 0;
@@ -52,21 +60,28 @@
     const crouchDrop = R.crouchK * 2.6 * K;
     const landDrop = Math.max(0, P.land) * 6 * K;
     let hipY = base - legReach * 0.93 + crouchDrop + landDrop + stepBob * 0.6 - breathe * 0.3;
+    if (iSet === 3) hipY = base - (edge ? 0.2 : 1.4) * K;
     if (!ground) hipY = base - legReach * 0.9 + (P.vy < -40 ? 0.8 * K : 0);
     if (P.hurtT > 0) hipY += 0.8 * K;
     const hipX = cx - face * 0.2 * K;
     const flinch = P.hurtT > 0 ? -0.35 * face : 0;
-    const lean = R.lean * face + flinch;
+    const lean = R.lean * face + flinch + (iSet === 1 ? -0.18 * face * Math.sin(Math.min(1, (relax % 2) / 1) * Math.PI) : 0);
     const nx = hipX + Math.sin(lean) * TORSO, ny = hipY - Math.cos(lean) * TORSO + breathe * 0.2;
     const lookY = clamp(aim.y, -0.8, 0.8) * 0.5 * K;
-    const hx = nx + Math.sin(lean) * HEAD * 1.05 + face * 0.15 * K, hy = ny - Math.cos(lean) * HEAD * 1.05 + lookY * 0.3;
+    const lookAround = iSet === 0 ? Math.sin(relax * 2.4) * 0.45 * K : 0;
+    const hx = nx + Math.sin(lean) * HEAD * 1.05 + face * 0.15 * K + lookAround, hy = ny - Math.cos(lean) * HEAD * 1.05 + lookY * 0.3 - (iSet === 0 ? Math.abs(Math.sin(relax * 1.2)) * 0.2 * K : 0);
     const shX = lerp(nx, hipX, 0.14), shY = lerp(ny, hipY, 0.14);
     const legs = [];
     for (let k = 0; k < 2; k++) {
       const side = k === 0 ? 1 : -1;
       let fx, fy;
       const ph = R.phase + (k ? Math.PI : 0);
-      if (P.kickT > 0 && k === 0) {
+      if (iSet === 3) {
+        if (edge) { fx = hipX + face * (2.4 + k * 0.5) * K; fy = hipY + (3.6 + Math.sin(R.swayT * 2 + k * 2) * 0.5) * K; }
+        else { fx = hipX + face * (3.2 + k * 0.6) * K; fy = base - 0.1; }
+      } else if (P.mantle) {
+        fx = hipX + P.mantle.dir * (k ? 1.6 : 0.6) * K; fy = hipY + (k ? 4.8 : 2.6) * K;
+      } else if (P.kickT > 0 && k === 0) {
         const kk = 1 - P.kickT / 0.22;
         const dir = P.kickDir || 0;
         fx = hipX + face * Math.sin(kk * Math.PI) * 5.2 * K;
@@ -86,8 +101,9 @@
         }
       } else if (P.sliding || P.wall) {
         const wd = P.wall || P.wallNear?.() || face;
+        const scr = Math.sin(R.swayT * 16 + k * Math.PI) * 0.7 * K;
         fx = hipX + wd * (k ? 2.2 : 1.2) * K;
-        fy = hipY + (k ? 3.5 : 5.4) * K;
+        fy = hipY + (k ? 3.5 : 5.4) * K + scr;
       } else if (P.vy < -40) {
         fx = hipX + (side * 0.6 + face * (k ? -0.4 : 0.9)) * K;
         fy = hipY + (k ? 3.6 : 4.6) * K;
@@ -98,7 +114,14 @@
       const s = ik(hipX, hipY, fx, fy, TH, SH, face > 0 ? -1 : 1);
       legs.push(s);
     }
-    const aimA = Math.atan2(aim.y, aim.x) + (opts.swing || 0);
+    let aimA = Math.atan2(aim.y, aim.x) + (opts.swing || 0);
+    const dCur = WTP.weapons?.BY?.[WPs.cur];
+    if (relax > 2.5 && iSet !== 1) aimA = face > 0 ? 0.95 : Math.PI - 0.95;
+    if (iSet === 1) aimA = face > 0 ? 1.2 : Math.PI - 1.2;
+    if (WPs.reload > 0) aimA = (face > 0 ? -1.05 : Math.PI + 1.05) + Math.sin(R.swayT * 14) * 0.08;
+    let cock = 0;
+    if (dCur?.throw && firing && WPs.cd > 0) cock = Math.max(0, Math.min(1, 1 - WPs.cd / 0.28));
+    if (cock > 0) aimA -= face * cock * 2.1;
     const rec = P.recoil || 0;
     let fhx, fhy, bhx, bhy;
     const holding = !!P.carry;
@@ -109,7 +132,7 @@
     } else if (P.hurtT > 0 && !weaponSprite) {
       fhx = shX - face * 1.5 * K; fhy = shY - 2.5 * K; bhx = shX - face * 2 * K; bhy = shY - 1 * K;
     } else if (weaponSprite && !P.dead) {
-      const reach = (3.7 - rec * 0.6) * K;
+      const reach = (3.7 - rec * 0.6 - cock * 0.8) * K;
       fhx = shX + Math.cos(aimA) * reach; fhy = shY + Math.sin(aimA) * reach;
       const two = !opts.oneHand;
       if (two) { bhx = shX + Math.cos(aimA) * (reach + 1.6 * K) - face * 0.2 * K; bhy = shY + Math.sin(aimA) * (reach + 1.6 * K) + 0.4 * K; }
@@ -119,6 +142,15 @@
       bhx = shX + (-face * 1.1 + Math.sin(R.phase) * 1.4) * K; bhy = shY + 3.6 * K;
     }
     if (!ground && !holding && !P.victory && P.vy < -60 && !weaponSprite) { bhy -= 3 * K; fhy -= 3 * K; }
+    if (!holding && !P.victory && !P.dead && weaponSprite) {
+      if (WPs.reload > 0) { bhx = fhx + Math.cos(aimA) * 1.2 * K + Math.sin(R.swayT * 14) * 0.5 * K; bhy = fhy + Math.sin(aimA) * 1.2 * K + 0.6 * K; }
+      else if (iSet === 1) { const st2 = Math.sin(Math.min(1, (relax % 2) / 1) * Math.PI); bhx = shX - face * 0.6 * K; bhy = shY - (2 + st2 * 2.6) * K; }
+      else if (iSet === 2) { bhx = hx + (-face * 0.6 + Math.sin(R.swayT * 18) * 0.35) * K; bhy = hy - 1.2 * K; }
+      else if (iSet === 3) { bhx = hipX - face * 1.4 * K; bhy = hipY + 0.2 * K; }
+      else if (P.mantle) { const m = P.mantle; bhx = cx + m.dir * 3 * K; bhy = m.y1 + P.h - 0.6; }
+      else if (!ground && (P.sliding || P.wall)) { const wd = P.wall || P.wallNear?.() || face; bhx = shX + wd * 2.6 * K; bhy = shY - 1.6 * K + Math.sin(R.swayT * 10) * 0.5 * K; }
+      else if (ground && sp > 85 && opts.oneHand) { bhy = shY + (3.2 - Math.cos(R.phase) * 1.4) * K; }
+    }
     const armF = ik(shX, shY, fhx, fhy, UA, FA, face > 0 ? 1 : -1);
     const armB = ik(shX, shY, bhx, bhy, UA, FA, face > 0 ? 1 : -1);
     return { hipX, hipY, nx, ny, hx, hy, shX, shY, legs, armF, armB, aimA, face, anim };

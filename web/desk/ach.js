@@ -104,7 +104,8 @@
   const unlockAll = () => !!WTP.save.settings.unlockAll;
   const weaponOwned = (id) => unlockAll() || STARTERS.includes(id) || !!S().done[`w:${id}`];
   const ownedCount = () => WP.DEFS.filter((d) => weaponOwned(d.id)).length;
-  const val = (k) => (k === 'owned' ? ownedCount() : stats()[k] || 0);
+  const earnedCount = () => WP.DEFS.filter((d) => STARTERS.includes(d.id) || !!S().done[`w:${d.id}`]).length;
+  const val = (k) => (k === 'owned' ? earnedCount() : stats()[k] || 0);
   const bump = (k, n) => { const s = stats(); s[k] = (s[k] || 0) + n; };
   const max = (k, v) => { const s = stats(); if (v > (s[k] || 0)) s[k] = v; };
 

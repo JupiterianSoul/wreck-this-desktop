@@ -466,7 +466,7 @@
           if (x < 0 || y < 0 || x >= Wd.w || y >= Wd.h - 3) continue;
           const i = y * Wd.w + x;
           if (Wd.mat[i] === Wd.RUBBLE || Wd.mat[i] === Wd.DEBRIS) { const c = Wd.col[i]; Wd.kill(i, x, y, x, y, 0, 0); FX().debris(x + 0.5, y + 0.5, o.ax * 200 + rand(-40, 40), o.ay * 200 - rand(10, 60), c, { ns: true }); }
-          if (Wd.burn[i]) { Wd.burn[i] = 0; FX().smoke(x, y, 1, P32['6']); A('sizzle'); }
+          if (Wd.burn[i]) { Wd.burn[i] = 0; FX().steam(x + 0.5, y, 3); A('sizzle'); }
           else if (Wd.mat[i] === Wd.SOLID && (Wd.mtl[i] === Wd.M.PAPER || Wd.mtl[i] === Wd.M.INK || Wd.mtl[i] === Wd.M.IMAGE) && Math.random() < 0.12) { const c = Wd.col[i]; if (Wd.kill(i, x, y, x, y, 0, 0)) { G()?.scored?.(1, -1, -1, 'water'); FX().water(x + 0.5, y + 0.5, rand(-20, 20), rand(10, 40)); if (Math.random() < 0.3) FX().paper(x, y, rand(-20, 20), rand(0, 30), c); } }
         }
         for (const c of Wd.chunks) if (Math.hypot(c.x - r.x, c.y - r.y) < c.rad + 8) { c.vx += o.ax * 600 * dt; c.vy += o.ay * 600 * dt - 200 * dt; c.rest = 0; }
@@ -749,6 +749,7 @@
     if (n) { G()?.shake?.(3); G()?.hitstop?.(0.03); A('impact'); }
   }
 
+  const WP_LATER = (t, fn) => (WTP.weapons?.later ? WTP.weapons.later(t, fn) : setTimeout(fn, t * 1000));
   function conduct(x0, y0) {
     const Wd = W();
     let start = -1;
@@ -767,6 +768,12 @@
       if (k % 4 === 0) { EN()?.damageCircle?.(x, y, 8, 35, 'shock'); WTP.props?.damageAt?.(x, y, 6, 10); }
     }
     for (let k = 0; k < q.length; k += 7) { const i = q[k]; const x = i % Wd.w, y = (i / Wd.w) | 0; if (Math.random() < 0.5) Wd.carve(x + 0.5, y + 0.5, 1.2, { pow: 2, debris: 0.3, force: 40, cause: 'shock', noCrumble: true, pop: 0 }); }
+    const arcs = Math.min(12, Math.floor(q.length / 25));
+    for (let k = 0; k < arcs; k++) {
+      const a = (Math.random() * q.length) | 0, b = Math.min(q.length - 1, a + 8 + ((Math.random() * 30) | 0));
+      const ax = q[a] % Wd.w, ay = (q[a] / Wd.w) | 0, bx = q[b] % Wd.w, by = (q[b] / Wd.w) | 0;
+      if (Math.hypot(ax - bx, ay - by) < 26) WP_LATER(k * 0.03, () => FX().bolt(ax + 0.5, ay + 0.5, bx + 0.5, by + 0.5, { life: 0.12 }));
+    }
     if (q.length > 30) { G()?.event?.('CONDUCTED!', x0, y0 - 10, 1); A('zap'); }
     return q.length;
   }
