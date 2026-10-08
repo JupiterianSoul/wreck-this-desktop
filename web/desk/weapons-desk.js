@@ -73,6 +73,7 @@
       for (const h of K.pre) { const r = h(id, o); if (typeof r === 'function') restore = r; }
       let res;
       try { res = f(o); } finally { if (restore) restore(); }
+      if (res !== false) { st.shotAt = st.clock || 0; st.shotN = (st.shotN || 0) + 1; st.shotId = id; }
       if (res !== false && id !== 'sudo') st.lastFired = id;
       return res;
     };

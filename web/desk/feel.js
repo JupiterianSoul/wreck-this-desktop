@@ -70,7 +70,7 @@
   F.lookOf = lookOf;
 
   const icons = new Map();
-  function rec(id, sc) { const k = id + '|' + sc; if (!icons.has(k)) icons.set(k, V.R[id] ? V.make(V.R[id], sc) : null); return icons.get(k); }
+  function rec(id, sc) { const k = id + '|' + sc; if (!icons.has(k)) icons.set(k, sc >= 0.6 && WTP.pxs?.sprites?.[id] ? WTP.pxs.sprites[id] : V.R[id] ? V.make(V.R[id], sc) : null); return icons.get(k); }
   function drawIcon(ctx, id, x, y, ang, sc) { const sp = rec(id, sc); if (sp) sp.drawC(ctx, x, y, ang); }
   const pcache = new Map();
   function pv(ctx, parts, x, y, ang) {

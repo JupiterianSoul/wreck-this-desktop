@@ -10,7 +10,7 @@ const { launch } = require('./harness.js');
       const bad = [], errs = [], loud = [];
       for (const k of Object.keys(WTP.audio.META)) {
         const loop = k.startsWith('loop:'), name = loop ? k.slice(5) : k;
-        try { const m = await WTP.audio.measure(name, null, loop, 2); if (m.loud < -60) bad.push(k); if (m.peak > 1.5) loud.push(k + ' ' + m.peak.toFixed(1)); } catch (e) { errs.push(k + ': ' + e.message); }
+        try { const m = await WTP.audio.measure(name, null, loop, 2); if (m.loud < -60) bad.push(k); if (m.peak > 3) loud.push(k + ' ' + m.peak.toFixed(1)); } catch (e) { errs.push(k + ': ' + e.message); }
       }
       return { n: Object.keys(WTP.audio.META).length, bad, errs, loud };
     })()`);

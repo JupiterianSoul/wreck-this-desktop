@@ -123,6 +123,7 @@
     if (dCur?.throw && firing && WPs.cd > 0) cock = Math.max(0, Math.min(1, 1 - WPs.cd / 0.28));
     if (cock > 0) aimA -= face * cock * 2.1;
     const rec = P.recoil || 0;
+    if (rec > 0 && !dCur?.melee) aimA -= face * Math.min(0.35, rec * 0.045);
     let fhx, fhy, bhx, bhy;
     const holding = !!P.carry;
     if (holding) {
@@ -334,7 +335,7 @@
       const T = R.target || ctx;
       const wx = R.target ? fx + (hx - fx) * kx : hx, wy = R.target ? fy + (hy - fy) * ky : hy;
       if (R.target) R.flush();
-      if (weaponSprite.vector) weaponSprite.draw(T, wx, wy, a, flip, WTP.shop?.skinFor?.(WTP.weapons.st.cur));
+      if (weaponSprite.vector) weaponSprite.draw(T, wx, wy, a, flip, WTP.shop?.skinFor?.(WTP.weapons.st.cur), WTP.weapons.animState?.());
       else {
         const r = weaponSprite.rotated(a, flip);
         T.imageSmoothingEnabled = false;

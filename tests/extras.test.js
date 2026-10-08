@@ -13,7 +13,7 @@ const { launch } = require('./harness.js');
       out.golds = X.golds.length;
       const g = X.golds[0], Wd = WTP.world;
       const sh0 = WTP.save.shards || 0;
-      Wd.mat[g.i] = Wd.HOLE; __wtd.step(2);
+      Wd.mat[g.i] = Wd.HOLE; __wtd.step(2); for (let y = g.y - 14; y <= g.y + 6; y++) for (let x = g.x - 6; x <= g.x + 6; x++) if (x >= 0 && y >= 0 && x < Wd.w && y < Wd.gh) Wd.mat[y * Wd.w + x] = Wd.HOLE;
       out.revealed = g.st === 1;
       const P = WTP.player; for (let k = 0; k < 10 && g.st !== 2; k++) { __wtd.tp(g.x - P.w / 2, g.y - P.h / 2); __wtd.step(1); }
       out.collected = g.st === 2 && (WTP.save.shards || 0) - sh0 >= 25 && WTP.ach.stats().golden >= 1;

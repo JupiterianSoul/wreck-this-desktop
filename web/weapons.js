@@ -937,6 +937,7 @@
     const d = BY[st.cur];
     const BU = WTP.budget;
     if (BU) BU.src = d.id;
+    st.clock = (st.clock || 0) + dt;
     st.su = Math.max(0, (st.su || 0) - dt);
     if (st.suWas && !st.su) { G()?.label?.('ROOT SHELL CLOSED', 800); A('sudoEnd'); }
     st.suWas = st.su > 0;
@@ -2004,6 +2005,17 @@
     setPow, ROOT_BURST, ROOT_SU,
     root: () => (st.su > 0 ? st.su : 0),
     shown: () => (st.burst ? BY[st.burst.id] : null),
+    animState: () => {
+      const id = st.burst ? st.burst.id : st.cur, d = BY[id], now = st.clock || 0;
+      const firing = wasFiring || !!st.burst;
+      return {
+        t: st.shotId === id ? now - (st.shotAt || 0) : 99, n: st.shotN || 0, time: now,
+        spin: d.spin ? st.spin : d.hold && firing ? 1 : 0,
+        charge: d.charge ? Math.min(1, st.charge / d.charge) : 0,
+        ready: st.burst ? false : st.cd <= 0 && st.reload <= 0,
+        firing, reload: st.reload > 0 && d.reload ? 1 - st.reload / d.reload : 0
+      };
+    },
     heldChunk: () => st.held || st.cut,
     magnetOn: () => st.cur === 'magnet' && WTP.input.wantFire(),
     current: () => BY[st.cur],

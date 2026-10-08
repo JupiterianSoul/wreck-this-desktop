@@ -111,7 +111,7 @@ window.WTP.SFX_LEVELS = {
   "jump": 10.5,
   "junkShot": 16.6,
   "kaching": 7.3,
-  "katana": 13.9,
+  "katana": 14,
   "keyTap": 16.9,
   "keyclack": 16.3,
   "kick": 13,

@@ -164,7 +164,7 @@
   S('throw', 'swoosh', () => whoosh(0.18, 400, 2600, 0.2));
 
   S('melee', 'slash', () => { whoosh(0.13, 2200, 8000, 0.32, { attack: 0.02 }); fm(vary(2600), 3640, 1.5, 0.2, 0.03, { delay: 0.04 }); });
-  S('melee', 'katana', () => { whoosh(0.12, 3000, 9000, 0.36, { attack: 0.015 }); osc('sine', 2400, 1200, 0.15, 0.04); });
+  S('melee', 'katana', () => { whoosh(0.12, 3000, 9000, 0.3, { attack: 0.015 }); osc('sine', 2400, 1200, 0.15, 0.04); });
   S('melee', 'hammer', () => { sub(140, 38, 0.28, 0.62); body(0.22, 900, 80, 0.55, { room: 1 }); matHit('wood', 2); });
   S('melee', 'heave', () => { whoosh(0.24, 180, 900, 0.3); osc('sine', 90, 60, 0.2, 0.1); });
   S('melee', 'stampW', () => { whoosh(0.12, 400, 1400, 0.2); sub(130, 50, 0.16, 0.5, { delay: 0.05 }); body(0.12, 1200, 200, 0.4, { delay: 0.05 }); });
