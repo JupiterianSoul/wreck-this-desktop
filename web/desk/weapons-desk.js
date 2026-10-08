@@ -472,32 +472,6 @@
     }
   });
 
-  reg({ id: 'wsportal', name: 'Workspace Portal', rate: 0.35, snd: 'portalWs', does: 'Two linked portals labelled with workspace numbers; debris and enemies go through', altDoes: 'Swap: exchanges the contents of the two portal discs', tip: 'Super+1, Super+2, physically.' }, {
-    sprite: spr('wsportal', { gx: 6, gy: 5, mx: 14, my: 2 }),
-    fire(o) { return WP.FIRE.portal(o); },
-    alt() {
-      const P2 = st.portals || [];
-      if (P2.length < 2 || !P2[0] || !P2[1]) { A('deny'); G()?.label?.('PLACE BOTH PORTALS FIRST', 800); return; }
-      const [a, b] = P2;
-      const Wd = W();
-      const R = 9;
-      const keys = ['mat', 'col', 'src', 'mtl', 'kind', 'gid', 'back', 'code', 'bcol', 'flag', 'rid', 'ptex'];
-      for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
-        if (dx * dx + dy * dy > R * R) continue;
-        const ax = Math.floor(a.x + dx), ay = Math.floor(a.y + dy), bx = Math.floor(b.x + dx), by = Math.floor(b.y + dy);
-        if (!K.inGrid(ax, ay) || !K.inGrid(bx, by)) continue;
-        const i = ay * Wd.w + ax, j = by * Wd.w + bx;
-        for (const k of keys) { const arr = Wd[k]; const t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
-        Wd.touch(i); Wd.touch(j);
-      }
-      A('portalWs'); G()?.event?.('SWAPPED', (a.x + b.x) / 2, Math.min(a.y, b.y) - 10, 1);
-    }
-  });
-  WP.EXT.draws.push((ctx) => {
-    if (WP.st.cur !== 'wsportal') return;
-    (st.portals || []).forEach((p, k) => p && WTP.font.draw(ctx, String(k + 1), Math.round(p.x), Math.round(p.y - 12), { align: 'center', color: k ? 'o' : 'c', outline: '0' }));
-  });
-
   reg({ id: 'screenshot', name: 'Screenshot Flash', rate: 0.9, snd: 'shutter', recoil: 1, shake: 2, does: 'Print key flash: freezes an area into ice with a camera shutter', altDoes: 'Region capture: freezes a whole rectangle at once', tip: 'Say cheese. Then shatter.' }, {
     sprite: spr('screenshot', { gx: 3, gy: 7, mx: 11, my: 4 }),
     fire(o) {
@@ -624,21 +598,6 @@
     }
     return null;
   });
-  reg({ id: 'sudo', name: 'sudo !!', rate: 0.9, snd: 'sudo', does: 'Repeats the last weapon you fired at double power', altDoes: 'sudo: your next five shots run as root and punch through metal', tip: 'With great power comes great wreckage.' }, {
-    sprite: spr('sudo', { gx: 5, gy: 7, mx: 12, my: 3 }),
-    fire(o) {
-      const last = st.lastFired;
-      if (!last || !WP.FIRE[last] || last === 'sudo' || WP.BY[last]?.hold) { G()?.label?.('NOTHING TO REPEAT, FIRE ANOTHER WEAPON FIRST', 1000); A('deny'); return false; }
-      const Wd = W();
-      const pm = Wd.powMul;
-      Wd.powMul = pm * 2;
-      K.mark({ kind: 'text', text: `sudo ${WP.BY[last].name}`, x: o.x, y: o.y - 10, life: 0.9, color: 'l' });
-      try { WP.FIRE[last](o); WP.FIRE[last](K.rot(o, 0.08)); } finally { Wd.powMul = pm; }
-      st.lastFired = last;
-    },
-    alt() { st.rootShots = 5; A('sudo'); G()?.label?.('[sudo] password for desktop: ******  ROOT FOR 5 SHOTS', 1400); }
-  });
-
   function rainLine(text, x, opts = {}) {
     const tp = textPixels(text, '7');
     const sc = opts.scale || 1;
@@ -785,42 +744,6 @@
     alt(o) { WP.addShot({ t: 'packet', ping: true, x: o.x, y: o.y, vx: o.ax * 320, vy: o.ay * 320, life: 14, dmg: 25 }); A('ping'); }
   });
 
-  reg({ id: 'grep', name: 'grep', rate: 1.3, snd: 'grep', does: 'Lock onto a word: every copy of that word on screen gets struck', altDoes: 'grep -v: blasts every word around your aim except that one', tip: 'Pattern matching, with lightning.' }, {
-    sprite: spr('grep', { gx: 2, gy: 6, mx: 9, my: 3 }),
-    fire(o) {
-      const tp = WP.aimPoint(o);
-      const wd = wordAt(tp.x, tp.y);
-      if (!wd) { A('deny'); G()?.label?.('AIM AT A WORD', 700); return false; }
-      const Wd = W();
-      const hits = Wd.words.filter((w) => w.sig === wd.sig);
-      const list = hits.length > 1 ? hits : Wd.words.filter((w) => w.ids.length === wd.ids.length && Math.abs(w.w - wd.w) <= 1 && Math.abs(w.h - wd.h) <= 1);
-      K.mark({ kind: 'text', text: `grep: ${list.length} MATCH${list.length === 1 ? '' : 'ES'}`, x: tp.x, y: tp.y - 12, life: 1.2, color: 'y' });
-      list.slice(0, 40).forEach((w, k) => K.later(0.12 + k * 0.08, () => {
-        const cx = w.x + w.w / 2;
-        FX().beam([cx, -8, cx, w.y + w.h / 2], { kind: 'bolt', life: 0.15, c2: P32.y });
-        K.mark({ kind: 'rect', x0: w.x - 1, y0: w.y - 1, x1: w.x + w.w + 1, y1: w.y + w.h + 1, life: 0.4, color: '#ffe066' });
-        popWord(w, 0.01, -120);
-        W().carve(cx, w.y + w.h / 2, 2.5, { debris: 0.5, cause: 'grep', pow: 2, scorch: true, noCrack: true });
-        A('thunder');
-      }));
-    },
-    alt(o) {
-      if (!K.cooldown('grep', 3)) return;
-      const tp = WP.aimPoint(o);
-      const wd = wordAt(tp.x, tp.y);
-      const Wd = W();
-      let n = 0;
-      for (const w of Wd.words) {
-        if (wd && w.sig === wd.sig) continue;
-        if (Math.hypot(w.x + w.w / 2 - tp.x, w.y + w.h / 2 - tp.y) > 34) continue;
-        K.later(n * 0.02, () => popWord(w, 0.01, -60));
-        n++;
-      }
-      A('grep');
-      K.mark({ kind: 'text', text: `grep -v: ${n}`, x: tp.x, y: tp.y - 12, life: 1, color: 'y' });
-    }
-  });
-
   reg({ id: 'caps', name: 'Caps Lock', rate: 1.1, snd: 'caps', recoil: 2, shake: 5, does: 'A shout cone: letters get heavy and drop', altDoes: 'Toggle: for 10 s every hit knocks letters loose', tip: 'WHY IS EVERYONE SHOUTING' }, {
     sprite: spr('caps', { gx: 4, gy: 7, mx: 10, my: 3 }),
     fire(o) {
@@ -854,47 +777,6 @@
     }
     return { cells, w: x1 - x0 + 1, h: y1 - y0 + 1 };
   }
-  reg({ id: 'copypaste', name: 'Ctrl+C / Ctrl+V', rate: 0.5, snd: 'copy', does: 'First shot copies a block of the screen, then every shot fires heavy copies of it', altDoes: 'Paste the copy as a solid platform where you aim', tip: 'Duplicate content is bad for SEO and great for demolition.' }, {
-    sprite: spr('copypaste', { gx: 3, gy: 7, mx: 9, my: 3 }),
-    fire(o) {
-      if (!st.clip) {
-        const tp = WP.aimPoint(o);
-        const x0 = Math.round(tp.x - 9), y0 = Math.round(tp.y - 6);
-        const c = copyRect(x0, y0, x0 + 18, y0 + 12);
-        if (c.cells.length < 20) { A('deny'); return false; }
-        st.clip = c;
-        K.mark({ kind: 'rect', x0, y0, x1: x0 + 18, y1: y0 + 12, life: 0.6, color: '#8fe3ff' });
-        G()?.label?.('COPIED. FIRE TO PASTE IT AT THINGS', 900);
-        A('copy');
-        return;
-      }
-      const c = st.clip;
-      const pts = []; pts.src = [];
-      const bx = Math.round(o.x + o.ax * 10 - c.w / 2), by = Math.round(o.y + o.ay * 10 - c.h / 2);
-      for (const q of c.cells) { pts.push(bx + q.dx, by + q.dy, q.col); pts.src.push(q.src); }
-      const ch = W().makeChunk(pts, o.ax * 420, o.ay * 420 - 40, { mtl: W().M.METAL, life: 6 });
-      ch.thrown = true; ch.va = rand(-2, 2);
-      A('paste');
-    },
-    alt(o) {
-      const c = st.clip;
-      if (!c) { A('deny'); return; }
-      const Wd = W();
-      const tp = WP.aimPoint(o);
-      const bx = Math.round(tp.x - c.w / 2), by = Math.round(tp.y - c.h / 2);
-      for (const q of c.cells) {
-        const x = bx + q.dx, y = by + q.dy;
-        if (!K.inGrid(x, y) || PL().inside(x, y)) continue;
-        const i = y * Wd.w + x;
-        if (Wd.mat[i] === Wd.SOLID) continue;
-        Wd.setCell(x, y, q.col, Wd.M.PLASTIC, 0);
-        Wd.src[i] = q.src;
-        Wd.touch(i);
-      }
-      A('paste'); K.mark({ kind: 'rect', x0: bx, y0: by, x1: bx + c.w, y1: by + c.h, life: 0.4 });
-    }
-  });
-
   const CELL_KEYS = ['mat', 'col', 'src', 'mtl', 'kind', 'gid', 'back', 'code', 'bcol', 'flag', 'rid', 'ptex', 'burn'];
   function shiftBand(horizontal, a0, a1, off) {
     const Wd = W();
@@ -936,97 +818,6 @@
     sprite: spr('tear', { gx: 3, gy: 5, mx: 12, my: 2 }),
     fire(o) { tearAt(o, false); },
     alt(o) { if (!K.cooldown('tearing', 1.5)) return; tearAt(o, true); }
-  });
-
-  function pixelSort(o, rows) {
-    const Wd = W();
-    const tp = WP.aimPoint(o);
-    const R = 22;
-    const lum = (c) => (c & 255) * 0.3 + ((c >>> 8) & 255) * 0.59 + ((c >>> 16) & 255) * 0.11;
-    for (let a = -R; a <= R; a++) {
-      const cells = [];
-      for (let b = -R; b <= R; b++) {
-        const x = Math.floor(rows ? tp.x + b : tp.x + a), y = Math.floor(rows ? tp.y + a : tp.y + b);
-        if (!K.inGrid(x, y)) continue;
-        const i = y * Wd.w + x;
-        if (Wd.mat[i] === Wd.SOLID) cells.push(i);
-      }
-      const vals = cells.map((i) => ({ col: Wd.col[i], src: Wd.src[i], mtl: Wd.mtl[i] })).sort((p, q) => lum(p.col) - lum(q.col));
-      cells.forEach((i, k) => { Wd.col[i] = vals[k].col; Wd.src[i] = vals[k].src; Wd.mtl[i] = vals[k].mtl; Wd.gid[i] = 0; Wd.kind[i] = 0; Wd.touch(i); });
-      if (cells.length && (a & 3) === 0) A('sort');
-    }
-    K.mark({ kind: 'rect', x0: tp.x - R, y0: tp.y - R, x1: tp.x + R, y1: tp.y + R, life: 0.8, color: '#d07bff' });
-    K.later(0.8, () => { for (let k = 0; k < 8; k++) Wd.carve(tp.x + rand(-R, R), tp.y + rand(-R, R), rand(3, 6), { debris: 0.8, cause: 'sort', pow: 2.5, noCrack: true }); Wd.crumble(tp.x, tp.y, 0, R + 8); });
-  }
-  reg({ id: 'pixelsort', name: 'Pixel Sorter', rate: 1.3, snd: 'sort', does: 'Sorts a block of pixel columns by brightness, then they crumble', altDoes: 'Row sort', tip: 'Glitch art, but structural.' }, {
-    sprite: spr('pixelsort', { gx: 2, gy: 4, mx: 10, my: 2 }),
-    fire(o) { pixelSort(o, false); },
-    alt(o) { if (!K.cooldown('pixelsort', 1)) return; pixelSort(o, true); }
-  });
-
-  function deadPixel(o, hot) {
-    const tp = WP.aimPoint(o);
-    const Wd = W();
-    const cells = [[Math.floor(tp.x), Math.floor(tp.y)]];
-    const cols = hot ? [P32.o, P32.y, P32.e] : [P32.m, P32.l, P32['0'], P32.c];
-    K.ent({
-      life: 2.4,
-      update() {
-        for (let k = 0; k < 6; k++) {
-          const [x, y] = pick(cells);
-          const nx = x + pick([-1, 0, 1]), ny = y + pick([-1, 0, 1]);
-          if (!K.inGrid(nx, ny)) continue;
-          const i = ny * Wd.w + nx;
-          if (Wd.mat[i] === Wd.SOLID) { Wd.col[i] = pick(cols); Wd.src[i] = -1; Wd.touch(i); if (hot) Wd.igniteAt(nx, ny, 1); }
-          else if (Wd.back[i]) { Wd.bcol[i] = pick(cols); Wd.ptex[i] = 0; Wd.touch(i); }
-          cells.push([nx, ny]);
-        }
-        if (Math.random() < 0.2) A('deadpx');
-      },
-      end() { WP.explode(tp.x, tp.y, Math.min(16, 4 + Math.sqrt(cells.length)), { letters: 6, cause: 'deadpixel', kind: hot ? 'fire' : 'plasma' }); },
-      draw(ctx) { if ((this.t * 8 | 0) & 1) { ctx.fillStyle = hot ? PAL.y : PAL.m; ctx.fillRect(tp.x - 0.5, tp.y - 0.5, 1, 1); } }
-    });
-  }
-  reg({ id: 'deadpixel', name: 'Dead Pixel', rate: 0.9, snd: 'deadpx', does: 'A stuck pixel that spreads across whatever it touches, then pops', altDoes: 'Hot pixel: spreads fire instead', tip: 'Warranty void.' }, {
-    sprite: spr('deadpx', { gx: 2, gy: 4, mx: 5, my: 2 }),
-    fire(o) { deadPixel(o, false); },
-    alt(o) { if (!K.cooldown('deadpixel', 1.2)) return; deadPixel(o, true); }
-  });
-
-  const THEMES = [
-    ['#1e1e2e', '#313244', '#585b70', '#cba6f7', '#f38ba8', '#fab387', '#a6e3a1', '#89b4fa'],
-    ['#1a1b26', '#24283b', '#414868', '#7aa2f7', '#bb9af7', '#f7768e', '#9ece6a', '#e0af68'],
-    ['#282828', '#3c3836', '#665c54', '#fb4934', '#fabd2f', '#b8bb26', '#83a598', '#d3869b'],
-    ['#2e3440', '#3b4252', '#4c566a', '#88c0d0', '#81a1c1', '#bf616a', '#a3be8c', '#ebcb8b'],
-    ['#191724', '#26233a', '#403d52', '#eb6f92', '#f6c177', '#ebbcba', '#31748f', '#9ccfd8'],
-    ['#1f1f28', '#2a2a37', '#54546d', '#c34043', '#76946a', '#c0a36e', '#7e9cd8', '#957fb8']
-  ];
-  reg({ id: 'theme', name: 'Theme Switcher', rate: 1, snd: 'theme', does: 'Repaints an area in another Omarchy theme palette, then cracks it', altDoes: 'Cycles the whole screen through themes for five seconds', tip: 'omarchy-theme-next, but weaponised.' }, {
-    sprite: spr('theme', { gx: 1, gy: 4, mx: 5, my: 2 }),
-    fire(o) {
-      const tp = WP.aimPoint(o);
-      const Wd = W();
-      const pal = pick(THEMES).map((h) => WTP.packHex(h));
-      const R = 18;
-      const pickC = (c) => pal[Math.min(pal.length - 1, Math.floor(WTP.lum(c) * pal.length))];
-      for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
-        if (dx * dx + dy * dy > R * R) continue;
-        const x = Math.floor(tp.x + dx), y = Math.floor(tp.y + dy);
-        if (!K.inGrid(x, y)) continue;
-        const i = y * Wd.w + x;
-        if (Wd.mat[i] === Wd.SOLID) { Wd.col[i] = mix(Wd.col[i], pickC(Wd.col[i]), 0.8); Wd.touch(i); }
-        else if (Wd.back[i]) { Wd.bcol[i] = mix(Wd.bcol[i], pickC(Wd.bcol[i]), 0.85); Wd.touch(i); }
-      }
-      K.mark({ kind: 'ring', x: tp.x, y: tp.y, r: R, life: 0.5, color: '#cba6f7' });
-      K.later(0.6, () => ST().impact(tp.x, tp.y, 8, 5));
-    },
-    alt() {
-      if (!K.cooldown('theme', 10)) return;
-      G()?.forceFull?.(5.2);
-      K.ent({ life: 5, update() { document.getElementById('cv').style.filter = `hue-rotate(${Math.round(this.t * 220)}deg) saturate(1.6)`; }, end() { document.getElementById('cv').style.filter = ''; } });
-      A('theme');
-      G()?.announce?.('THEME ROULETTE', 3);
-    }
   });
 
   shotType('usb', {
@@ -1171,45 +962,6 @@
     }
   });
 
-  reg({ id: 'defrag', name: 'Defrag', rate: 2, snd: 'defrag', does: 'Pulls loose rubble into neat colored blocks, then blows the blocks', altDoes: 'Fragment: scatters every block it made', tip: 'Optimizing drive C: with explosives.' }, {
-    sprite: spr('defrag', { gx: 2, gy: 4, mx: 8, my: 2 }),
-    fire(o) {
-      const Wd = W();
-      const tp = WP.aimPoint(o);
-      const cols = [];
-      for (let k = 0; k < 4000 && cols.length < 600; k++) {
-        const x = Math.floor(tp.x + rand(-50, 50)), y = Math.floor(tp.y + rand(-40, 40));
-        if (!K.inGrid(x, y)) continue;
-        const i = y * Wd.w + x;
-        if (Wd.mat[i] === Wd.RUBBLE || Wd.mat[i] === Wd.DEBRIS) { const c = Wd.col[i]; cols.push(c); Wd.kill(i, x, y, x, y, 0, 0); FX().suck(x + 0.5, y + 0.5, 0, 0, c, tp.x, tp.y, 0.6); }
-      }
-      if (cols.length < 20) { A('deny'); G()?.label?.('NOTHING TO DEFRAG HERE', 800); return false; }
-      cols.sort((a, b) => WTP.lum(a) - WTP.lum(b));
-      const side = Math.ceil(Math.sqrt(cols.length));
-      const x0 = Math.round(tp.x - side / 2), y0 = Math.round(tp.y - side / 2);
-      const placed = [];
-      cols.forEach((c, k) => {
-        const x = x0 + (k % side) + Math.floor((k % side) / 6), y = y0 + Math.floor(k / side) + Math.floor(Math.floor(k / side) / 6);
-        if (!K.inGrid(x, y) || PL().inside(x, y)) return;
-        const i = y * Wd.w + x;
-        if (Wd.mat[i] === Wd.SOLID) return;
-        Wd.setCell(x, y, c, Wd.M.PLASTIC, 0); placed.push(i);
-      });
-      st.defragBlocks = placed;
-      A('defrag');
-      K.mark({ kind: 'text', text: 'DEFRAGMENTED', x: tp.x, y: y0 - 6, life: 1, color: 'c' });
-      K.later(1.1, () => WP.explode(tp.x, tp.y, Math.min(18, 6 + side * 0.6), { letters: 8, cause: 'defrag' }));
-    },
-    alt() {
-      const Wd = W();
-      const b = st.defragBlocks || [];
-      if (!b.length) { A('deny'); return; }
-      for (const i of b) if (Wd.mat[i] === Wd.SOLID) { const x = i % Wd.w, y = (i / Wd.w) | 0; FX().debris(x, y, rand(-200, 200), rand(-260, 0), Wd.col[i]); Wd.kill(i, x, y, x, y, 0, 0); }
-      st.defragBlocks = [];
-      A('crash', 100);
-    }
-  });
-
   reg({ id: 'overclock', name: 'Overclock', rate: 8, snd: 'overclock', does: 'A heat aura that melts what is around you and doubles your fire rate for a while', altDoes: 'Thermal throttle: a cooling burst that freezes everything around you', tip: '5.8 GHz, liquid cooling optional.' }, {
     sprite: spr('overclock', { gx: 3, gy: 7, mx: 9, my: 3 }),
     fire() { st.overT = 7; G()?.announce?.('OVERCLOCKED', 3); },
@@ -1226,34 +978,5 @@
     }
   });
 
-  function peel(o, big) {
-    const Wd = W();
-    const tp = WP.aimPoint(o);
-    const len = big ? 120 : 70, wid = big ? 60 : 8;
-    const a = Math.atan2(o.ay, o.ax);
-    const pts = [];
-    let n = 0;
-    for (let d = 0; d < len; d++) for (let q = -wid / 2; q <= wid / 2; q++) {
-      const x = Math.floor(tp.x + Math.cos(a) * (d - len / 2) - Math.sin(a) * q), y = Math.floor(tp.y + Math.sin(a) * (d - len / 2) + Math.cos(a) * q);
-      if (!K.inGrid(x, y)) continue;
-      const i = y * Wd.w + x;
-      if (Wd.code[i] && !Wd.back[i] && Wd.mat[i] !== Wd.SOLID) {
-        Wd.code[i] = 0;
-        Wd.touch(i);
-        if ((hash(x, y) & 3) === 0) pts.push(x, y, Wd.wvis[i] ? Wd.ocol[i] : shade(Wd.ocol[i] || P32['2'], 0.9));
-        n++;
-      }
-    }
-    if (pts.length >= 15) { const c = Wd.makeChunk(pts, o.ax * 120, -160, { mtl: Wd.M.PAPER, life: 6 }); c.va = rand(-3, 3); }
-    A('peel');
-    if (!n) { A('deny'); G()?.label?.('AIM AT BARE WALLPAPER', 800); }
-    else G()?.scored?.(n, tp.x, tp.y, 'peel');
-  }
-  reg({ id: 'peeler', name: 'Wallpaper Peeler', rate: 0.7, snd: 'peel', does: 'Peels long strips of wallpaper off and flings them', altDoes: 'Peels a whole wallpaper sheet', tip: 'Behind the wallpaper there is only void.' }, {
-    sprite: spr('peeler', { gx: 1, gy: 6, mx: 8, my: 1 }),
-    fire(o) { peel(o, false); },
-    alt(o) { if (!K.cooldown('peeler', 2)) return; peel(o, true); }
-  });
-
-  WTP.deskWeapons = { K, closeWindow, strike, wordAt, popWord, rainLine, textPixels, bsod, tearAt };
+  WTP.deskWeapons = { K, closeWindow, strike, wordAt, popWord, rainLine, textPixels, bsod, tearAt, copyRect, shiftBand, CELL_KEYS };
 })();

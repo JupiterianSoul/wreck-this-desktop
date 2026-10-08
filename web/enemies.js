@@ -663,6 +663,7 @@
     }
     for (let k = bullets.length - 1; k >= 0; k--) {
       const b = bullets[k];
+      if (!b) continue;
       b.life -= dt; b.t += dt;
       let dead = b.life <= 0;
       if (b.kind === 'ring') {

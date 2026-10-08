@@ -6,6 +6,11 @@
   const add = (name, fn) => { SFX[name] = fn; };
 
   const opt = (name, fn) => { if (!SFX[name]) SFX[name] = fn; };
+  opt('zoomIn', () => { osc('sine', 300, 1200, 0.25, 0.08); osc('triangle', 600, 2400, 0.2, 0.04, { delay: 0.05 }); });
+  opt('zoomOut', () => { osc('sine', 1200, 260, 0.28, 0.08); noise(0.25, 2000, 300, 0.12, 'bandpass', 1); });
+  opt('cookie', () => { noise(0.08, 1800, 900, 0.25, 'bandpass', 2); osc('square', 220, 110, 0.18, 0.05); thump(70, 0.2, 0.35); });
+  opt('captcha', () => { [660, 880].forEach((f, i) => osc('triangle', f, f, 0.08, 0.06, { delay: i * 0.07 })); });
+  opt('click', () => { noise(0.02, 5000, 3000, 0.25, 'bandpass', 3); osc('square', 1400, 900, 0.03, 0.04); });
   add('perfect', () => { osc('triangle', 1760, 1760, 0.12, 0.08); osc('sine', 2640, 2640, 0.18, 0.05); });
   add('burst', () => { noise(0.05, 4000, 900, 0.22, 'bandpass', 1.2); thump(140, 0.05, 0.12); });
   opt('laserZap', () => { osc('sawtooth', 1800, 300, 0.25, 0.06, { lp: 4000 }); noise(0.2, 5000, 2000, 0.15, 'bandpass', 2); });
