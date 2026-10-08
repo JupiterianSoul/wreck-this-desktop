@@ -58,7 +58,7 @@ const { launch } = require('./harness.js');
       out.shardKept = FX.np > 0;
       const s0 = FX.np; WTP.budget.with('nuke', () => FX.steam(120, 300, 4)); out.steam = FX.np - s0 === 4;
       let arcs = 0; const ob = FX.bolt; FX.bolt = (...a) => { arcs++; return ob(...a); }; WTP.weapons.conduct(110, 333); __wtd.step(30); FX.bolt = ob; out.arcs = arcs > 0;
-      const P = WTP.player; P.idleT = 9; WTP.rig.relax = 3; WTP.game.renderNow(); const a = WTP.rig.lastPose.aimA; out.lowered = Math.abs(Math.cos(a)) < 0.7 && Math.sin(a) > 0.5;
+      const P = WTP.player; P.idleT = 9; WTP.input.lastInput = 0; WTP.rig.relax = 3; WTP.game.renderNow(); const a = WTP.rig.lastPose.aimA; out.lowered = Math.abs(Math.cos(a)) < 0.7 && Math.sin(a) > 0.5;
       WTP.rig.relax = 0;
       return out;
     })()`);

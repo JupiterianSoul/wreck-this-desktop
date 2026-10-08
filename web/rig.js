@@ -47,10 +47,13 @@
     const idle = ground && sp < 6 && P.idleT > 0.4;
     const WPs = WTP.weapons?.st || {}, firing = !!WTP.input?.wantFire?.();
     const aim0 = Math.atan2(aim.y, aim.x);
-    if (idle && !firing && !P.carry && !P.victory && Math.abs(aim0 - (R.aimLast ?? aim0)) < 0.04 && !(WPs.reload > 0)) R.relax = (R.relax || 0) + dt; else R.relax = 0;
+    const quiet = performance.now() - (WTP.input?.lastInput || 0) > 150;
+    if (idle && quiet && !firing && !P.carry && !P.victory && Math.abs(aim0 - (R.aimLast ?? aim0)) < 0.04 && !(WPs.reload > 0)) R.relax = (R.relax || 0) + dt; else R.relax = 0;
     R.aimLast = aim0;
     const relax = R.relax;
-    const iSet = relax > 10 ? 3 : relax > 4 ? Math.floor((relax - 4) / 2) % 3 : -1;
+    const lib = relax > 10 ? idleLib(dt) : (R.lib = null);
+    if (lib && lib.kind !== 'sit') return idlePose(lib, cx, base, face, opts);
+    const iSet = lib ? 3 : relax > 4 ? Math.floor((relax - 4) / 2) % 3 : -1;
     let edge = false;
     if (iSet === 3) edge = groundAt(cx + face * 3.2 * K, base - 1, base + 3) == null;
     R.swayT += dt;
@@ -79,6 +82,8 @@
       if (iSet === 3) {
         if (edge) { fx = hipX + face * (2.4 + k * 0.5) * K; fy = hipY + (3.6 + Math.sin(R.swayT * 2 + k * 2) * 0.5) * K; }
         else { fx = hipX + face * (3.2 + k * 0.6) * K; fy = base - 0.1; }
+      } else if (P.flipT > 0 && !ground) {
+        fx = hipX + face * (k ? 1.4 : 0.9) * K; fy = hipY + (k ? 2.4 : 2.9) * K;
       } else if (P.mantle) {
         fx = hipX + P.mantle.dir * (k ? 1.6 : 0.6) * K; fy = hipY + (k ? 4.8 : 2.6) * K;
       } else if (P.kickT > 0 && k === 0) {
@@ -142,7 +147,8 @@
       fhx = shX + face * 1.3 * K; fhy = shY + 3.6 * K;
       bhx = shX + (-face * 1.1 + Math.sin(R.phase) * 1.4) * K; bhy = shY + 3.6 * K;
     }
-    if (!ground && !holding && !P.victory && P.vy < -60 && !weaponSprite) { bhy -= 3 * K; fhy -= 3 * K; }
+    if (!ground && !holding && !P.victory && P.vy < -60 && !weaponSprite && !(P.flipT > 0)) { bhy -= 3 * K; fhy -= 3 * K; }
+    if (P.flipT > 0 && !ground && !holding && !weaponSprite) { fhx = hipX + face * 1.6 * K; fhy = hipY + 1.6 * K; bhx = hipX + face * 1.0 * K; bhy = hipY + 1.9 * K; }
     if (!holding && !P.victory && !P.dead && weaponSprite) {
       if (WPs.reload > 0) { bhx = fhx + Math.cos(aimA) * 1.2 * K + Math.sin(R.swayT * 14) * 0.5 * K; bhy = fhy + Math.sin(aimA) * 1.2 * K + 0.6 * K; }
       else if (iSet === 1) { const st2 = Math.sin(Math.min(1, (relax % 2) / 1) * Math.PI); bhx = shX - face * 0.6 * K; bhy = shY - (2 + st2 * 2.6) * K; }
@@ -155,6 +161,165 @@
     const armF = ik(shX, shY, fhx, fhy, UA, FA, face > 0 ? 1 : -1);
     const armB = ik(shX, shY, bhx, bhy, UA, FA, face > 0 ? 1 : -1);
     return { hipX, hipY, nx, ny, hx, hy, shX, shY, legs, armF, armB, aimA, face, anim };
+  }
+
+
+  const IDLES = ['bop', 'disco', 'robot', 'guitar', 'pushups', 'phone', 'juggle', 'sleep', 'watch', 'wave', 'sit'];
+  const IDLE_DUR = { sleep: 40, sit: 9 };
+  function idleLib(dt) {
+    if (!R.lib) {
+      const pool = IDLES.filter((k) => k !== R.lastLib);
+      R.lib = { kind: R.forceIdle || pool[(Math.random() * pool.length) | 0], t: 0 };
+      R.lib.dur = IDLE_DUR[R.lib.kind] || 6 + Math.random() * 3;
+      R.lastLib = R.lib.kind;
+    }
+    R.lib.t += dt;
+    if (R.lib.t > R.lib.dur && !R.forceIdle) { R.lib = null; return idleLib(0); }
+    return R.lib;
+  }
+  R.idleNow = () => (R.lib ? R.lib.kind : null);
+  function idlePose(L, cx, base, face, opts) {
+    const t = L.t, S = Math.sin, PI2 = Math.PI * 2;
+    const gnd = (x) => { const g = groundAt(x, base - 4, base + 4); return g != null ? g : base; };
+    let hipX = cx - face * 0.2 * K, hipY = base - (TH + SH) * 0.93 + Math.sin(R.swayT * 2.2) * 0.05 * K, lean = 0, hdx = 0, hdy = 0;
+    let feet = [[hipX + (0.9 + 0.3 * face) * K, null], [hipX + (-0.9 + 0.3 * face) * K, null]];
+    let hands = null, aimA = face > 0 ? 0.95 : Math.PI - 0.95, hide = true, eye = 0, extra = null, bend = face > 0 ? -1 : 1;
+    const torso = () => { const nx = hipX + Math.sin(lean) * TORSO, ny = hipY - Math.cos(lean) * TORSO; return { nx, ny, shX: lerp(nx, hipX, 0.14), shY: lerp(ny, hipY, 0.14) }; };
+    let T;
+    switch (L.kind) {
+      case 'bop': {
+        const b = Math.abs(S(t * PI2 * 2)), sw = S(t * Math.PI * 2);
+        hipY += b * 0.9 * K; lean = sw * 0.12 * face; hipX += sw * 0.6 * K;
+        feet = [[hipX + 1.1 * K, base - Math.max(0, S(t * PI2 * 2)) * 0.6 * K], [hipX - 1.1 * K, null]];
+        T = torso();
+        hands = [[T.shX + face * 1.5 * K, T.shY - (1.2 + 2.6 * b) * K], [hipX - face * 1.2 * K, hipY - 0.4 * K]];
+        hdy = b * 0.3 * K;
+        break;
+      }
+      case 'disco': {
+        const ph = Math.floor(t * 2) % 2;
+        lean = (ph ? 0.2 : -0.16) * face; hipX += (ph ? 0.5 : -0.5) * K;
+        feet = [[hipX + 1.2 * K, ph ? base - 0.7 * K : null], [hipX - 1.0 * K, null]];
+        T = torso();
+        hands = [ph ? [T.shX + face * 2.6 * K, T.shY - 5 * K] : [T.shX - face * 2.2 * K, T.shY + 4 * K], [hipX + face * 0.6 * K, hipY - 0.5 * K]];
+        hdx = (ph ? 0.4 : -0.2) * face * K;
+        break;
+      }
+      case 'robot': {
+        const i = Math.floor(t / 0.42) % 4;
+        const A = [[[2.8, 0], [0.4, -3.6]], [[0.4, -3.6], [2.8, 0]], [[2.6, 2.2], [-2.4, 2.2]], [[1.6, -2.8], [-1.6, -2.8]]][i];
+        hipY += (i % 2) * 0.5 * K; lean = (i === 2 ? 0.1 : 0) * face;
+        T = torso();
+        hands = [[T.shX + face * A[0][0] * K, T.shY + A[0][1] * K], [T.shX + face * A[1][0] * K, T.shY + A[1][1] * K]];
+        hdx = (i % 2 ? 0.35 : -0.35) * face * K;
+        break;
+      }
+      case 'guitar': {
+        hide = false;
+        lean = -0.22 * face; hipY += 0.9 * K;
+        feet = [[hipX + 1.7 * K, null], [hipX - 1.5 * K, null]];
+        T = torso();
+        aimA = face > 0 ? -0.55 : Math.PI + 0.55;
+        hands = [[T.shX + Math.cos(aimA) * 3.9 * K, T.shY + Math.sin(aimA) * 3.9 * K], [T.shX + face * 0.5 * K, T.shY + (2.7 + S(t * 22) * 0.7) * K]];
+        const bang = Math.abs(S(t * 7));
+        hdy = bang * 0.8 * K; hdx = bang * 0.5 * K * face;
+        break;
+      }
+      case 'pushups': {
+        const c = (S(t * Math.PI * 1.4) + 1) / 2;
+        lean = face * 1.32; hipX = cx - face * 1.6 * K; hipY = base - (1.5 + c * 1.9) * K;
+        feet = [[hipX - face * (TH + SH) * 0.9, null], [hipX - face * (TH + SH) * 0.86, null]];
+        T = torso();
+        hands = [[T.shX + face * 0.3 * K, null], [T.shX - face * 0.2 * K, null]];
+        hdx = face * 0.4 * K; bend = face > 0 ? 1 : -1;
+        break;
+      }
+      case 'phone': {
+        lean = 0.08 * face; hdy = 0.55 * K; hdx = face * 0.25 * K;
+        feet = [[hipX + 1.0 * K, null], [hipX - 0.7 * K, null]];
+        T = torso();
+        const sc = S(t * 5) * 0.15 * K;
+        hands = [[T.shX + face * 1.5 * K, T.shY + 0.7 * K + sc], [T.shX + face * 1.1 * K, T.shY + 1.4 * K]];
+        extra = (g) => {
+          const x = Math.round(hands[0][0]) - 1, y = Math.round(hands[0][1]) - 3;
+          g.fillStyle = '#0a0b0e'; g.fillRect(x - 1, y - 1, 4, 6);
+          g.fillStyle = '#2c313b'; g.fillRect(x, y, 2, 4);
+          g.fillStyle = Math.floor(t * 3) % 2 ? '#8fd3ff' : '#cfeeff'; g.fillRect(x, y + ((Math.floor(t * 4)) % 3), 2, 1);
+        };
+        break;
+      }
+      case 'juggle': {
+        hdy = -0.3 * K;
+        T = torso();
+        const a = S(t * PI2 * 1.5) * 0.6 * K;
+        const h0 = [T.shX + face * 2.0 * K, T.shY + 1.6 * K + a], h1 = [T.shX + face * 0.1 * K, T.shY + 1.6 * K - a];
+        hands = [h0, h1];
+        extra = (g) => {
+          const cols = ['#e05050', '#f4d03f', '#4cc6ec'];
+          for (let i = 0; i < 3; i++) {
+            const ph = (t * 1.2 + i / 3) % 1, fwd = ph < 0.5;
+            const k2 = fwd ? ph * 2 : (ph - 0.5) * 2;
+            const ax = fwd ? h1[0] : h0[0], bx = fwd ? h0[0] : h1[0];
+            const x = Math.round(lerp(ax, bx, k2)), y = Math.round(lerp(h0[1], h1[1], 0.5) - 1.5 - Math.sin(k2 * Math.PI) * (fwd ? 6 : 2.5) * K);
+            g.fillStyle = '#0a0b0e'; g.fillRect(x - 1, y - 1, 3, 3);
+            g.fillStyle = cols[i]; g.fillRect(x, y, 1, 1);
+          }
+        };
+        break;
+      }
+      case 'sleep': {
+        if (t < 2.4) {
+          const k = Math.min(1, t / 0.6) * (t > 1.9 ? 1 - (t - 1.9) / 0.5 : 1);
+          lean = -0.16 * face * k; hdy = -0.4 * K * k;
+          T = torso();
+          hands = [[T.shX + face * 0.9 * K, T.shY - (1 + 5 * k) * K], [T.shX - face * 0.7 * K, T.shY - (1 + 5 * k) * K]];
+          eye = k > 0.5 ? 2 : 0;
+        } else {
+          hipY = base - 1.1 * K; lean = -0.32 * face;
+          feet = [[hipX + face * 3.4 * K, null], [hipX + face * 4.0 * K, null]];
+          T = torso();
+          hands = [[hipX + face * 2.2 * K, hipY - 0.6 * K], [hipX + face * 1.6 * K, hipY - 0.2 * K]];
+          hdx = face * 0.9 * K; hdy = 0.7 * K + Math.sin(t * 1.6) * 0.12 * K; eye = 2;
+          extra = (g) => {
+            for (let i = 0; i < 3; i++) {
+              const ph = ((t - 2.4) * 0.45 + i / 3) % 1;
+              const x = Math.round(T.nx + face * (2 + ph * 4) * K + Math.sin(ph * 6) * 1.5), y = Math.round(T.ny - (3 + ph * 9) * K);
+              if (ph > 0.85 && (i + Math.floor(t * 8)) % 2) continue;
+              WTP.font?.draw?.(g, i === 2 ? 'Z' : 'z', x, y, { color: '7', outline: '0', scale: 1 });
+            }
+          };
+        }
+        break;
+      }
+      case 'watch': {
+        hdy = 0.5 * K; hdx = face * 0.2 * K;
+        feet = [[hipX + 1.0 * K, base - Math.max(0, S(t * 9)) * 0.5 * K], [hipX - 0.8 * K, null]];
+        T = torso();
+        hands = [[T.shX + face * 1.4 * K, T.shY + 1.1 * K], [T.shX + face * 1.8 * K, T.shY + 0.6 * K]];
+        extra = (g) => { const x = Math.round(hands[0][0]), y = Math.round(hands[0][1]); g.fillStyle = '#e3b94b'; g.fillRect(x - 1, y - 1, 2, 1); };
+        break;
+      }
+      case 'wave': {
+        eye = 1; hdy = Math.abs(S(t * 3)) * -0.2 * K;
+        T = torso();
+        hands = [[T.shX + face * (2.6 + S(t * 9) * 1.5) * K, T.shY - (4.2 - Math.abs(S(t * 9)) * 0.6) * K], [hipX - face * 1.0 * K, hipY + 0.2 * K]];
+        break;
+      }
+    }
+    T = T || torso();
+    const legs = feet.map(([fx, fy], k) => ik(hipX, hipY, fx, fy == null ? gnd(fx) : fy, TH, SH, bend));
+    const hx = T.nx + Math.sin(lean) * HEAD * 1.05 + hdx, hy = T.ny - Math.cos(lean) * HEAD * 1.05 + hdy;
+    const hh = hands.map(([x, y]) => [x, y == null ? gnd(x) : y]);
+    const armF = ik(T.shX, T.shY, hh[0][0], hh[0][1], UA, FA, face > 0 ? 1 : -1);
+    const armB = ik(T.shX, T.shY, hh[1][0], hh[1][1], UA, FA, face > 0 ? 1 : -1);
+    return { hipX, hipY, nx: T.nx, ny: T.ny, hx, hy, shX: T.shX, shY: T.shY, legs, armF, armB, aimA, face, anim: 'idle', hide, eye, extra };
+  }
+  function rotatePose(p, cx, cy, a) {
+    const c = Math.cos(a), s = Math.sin(a);
+    const r = (o, kx, ky) => { const x = o[kx] - cx, y = o[ky] - cy; o[kx] = cx + x * c - y * s; o[ky] = cy + x * s + y * c; };
+    r(p, 'hipX', 'hipY'); r(p, 'nx', 'ny'); r(p, 'hx', 'hy'); r(p, 'shX', 'shY');
+    for (const L of [...p.legs, p.armF, p.armB]) { r(L, 'jx', 'jy'); r(L, 'ex', 'ey'); }
+    p.aimA += a;
   }
 
   function updateScarf(dt, p) {
@@ -253,7 +418,9 @@
     ctx.fillStyle = c.out; ctx.beginPath(); ctx.arc(p.hx, p.hy, HEAD + 0.6, 0, Math.PI * 2); ctx.fill();
     strokeSet(ctx, segs, FW, c.fg);
     ctx.fillStyle = c.fg; ctx.beginPath(); ctx.arc(p.hx, p.hy, HEAD, 0, Math.PI * 2); ctx.fill();
-    if (!R.blink) { ctx.fillStyle = c.eye; ctx.beginPath(); ctx.arc(p.hx + p.face * 1.15, p.hy - 0.2 + Math.sin(p.aimA) * 0.5, 0.55, 0, Math.PI * 2); ctx.fill(); }
+    if (p.eye === 1 && !R.blink) { ctx.fillStyle = c.eye; ctx.beginPath(); ctx.arc(p.hx - 0.7, p.hy - 0.2, 0.5, 0, Math.PI * 2); ctx.arc(p.hx + 0.7, p.hy - 0.2, 0.5, 0, Math.PI * 2); ctx.fill(); }
+    else if (p.eye === 2) { ctx.fillStyle = c.eye; ctx.fillRect(p.hx + p.face * 1.15 - 0.6, p.hy + 0.1, 1.2, 0.35); }
+    else if (!R.blink) { ctx.fillStyle = c.eye; ctx.beginPath(); ctx.arc(p.hx + p.face * 1.15, p.hy - 0.2 + Math.sin(p.aimA) * 0.5, 0.55, 0, Math.PI * 2); ctx.fill(); }
     else { ctx.fillStyle = c.eye; ctx.fillRect(p.hx + p.face * 1.15 - 0.6, p.hy - 0.15, 1.2, 0.35); }
     ctx.globalAlpha = 1;
     return front;
@@ -306,6 +473,11 @@
     }
     R.roll = 0;
     const p = pose(dt, aim, weaponSprite, opts);
+    if (P.flipT > 0 && !P.ground && !p.extra) {
+      const k = 1 - P.flipT / (P.flipDur || 0.46), e = k < 0.5 ? 2 * k * k : 1 - 2 * (1 - k) * (1 - k);
+      rotatePose(p, P.x + P.w / 2, P.y + P.h * 0.55, (P.flipDir || p.face) * Math.PI * 2 * e);
+    }
+    if (p.hide) weaponSprite = null;
     R.lastPose = p;
     updateScarf(dt, p);
     const sq = P.squash > 0.15 ? P.squash : 0, st = P.stretch > 0.2 && !P.ground ? P.stretch : 0;
@@ -354,6 +526,7 @@
     WTP.rigGadgets?.draw?.(ctx, p, 'front', c);
     WTP.shop?.drawHat?.(ctx, p, c, HEAD);
     ctx.restore();
+    if (p.extra) { if (R.target) R.flush(); p.extra(R.target || ctx); }
   };
   const PB = { p: null, ox: 0, oy: 0, pool: [], pi: 0 };
   R.flush = (alpha = 1) => {

@@ -26,7 +26,12 @@
   const aimOf = (code) => { const m = keymap(); for (const a in AIMDIR) if ((m[a] || []).includes(code)) return AIMDIR[a]; return null; };
   const BLOCK = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab'];
 
+  I.lastInput = 0;
+  const touched = () => { I.lastInput = performance.now(); };
+  window.addEventListener('pointerdown', touched, true);
+  window.addEventListener('wheel', touched, { capture: true, passive: true });
   window.addEventListener('keydown', (e) => {
+    touched();
     if (I.capture) { e.preventDefault(); const fn = I.capture; I.capture = null; fn(e.code); return; }
     if (!I.enabled) return;
     if (WTP.game?.paused || (WTP.ui?.wheelOpen?.())) return;

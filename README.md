@@ -68,6 +68,7 @@ node tests/sound.test.js
 node tests/ui.test.js
 node tests/pxanim.test.js
 node tests/melee.test.js
+node tests/idle.test.js
 tests/host.test.sh tiled3
 ```
 

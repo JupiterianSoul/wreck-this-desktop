@@ -248,7 +248,7 @@
         const wd = P.wall || wallNear();
         P.vy = -265; P.vx = -wd * 185; P.face = -wd; P.wall = 0; P.buffer = 0; P.wallLock = 0.12; P.jumps = 1 + P.extraJumps; P.airDash = 1; P.stretch = 1;
         WTP.audio.play('walljump'); puff(4); WTP.game?.stat?.('walljumps', 1);
-      } else if (P.jumps > 0) { P.jumps--; P.vy = -248; P.buffer = 0; P.stretch = 1; WTP.audio.play('djump'); ring(); WTP.game?.stat?.('jumps', 1); gd?.airJump?.(P); }
+      } else if (P.jumps > 0) { P.jumps--; P.vy = -248; P.buffer = 0; P.stretch = 1; WTP.audio.play('djump'); ring(); WTP.game?.stat?.('jumps', 1); gd?.airJump?.(P); if (P.jumps === 0) { P.flipT = P.flipDur = 0.46; P.flipDir = P.face; } }
     }
     P.boosted = P.vy < -280;
     const wasGround = P.ground;
@@ -264,7 +264,8 @@
       GD()?.landed?.(P, vyBefore);
     }
     if (!P.ground) { P.peakY = Math.min(P.peakY, P.y); P.airT += dt; } else { P.peakY = P.y; P.airT = 0; }
-    if (P.ground) { P.jumps = 1 + P.extraJumps; P.airDash = 1; P.lastGround = performance.now(); }
+    if (P.ground) { P.jumps = 1 + P.extraJumps; P.airDash = 1; P.lastGround = performance.now(); P.flipT = 0; }
+    if (P.flipT > 0) P.flipT = Math.max(0, P.flipT - dt);
     if (P.wall !== 0) P.airDash = 1;
     P.land = Math.max(0, P.land - dt);
     if (P.ground && Math.abs(P.vx) > 20) {
