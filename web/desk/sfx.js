@@ -166,6 +166,15 @@
   S('melee', 'slash', () => { whoosh(0.13, 2200, 8000, 0.32, { attack: 0.02 }); fm(vary(2600), 3640, 1.5, 0.2, 0.03, { delay: 0.04 }); });
   S('melee', 'katana', () => { whoosh(0.12, 3000, 9000, 0.3, { attack: 0.015 }); osc('sine', 2400, 1200, 0.15, 0.04); });
   S('melee', 'hammer', () => { sub(140, 38, 0.28, 0.62); body(0.22, 900, 80, 0.55, { room: 1 }); matHit('wood', 2); });
+  S('melee', 'katana1', () => { whoosh(0.1, 3200, 9000, 0.3, { attack: 0.012 }); fm(vary(2400), 3600, 1.2, 0.16, 0.025, { delay: 0.03 }); });
+  S('melee', 'katana2', () => { whoosh(0.1, 3600, 9500, 0.3, { attack: 0.012 }); fm(vary(2800), 4200, 1.2, 0.16, 0.025, { delay: 0.03 }); });
+  S('melee', 'katana3', () => { whoosh(0.16, 2400, 9000, 0.36, { attack: 0.02 }); modal('metal', 2600, 0.04, { delay: 0.05, decay: 1.2, room: 1 }); sub(160, 60, 0.12, 0.25, { delay: 0.04 }); });
+  S('melee', 'hammerCharge', () => { osc('sawtooth', 70, 160, 0.6, 0.04, { lp: 700 }); whoosh(0.6, 200, 900, 0.1); });
+  S('melee', 'hammerReady', () => { modal('metal', 1400, 0.035, { decay: 0.6 }); blip(1760, 0.06, 0.03, 'triangle', { delay: 0.04 }); });
+  S('melee', 'hammerSlam', () => { sub(110, 26, 0.55, 0.75); body(0.5, 1100, 50, 0.7, { room: 1, drive: 2 }); crackle(14, 0.4, 0.1, 1600); modal('plate', 260, 0.05, { decay: 0.6 }); });
+  S('melee', 'glovePunch', () => { sub(170, 55, 0.14, 0.55); body(0.08, 2200, 300, 0.45); osc('triangle', 600, 200, 0.12, 0.05, { vib: 30, vibA: 60 }); });
+  S('melee', 'stampSlam', () => { sub(130, 45, 0.18, 0.6); body(0.14, 1300, 180, 0.45); tick(0.3, 1800, 0.03, { delay: 0.01 }); });
+  S('melee', 'wreckHit', (sp = 300) => { const k = Math.min(1, sp / 500); sub(100 - k * 30, 30, 0.3 + k * 0.2, 0.55 + k * 0.2); body(0.3 + k * 0.2, 1200, 60, 0.5, { room: 1 }); modal('plate', 300, 0.04, { decay: 0.4 }); crackle(6 + k * 8, 0.3, 0.1, 1800); });
   S('melee', 'heave', () => { whoosh(0.24, 180, 900, 0.3); osc('sine', 90, 60, 0.2, 0.1); });
   S('melee', 'stampW', () => { whoosh(0.12, 400, 1400, 0.2); sub(130, 50, 0.16, 0.5, { delay: 0.05 }); body(0.12, 1200, 200, 0.4, { delay: 0.05 }); });
   S('melee', 'stamp', () => { sub(160, 50, 0.3, 0.55); body(0.25, 1200, 100, 0.5); modal('wood', 300, 0.15); });

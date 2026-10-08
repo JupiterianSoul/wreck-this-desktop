@@ -67,6 +67,7 @@ node tests/sudo.test.js
 node tests/sound.test.js
 node tests/ui.test.js
 node tests/pxanim.test.js
+node tests/melee.test.js
 tests/host.test.sh tiled3
 ```
 

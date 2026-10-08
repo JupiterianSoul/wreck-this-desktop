@@ -1050,7 +1050,7 @@
     if (Wd.solid(Math.floor(b.x), Math.floor(b.y))) {
       if (sp > 90) {
         const n = Wd.carve(b.x, b.y, b.r + Math.min(4, sp / 120), { debris: 0.5, force: sp * 0.5, cause: 'wrecking', letters: 4 });
-        if (n) { G()?.shake?.(Math.min(8, sp / 60)); if (sp > 200) { A('hammer'); G()?.hitstop?.(0.03); } }
+        if (n) { G()?.shake?.(Math.min(8, sp / 60)); if (sp > 200) { A('wreckHit', sp); G()?.hitstop?.(Math.min(0.08, sp / 5000), true); WTP.melee?.impact?.(b.x, b.y, Math.min(2.5, sp / 200), '#c8ced8'); } }
         b.vx *= 0.72; b.vy *= 0.72;
       } else if (st.ballPull && (b.grind = (b.grind || 0) - dt) <= 0) {
         b.grind = 0.12;

@@ -1,7 +1,7 @@
 (() => {
   const WTP = window.WTP;
   const HEAVY = new Set(['nuke', 'bsod', 'orbital', 'meteor', 'airstrike', 'blackhole', 'quake', 'tornado', 'panic', 'zipbomb', 'overclock', 'boss']);
-  const MEDIUM = new Set(['railgun', 'sniper', 'sound', 'revolver', 'hammer', 'wrecking', 'stamp', 'glove', 'superq', 'kill9', 'altf4', 'tiler', 'caps', 'battery', 'forkbomb', 'lightning', 'finisher']);
+  const MEDIUM = new Set(['railgun', 'sniper', 'sound', 'revolver', 'hammer', 'wrecking', 'stamp', 'glove', 'superq', 'kill9', 'altf4', 'tiler', 'caps', 'battery', 'forkbomb', 'lightning', 'finisher', 'katana', 'chainsaw', 'drill', 'whip']);
   const MEDIUM_CATS = new Set(['boom', 'shot', 'disaster']);
   const B = { src: null, n: 0, lim: 170, stats: { asked: 0, kept: 0 } };
   WTP.budget = B;

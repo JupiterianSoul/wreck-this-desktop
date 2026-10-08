@@ -38,7 +38,8 @@
     shakeT = Math.max(shakeT, Math.min(cap, shakeT * 0.6 + n));
     if (n >= 10) WTP.merges?.nudge?.(Math.min(1, n / 30));
   };
-  G.hitstop = (t) => {
+  G.hitstop = (t, force) => {
+    if (force) { hitstopT = Math.max(hitstopT, Math.min(0.12, t)); return; }
     if (BG() && !BG().heavy()) { const now = performance.now(); if (now < stopAt) return; stopAt = now + 250; t = Math.min(t, 0.035); }
     hitstopT = Math.max(hitstopT, t);
   };
