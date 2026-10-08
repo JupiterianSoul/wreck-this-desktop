@@ -41,9 +41,11 @@
     if (imgCache.has(k)) return imgCache.get(k);
     const d = WP.BY[id];
     if (!d || !d.sprite) return '';
-    const src = (!silhouette && WTP.shop?.skinCanvas?.(id)) || d.sprite.cv;
+    let f = sc;
+    if (d.sprite.vector) { const b = d.sprite.base(), box = sc >= 3 ? [58, 30] : [40, 20]; f = Math.max(1, Math.floor(Math.min(box[0] / b.width, box[1] / b.height))); }
+    const src = (!silhouette && WTP.shop?.skinCanvas?.(id, f)) || (d.sprite.vector ? d.sprite.icon(f) : d.sprite.cv);
     const c = document.createElement('canvas');
-    c.width = d.sprite.w * sc; c.height = d.sprite.h * sc;
+    c.width = d.sprite.vector ? src.width : d.sprite.w * sc; c.height = d.sprite.vector ? src.height : d.sprite.h * sc;
     const g = c.getContext('2d');
     g.imageSmoothingEnabled = false;
     g.drawImage(src, 0, 0, c.width, c.height);
@@ -192,7 +194,7 @@
     const st = S().settings;
     st.muted = !st.muted;
     window.Curio.muted = st.muted || WTD.test;
-    if (st.muted) AU.stopLoops(); else AU.music(G.run?.mode.music);
+    if (st.muted) AU.stopLoops();
     WTP.persist();
     U.label(st.muted ? 'SOUND OFF (M)' : 'SOUND ON (M)', 900);
   };
@@ -225,7 +227,13 @@
     return `<div class="wi-name">${esc(d.name)}<small>${esc(cat ? cat.name : '')}</small></div>
       <div class="wi-row"><b>Fire</b><span>${esc(d.does || d.tip || '')}</span></div>
       ${d.altDoes ? `<div class="wi-row"><b>Alt</b><span>${esc(d.altDoes)}</span></div>` : ''}
-      ${d.tip && d.does ? `<div class="wi-tip">${esc(d.tip)}</div>` : ''}`;
+      ${d.tip && d.does ? `<div class="wi-tip">${esc(d.tip)}</div>` : ''}
+      ${statsHtml(d)}`;
+  }
+  const STAT_NAMES = ['Power', 'Fire rate', 'Range', 'Chaos'];
+  function statsHtml(d) {
+    if (!Array.isArray(d.st)) return '';
+    return `<div class="wi-stats">${STAT_NAMES.map((n, i) => { const v = Math.max(0, Math.min(5, d.st[i] | 0)); return `<div class="wi-stat"><span>${n}</span><i>${'<em class="on"></em>'.repeat(v)}${'<em></em>'.repeat(5 - v)}</i></div>`; }).join('')}</div>`;
   }
   function renderWheel() {
     const ring = $('hRing');
@@ -377,7 +385,6 @@
         <h3>Sound</h3>
         ${row('Sound', toggle('muted', !st.muted), 'M toggles it in game')}
         ${row('Master volume', slider('sMaster', st.master))}
-        ${row('Music', slider('sMusic', st.music))}
         ${row('Effects', slider('sSfx', st.sfx))}
         ${row('Test', '<button class="b" data-a="testsnd">Play a sound</button>', WTD.audioOk === false ? 'No audio output was found. Install gst-plugins-good and restart the game.' : '')}
         <h3>Visuals</h3>
@@ -443,7 +450,7 @@
       renderMenu();
     }));
     const sl = (id, k) => { const el = p.querySelector('#' + id); if (el) el.addEventListener('input', () => { st[k] = +el.value; el.nextElementSibling.textContent = Math.round(+el.value * 100) + '%'; WTP.persist(); AU.setVolumes?.(); G.applyFx?.(); }); };
-    sl('sMaster', 'master'); sl('sMusic', 'music'); sl('sSfx', 'sfx'); sl('sShake', 'shake'); sl('sFx', 'fxAmount'); sl('sSmooth', 'aimSmooth');
+    sl('sMaster', 'master'); sl('sSfx', 'sfx'); sl('sShake', 'shake'); sl('sFx', 'fxAmount'); sl('sSmooth', 'aimSmooth');
     p.querySelectorAll('[data-rb]').forEach((b) => b.addEventListener('click', () => {
       rebinding = b.dataset.rb; renderMenu();
       I.capture = (code) => {

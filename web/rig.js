@@ -283,8 +283,9 @@
       const gh = P.ghosts[k];
       gh.t -= dt;
       if (gh.t <= 0 || !gh.pose) { P.ghosts.splice(k, 1); continue; }
-      drawBody(ctx, gh.pose, { ...c, fg: c.scarf, out: 'rgba(0,0,0,0)' }, Math.min(1, gh.t * 4) * 0.45);
+      drawBody(ctx, gh.pose, { ...c, fg: c.scarf, out: 'rgba(0,0,0,0)' }, R.target ? 1 : Math.min(1, gh.t * 4) * 0.45);
     }
+    if (R.target && P.ghosts.length) R.flush(0.4);
     if (P.dashT > 0 && P.ghosts.length) { const gh = P.ghosts[P.ghosts.length - 1]; if (!gh.pose) gh.pose = JSON.parse(JSON.stringify(p)); }
     drawScarf(ctx, c);
     WTP.rigGadgets?.draw?.(ctx, p, 'back', c);
@@ -296,10 +297,16 @@
     if (weaponSprite && !P.victory && !P.dead && !P.carry) {
       const a = p.aimA;
       const flip = aim.x < 0;
-      const r = weaponSprite.rotated(a, flip);
       const hx = p.armF.ex, hy = p.armF.ey;
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(r.cv, Math.round((hx - r.ox) * 4) / 4, Math.round((hy - r.oy) * 4) / 4);
+      const T = R.target || ctx;
+      const wx = R.target ? fx + (hx - fx) * kx : hx, wy = R.target ? fy + (hy - fy) * ky : hy;
+      if (R.target) R.flush();
+      if (weaponSprite.vector) weaponSprite.draw(T, wx, wy, a, flip);
+      else {
+        const r = weaponSprite.rotated(a, flip);
+        T.imageSmoothingEnabled = false;
+        T.drawImage(r.cv, Math.round((wx - r.ox) * 4) / 4, Math.round((wy - r.oy) * 4) / 4);
+      }
       const [mx, my] = weaponSprite.muzzle(a, flip);
       P.gunPos = { x: hx, y: hy };
       P.muzzle = { x: hx + mx, y: hy + my };
@@ -313,7 +320,32 @@
     WTP.rigGadgets?.draw?.(ctx, p, 'front', c);
     ctx.restore();
   };
-  P.draw = (ctx, dt, ws, aim, opts) => R.draw(ctx, dt, ws, aim, opts);
+  const PXD = 2;
+  const PB = { cv: null, g: null, ox: 0, oy: 0 };
+  const GAD_COLS = ['#ffffff', '#ff6a5a', '#c84a3a', '#ffe066', '#ff7f3f', '#f2f2f2', '#fff3b0', '#6fcf5a', '#e8484f', '#5c5270', '#c8372d'];
+  R.flush = (alpha = 1) => {
+    const V = WTP.vsprites, T = R.target;
+    V.pixelize(PB.cv, R.pal, false, 4);
+    T.save(); T.globalAlpha = alpha; T.imageSmoothingEnabled = false;
+    T.drawImage(PB.cv, PB.ox, PB.oy, PB.cv.width / PXD, PB.cv.height / PXD);
+    T.restore();
+    const g = PB.g; g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, PB.cv.width, PB.cv.height); g.restore();
+  };
+  P.draw = (ctx, dt, ws, aim, opts) => {
+    if (!WTP.vsprites) return R.draw(ctx, dt, ws, aim, opts);
+    const SZ = 80;
+    if (!PB.cv) { PB.cv = document.createElement('canvas'); PB.cv.width = PB.cv.height = SZ * PXD; PB.g = PB.cv.getContext('2d', { willReadFrequently: true }); }
+    const cx = R.rag ? R.rag.pts[2].x : P.x + P.w / 2, cy = R.rag ? R.rag.pts[2].y : P.y + P.h / 2;
+    PB.ox = Math.round(cx) - SZ / 2; PB.oy = Math.round(cy) - SZ / 2;
+    const g = PB.g;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, PB.cv.width, PB.cv.height);
+    g.setTransform(PXD, 0, 0, PXD, -PB.ox * PXD, -PB.oy * PXD);
+    g.globalAlpha = 1;
+    const c = colors();
+    R.pal = [c.fg, c.out, c.scarf, c.eye, ...GAD_COLS].map((h) => WTP.vsprites.rgbOf(h));
+    R.target = ctx;
+    try { R.draw(g, dt, ws, aim, opts); R.flush(); } finally { R.target = null; }
+  };
   WTP.rigGadgets = {
     draw(ctx, p, layer, c) {
       const GD = WTP.gadgets;

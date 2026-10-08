@@ -19,13 +19,13 @@
     { id: 'disaster', short: 'Chaos', name: 'Disasters', icon: 'skull', col: 'y' }
   ];
   const D = [
-    { id: 'pistol', does: 'Pops single letters off cleanly, dead accurate', name: 'Pistol', cat: 'side', price: 0, rate: 0.17, flash: 'small', shell: true, recoil: 2, shake: 1.5, snd: 'pistol', st: [2, 3, 4, 1], tip: 'Reliable little holes. Pops letters right off the line.' },
+    { id: 'pistol', does: 'Dead accurate. Fire in rhythm (not spamming) for perfect shots that hit twice as hard and pierce', name: 'Pistol', cat: 'side', price: 0, rate: 0.17, flash: 'small', shell: true, recoil: 2, shake: 1.5, snd: 'pistol', st: [2, 3, 4, 1], tip: 'Reliable little holes. Pops letters right off the line.' },
     { id: 'revolver', does: 'Six piercing slugs that tunnel through whole paragraphs', name: 'Hand Cannon', cat: 'side', price: 400, rate: 0.48, flash: 'big', recoil: 4, shake: 4, kick: 40, snd: 'revolver', st: [4, 2, 4, 2], tip: 'Six huge rounds that punch straight through paragraphs.', mag: 6, reload: 1 },
     { id: 'dual', does: 'Bullets ricochet once off walls', name: 'Dual Pistols', cat: 'side', price: 900, rate: 0.085, flash: 'small', shell: true, recoil: 1.5, shake: 1, snd: 'dual', st: [2, 4, 3, 2], tip: 'Golden twins. Alternating fire, maximum style.' },
     { id: 'nailgun', does: 'Nails stick in place as tiny footholds you can stand on', name: 'Nail Gun', cat: 'side', price: 600, rate: 0.06, flash: 'small', recoil: 1, shake: 0.6, snd: 'nail', st: [1, 5, 3, 1], tip: 'Staples the page to itself. Very fast, very small.' },
     { id: 'flare', does: 'Sticks where it lands and keeps the fire going', name: 'Flare Gun', cat: 'side', price: 1200, rate: 0.6, flash: 'fire', recoil: 2, shake: 2, snd: 'flare', st: [2, 2, 3, 4], tip: 'A burning flare that sticks and sets everything around it on fire.' },
-    { id: 'smg', does: 'Every hit knocks a letter loose', name: 'SMG', cat: 'auto', price: 0, rate: 0.055, flash: 'small', shell: true, recoil: 1.4, shake: 0.8, snd: 'smg', st: [2, 5, 3, 2], tip: 'Hold to shred text into confetti.' },
-    { id: 'rifle', does: 'Pierces through five layers of text', name: 'Assault Rifle', cat: 'auto', price: 700, rate: 0.095, flash: 'big', shell: true, recoil: 2, shake: 1.6, snd: 'rifle', st: [3, 4, 5, 2], tip: 'Accurate, punchy, goes through a few lines at once.' },
+    { id: 'smg', does: 'Every hit knocks a letter loose. Spread blooms the longer you hold', name: 'SMG', cat: 'auto', price: 0, rate: 0.055, flash: 'small', shell: true, recoil: 1.4, shake: 0.8, snd: 'smg', st: [2, 5, 3, 2], tip: 'Hold to shred text into confetti.' },
+    { id: 'rifle', does: 'Three round bursts that each pierce five layers of text', name: 'Assault Rifle', cat: 'auto', price: 700, rate: 0.32, flash: 'big', shell: true, recoil: 2, shake: 1.6, snd: 'rifle', st: [3, 4, 5, 2], tip: 'Accurate, punchy, goes through a few lines at once.' },
     { id: 'minigun', does: 'Spins up into a wall of lead that pushes you around', name: 'Minigun', cat: 'auto', price: 3500, rate: 0.028, flash: 'big', shell: true, recoil: 2.5, shake: 2.2, snd: 'minigun', spin: true, st: [3, 5, 4, 4], tip: 'Spin up, then a wall of lead. Pushes you backwards.' },
     { id: 'shotgun', does: 'Fire downward to shotgun jump', name: 'Shotgun', cat: 'shot', price: 0, rate: 0.7, flash: 'big', shell: true, recoil: 5, shake: 7, kick: 130, snd: 'shotgun', st: [4, 2, 2, 3], tip: 'Spray of pellets. Fire downward for a shotgun jump.' },
     { id: 'double', does: 'Two barrels at once: launches you across the page', name: 'Double Barrel', cat: 'shot', price: 1100, rate: 1.05, flash: 'big', recoil: 7, shake: 11, kick: 230, snd: 'double', st: [5, 1, 2, 4], tip: 'Both barrels at once. Launches you across the page.' },
@@ -157,7 +157,14 @@
   }
 
   const FIRE = {
-    pistol(o) { bullet(o, 0.015, 560, 3.6, 12); },
+    pistol(o) {
+      const now = performance.now() / 1000, gap = now - (st.pistolT || 0);
+      st.pistolT = now;
+      const perfect = gap > 0.24 && gap < 0.55;
+      st.pistolChain = perfect ? Math.min(5, (st.pistolChain || 0) + 1) : 0;
+      if (perfect) { bullet(o, 0.004, 680, 4.6 + st.pistolChain * 0.3, 24 + st.pistolChain * 4, { pierce: 3, crit: true }); A('perfect'); if (st.pistolChain >= 3) G()?.label?.(`RHYTHM x${st.pistolChain}`, 500); }
+      else bullet(o, 0.015, 560, 3.6, 12);
+    },
     revolver(o) {
       const m = st.mag.revolver ?? 6;
       if (m <= 0) return false;
@@ -172,8 +179,16 @@
     },
     nailgun(o) { bullet(o, 0.04, 680, 1.7, 5, { spr: 'nail', nail: true, life: 0.9 }); },
     flare(o) { lob(o, 'flare', 300, { life: 6, burnT: 3, spr: 'flare' }); },
-    smg(o) { bullet(o, 0.09, 600, 2.9, 7, { popAll: true }); },
-    rifle(o) { bullet(o, 0.028, 740, 3.4, 14, { pierce: 5 }); },
+    smg(o) {
+      const now = performance.now() / 1000;
+      st.bloom = now - (st.smgT || 0) > 0.2 ? 0 : Math.min(1, (st.bloom || 0) + 0.06);
+      st.smgT = now;
+      bullet(o, 0.04 + st.bloom * 0.16, 600, 2.9, 7, { popAll: true });
+    },
+    rifle(o) {
+      for (let k = 0; k < 3; k++) bullet(o, 0.012 + k * 0.012, 760, 3.4, 16, { pierce: 5, delay: k * 0.06 });
+      setTimeout(() => A('burst'), 60); setTimeout(() => A('burst'), 120);
+    },
     minigun(o) {
       bullet(o, 0.12, rand(580, 660), 2.9, 7);
       const P = PL();
@@ -1759,6 +1774,7 @@
     for (const s of shots) {
       if (s.delay > 0) continue;
       if (EXT.shots[s.t] && EXT.shots[s.t].draw) { EXT.shots[s.t].draw(ctx, s); continue; }
+      if (EXT.look && EXT.look(ctx, s)) continue;
       const sp = s.spr && PR[s.spr];
       if (s.t === 'flame') {
         const k = Math.min(1, s.age / 0.45), r = Math.round(1 + k * 3);
@@ -1882,6 +1898,7 @@
       ctx.drawImage(fr, -16 * s, -16 * s, 32 * s, 32 * s);
       ctx.restore();
     }
+    for (const f of EXT.after) f(ctx);
   }
   function drawSaw(ctx, s) {
     const x = Math.round(s.x), y = Math.round(s.y);
@@ -1935,7 +1952,7 @@
     W().crumble(x, y, 0, r * 0.7);
     G()?.shake?.(8);
   }
-  const EXT = { shots: {}, draws: [], updates: [], resets: [] };
+  const EXT = { shots: {}, draws: [], updates: [], resets: [], look: null, after: [] };
   function register(def, impl = {}) {
     if (BY[def.id]) { Object.assign(BY[def.id], def); } else { def.idx = D.length; D.push(def); BY[def.id] = def; }
     const d = BY[def.id];

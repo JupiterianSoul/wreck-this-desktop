@@ -6,6 +6,8 @@
   const add = (name, fn) => { SFX[name] = fn; };
 
   const opt = (name, fn) => { if (!SFX[name]) SFX[name] = fn; };
+  add('perfect', () => { osc('triangle', 1760, 1760, 0.12, 0.08); osc('sine', 2640, 2640, 0.18, 0.05); });
+  add('burst', () => { noise(0.05, 4000, 900, 0.22, 'bandpass', 1.2); thump(140, 0.05, 0.12); });
   opt('laserZap', () => { osc('sawtooth', 1800, 300, 0.25, 0.06, { lp: 4000 }); noise(0.2, 5000, 2000, 0.15, 'bandpass', 2); });
   opt('chainsawRev', () => { osc('sawtooth', 90, 260, 0.35, 0.09, { lp: 1600, vib: 30, vibA: 20 }); });
   opt('meteorFall', () => { noise(1.2, 300, 1800, 0.35, 'bandpass', 1.5); osc('sine', 400, 80, 1.2, 0.06); });

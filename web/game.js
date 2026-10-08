@@ -174,7 +174,6 @@
     PL.spawn(sp.x - 3, sp.y);
     prevP.x = PL.x; prevP.y = PL.y;
     mode.setup(run);
-    AU.music(mode.music);
     AU.muffle(false);
     WTP.ui?.hudSetup?.(run);
     G.playing = true; G.paused = false;
@@ -232,7 +231,6 @@
     WTP.persist(true);
     PL.victory = run.won;
     AU.jingle(run.won ? 'win' : 'lose');
-    AU.music(null);
     setTimeout(() => { if (G.run === run) { AU.muffle(true); WTP.ui?.results?.({ run, pct, best, rows: run.mode.rows(run) }); } }, 900);
   };
 

@@ -1,7 +1,7 @@
 (() => {
   const WTP = window.WTP;
   const C = WTP.C;
-  let roomBus = null, ac = null, master = null, sfxBus = null, musBus = null, musFilter = null, noiseBuf = null, pulse25 = null, pulse12 = null, comp = null;
+  let roomBus = null, ac = null, master = null, sfxBus = null, noiseBuf = null, pulse25 = null, pulse12 = null, comp = null;
   const loops = {};
   const last = {};
   const muted = () => !!C.muted;
@@ -15,9 +15,6 @@
       comp.threshold.value = -16; comp.ratio.value = 5; comp.attack.value = 0.003; comp.release.value = 0.2;
       master = a.createGain(); master.gain.value = 0.9 * (WTP.save.settings.master ?? 0.8);
       sfxBus = a.createGain(); sfxBus.gain.value = WTP.save.settings.sfx;
-      musBus = a.createGain(); musBus.gain.value = WTP.save.settings.music * 0.5;
-      musFilter = a.createBiquadFilter(); musFilter.type = 'lowpass'; musFilter.frequency.value = 18000; musFilter.Q.value = 0.7;
-      musBus.connect(musFilter).connect(master);
       sfxBus.connect(comp).connect(master);
       roomBus = a.createGain(); roomBus.gain.value = 0.22;
       const dl = a.createDelay(0.5); dl.delayTime.value = 0.085;
@@ -42,7 +39,6 @@
     const t = ac.currentTime;
     sfxBus.gain.setTargetAtTime(WTP.save.settings.sfx, t, 0.05);
     master.gain.setTargetAtTime(0.9 * (WTP.save.settings.master ?? 0.8), t, 0.05);
-    musBus.gain.setTargetAtTime(WTP.save.settings.music * 0.5, t, 0.05);
   }
   function osc(type, f0, f1, dur, vol, o = {}) {
     const a = ctx(); if (!a) return;
@@ -373,56 +369,6 @@
   }
   function stopLoops() { for (const k of Object.keys(loops)) loop(k, false); }
 
-  const NOTE = { C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11 };
-  const midi = (n) => { const m = /^([A-G][#b]?)(\d)$/.exec(n); return m ? 12 * (Number(m[2]) + 1) + NOTE[m[1]] : null; };
-  const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
-  const chord = (root, kind) => { const r = midi(root); const iv = { m: [0, 3, 7], M: [0, 4, 7], m7: [0, 3, 7, 10], M7: [0, 4, 7, 11], 7: [0, 4, 7, 10] }[kind]; return iv.map((x) => r + x); };
-  const SONGS = {
-    title: {
-      bpm: 132, lead: 'p25', leadVol: 0.05,
-      lead1: ['G4 . G4 Eb4 . C4 Eb4 . G4 - C5 - Bb4 - G4 .', 'Ab4 . Ab4 C5 . Eb5 - C5 Ab4 - G4 - F4 - Eb4 .', 'G4 . Bb4 G4 . Eb4 G4 . Bb4 - Eb5 - D5 - Bb4 .', 'F4 . Bb4 D5 . F5 - D5 C5 - Bb4 - D5 - - .'],
-      chords: [chord('C3', 'm'), chord('Ab2', 'M'), chord('Eb3', 'M'), chord('Bb2', 'M')],
-      bass: 'R..R..R.R..R.OR.', arp: 'x.x.x.x.x.x.x.x.',
-      K: 'x...x...x...x...', Sn: '....x.......x...', H: 'x.x.x.x.x.x.x.x.'
-    },
-    wreck: {
-      bpm: 150, lead: 'p25', leadVol: 0.045,
-      lead1: ['A4 A4 . C5 . A4 E5 . D5 . C5 . A4 - G4 .', 'F4 F4 . A4 . C5 F5 . E5 . C5 . A4 - C5 .', 'E5 - D5 C5 . G4 . C5 E5 - G5 - E5 . C5 .', 'D5 - B4 G4 . D5 . G5 F#5 - D5 - B4 - A4 .'],
-      chords: [chord('A2', 'm'), chord('F2', 'M'), chord('C3', 'M'), chord('G2', 'M')],
-      bass: 'R.RO.RR.R.RO.RRO', arp: 'xxxxxxxxxxxxxxxx',
-      K: 'x..x..x.x..x..x.', Sn: '....x.......x..x', H: 'xxxxxxxxxxxxxxxx'
-    },
-    wreck2: {
-      bpm: 156, lead: 'square', leadVol: 0.032,
-      lead1: ['E5 . E5 D5 E5 . G5 . E5 . D5 . C5 . D5 .', 'C5 . C5 B4 C5 . E5 . C5 . B4 . A4 . B4 .', 'A4 . C5 . E5 . A5 . G5 . E5 . C5 . E5 .', 'B4 - - . D5 - - . G5 - F#5 - E5 - D5 .'],
-      chords: [chord('E2', 'm'), chord('C2', 'M'), chord('A2', 'm'), chord('B2', 'M')],
-      bass: 'RORORORORORORORO', arp: 'x.xx.xx.x.xx.xx.',
-      K: 'x...x...x...x.x.', Sn: '....x.......x...', H: '..x...x...x...xx'
-    },
-    survival: {
-      bpm: 168, lead: 'p25', leadVol: 0.045,
-      lead1: ['D5 . D5 . A4 . D5 F5 E5 . D5 . C5 . A4 .', 'Bb4 . Bb4 . F4 . Bb4 D5 C5 . Bb4 . A4 . F4 .', 'C5 . E5 . G5 . E5 C5 D5 . E5 . G5 - - .', 'A4 . C#5 . E5 . A5 - G5 . E5 . C#5 . A4 .'],
-      chords: [chord('D2', 'm'), chord('Bb1', 'M'), chord('C2', 'M'), chord('A1', 'M')],
-      bass: 'RRORRORRRRORRORF', arp: 'x.x.x.x.x.x.x.x.',
-      K: 'x.x.x.x.x.x.x.xx', Sn: '....x..x....x.x.', H: 'x.xxx.xxx.xxx.xx'
-    },
-    zen: {
-      bpm: 78, lead: 'triangle', leadVol: 0.07,
-      lead1: ['A4 - - - C5 - - - E5 - - - D5 - - -', 'G4 - - - B4 - - - D5 - - - . . . .', 'F4 - - - A4 - - - C5 - - - E5 - - -', 'E4 - - - G4 - - - B4 - - - . . . .'],
-      chords: [chord('F2', 'M7'), chord('E2', 'm7'), chord('D2', 'm7'), chord('C2', 'M7')],
-      bass: 'R.......F.......', arp: 'x..x..x..x..x..x', arpWave: 'triangle',
-      K: 'x.........x.....', Sn: '................', H: '..x...x...x...x.'
-    },
-    boss: {
-      bpm: 176, lead: 'sawtooth', leadVol: 0.03,
-      lead1: ['E5 E5 . E5 . G5 . E5 D5 . C5 . B4 . C5 .', 'F5 F5 . F5 . A5 . F5 E5 . D5 . C5 . D5 .', 'E5 E5 . E5 . G5 . E5 D5 . C5 . B4 . G4 .', 'A4 . B4 . C5 . D5 . E5 - - . E5 - - .'],
-      chords: [chord('E2', 'm'), chord('F2', 'M'), chord('E2', 'm'), chord('A2', 'm')],
-      bass: 'RRRRRRRRRRRRRROO', arp: 'xxxxxxxxxxxxxxxx',
-      K: 'x.x.x.x.x.x.x.x.', Sn: '....x.......x.xx', H: 'xxxxxxxxxxxxxxxx'
-    }
-  };
-  for (const k in SONGS) SONGS[k].leadN = SONGS[k].lead1.map((bar) => bar.split(/\s+/));
-  const mus = { song: null, step: 0, next: 0, timer: 0, name: null, muffled: false, paused: false };
   function playNote(type, f, t, dur, vol, bus) {
     const o = ac.createOscillator();
     if (type === 'p25') o.setPeriodicWave(pulse25); else if (type === 'p12') o.setPeriodicWave(pulse12); else o.type = type;
@@ -435,71 +381,8 @@
     o.connect(g).connect(bus);
     o.start(t); o.stop(t + dur + 0.02);
   }
-  function drum(kind, t) {
-    if (kind === 'K') {
-      const o = ac.createOscillator(); o.type = 'sine';
-      o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.12);
-      const g = ac.createGain(); g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
-      o.connect(g).connect(musBus); o.start(t); o.stop(t + 0.2);
-    } else {
-      const s = ac.createBufferSource(); s.buffer = noiseBuf;
-      const f = ac.createBiquadFilter(); f.type = kind === 'H' ? 'highpass' : 'bandpass'; f.frequency.value = kind === 'H' ? 7000 : 1800; f.Q.value = kind === 'H' ? 0.7 : 0.9;
-      const g = ac.createGain(); const v = kind === 'H' ? 0.06 : 0.22, d = kind === 'H' ? 0.04 : 0.13;
-      g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-      s.connect(f).connect(g).connect(musBus); s.start(t, Math.random()); s.stop(t + d + 0.02);
-    }
-  }
-  function schedule() {
-    if (!mus.song || mus.paused) return;
-    if (muted() || document.hidden) { mus.next = 0; return; }
-    const a = ctx(); if (!a) return;
-    const S = mus.song;
-    const stepDur = 60 / S.bpm / 4;
-    if (!mus.next || mus.next < a.currentTime - 0.2) mus.next = a.currentTime + 0.06;
-    while (mus.next < a.currentTime + 0.15) {
-      const t = mus.next;
-      const st = mus.step % 64, bar = Math.floor(st / 16), s16 = st % 16;
-      const ch = S.chords[bar];
-      const tok = S.leadN[bar][s16];
-      if (tok && tok !== '.' && tok !== '-') {
-        let len = 1;
-        while (S.leadN[bar][s16 + len] === '-') len++;
-        const m = midi(tok);
-        if (m) {
-          const alt = mus.step % 128 >= 64 && S.lead !== 'triangle';
-          playNote(S.lead, hz(m), t, stepDur * len * 0.95, S.leadVol, musBus);
-          if (alt) playNote('p12', hz(m + 12), t, stepDur * len * 0.6, S.leadVol * 0.35, musBus);
-        }
-      }
-      const b = S.bass[s16];
-      if (b && b !== '.') {
-        const root = ch[0] - 12 + (b === 'O' ? 12 : 0) + (b === 'F' ? 7 : 0);
-        playNote('triangle', hz(root), t, stepDur * 0.9, 0.16, musBus);
-      }
-      if (S.arp[s16] === 'x') {
-        const tone = ch[(mus.step) % ch.length] + 12 + (Math.floor(mus.step / 4) % 2 ? 12 : 0);
-        playNote(S.arpWave || 'p12', hz(tone), t, stepDur * 0.7, S.arpWave ? 0.03 : 0.018, musBus);
-      }
-      if (S.K[s16] === 'x') drum('K', t);
-      if (S.Sn[s16] === 'x') drum('S', t);
-      if (S.H[s16] === 'x') drum('H', t);
-      mus.step++;
-      mus.next += stepDur;
-    }
-  }
-  function music(name) {
-    if (mus.name === name) return;
-    mus.name = name;
-    mus.song = name ? SONGS[name] : null;
-    mus.step = 0; mus.next = 0;
-    if (!mus.timer) mus.timer = setInterval(schedule, 40);
-    if (!name) { clearInterval(mus.timer); mus.timer = 0; }
-  }
-  function muffle(on) {
-    mus.muffled = on;
-    if (!ac || !musFilter) return;
-    musFilter.frequency.setTargetAtTime(on ? 700 : 18000, ac.currentTime, 0.15);
-  }
+  function music() { }
+  function muffle() { }
   function jingle(kind) {
     const a = ctx(); if (!a) return;
     const t0 = a.currentTime + 0.05;
@@ -512,5 +395,5 @@
   }
   document.addEventListener('visibilitychange', () => { if (document.hidden) { stopLoops(); if (ac && ac.state === 'running') { try { ac.suspend(); } catch (e) { } } } else if (ac && !muted()) { try { ac.resume(); } catch (e) { } } });
   setInterval(() => { if (muted()) stopLoops(); }, 500);
-  WTP.audio = { play, loop, stopLoops, music, muffle, jingle, setVolumes, ctx, SFX, synth: { osc, fm, thump, noise, vary, throttle, ctx, get sfxBus() { return sfxBus; }, get noiseBuf() { return noiseBuf; } }, get song() { return mus.name; } };
+  WTP.audio = { play, loop, stopLoops, music, muffle, jingle, setVolumes, ctx, SFX, synth: { osc, fm, thump, noise, vary, throttle, ctx, get sfxBus() { return sfxBus; }, get noiseBuf() { return noiseBuf; } } };
 })();
