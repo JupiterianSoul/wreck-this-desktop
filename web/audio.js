@@ -512,5 +512,5 @@
   }
   document.addEventListener('visibilitychange', () => { if (document.hidden) { stopLoops(); if (ac && ac.state === 'running') { try { ac.suspend(); } catch (e) { } } } else if (ac && !muted()) { try { ac.resume(); } catch (e) { } } });
   setInterval(() => { if (muted()) stopLoops(); }, 500);
-  WTP.audio = { play, loop, stopLoops, music, muffle, jingle, setVolumes, ctx, get song() { return mus.name; } };
+  WTP.audio = { play, loop, stopLoops, music, muffle, jingle, setVolumes, ctx, SFX, synth: { osc, fm, thump, noise, vary, throttle, ctx, get sfxBus() { return sfxBus; }, get noiseBuf() { return noiseBuf; } }, get song() { return mus.name; } };
 })();

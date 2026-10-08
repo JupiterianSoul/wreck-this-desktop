@@ -155,6 +155,7 @@
     const modeId = WTP.save.settings.mode && MD.MODES[WTP.save.settings.mode] ? WTP.save.settings.mode : 'free';
     const mode = MD.MODES[modeId];
     Wd.reset();
+    WTP.structs.reset();
     FX.clear(); WP.reset(); EN.reset(); WP.setAmmo(null);
     WTP.props.reset();
     const run = G.run = {
@@ -272,6 +273,7 @@
     updateAim(dt);
     const ended = run.ended;
     PL.update(dt, ended);
+    { const bx0 = PL.x + PL.w / 2, by0 = PL.y + 5; if (!PL.gunPos || Math.hypot(PL.gunPos.x - bx0, PL.gunPos.y - by0) > 14) { PL.gunPos = { x: bx0 + aim.x * 4, y: by0 + aim.y * 4 }; PL.muzzle = { x: bx0 + aim.x * 9, y: by0 + aim.y * 9 }; } }
     const hand = PL.gunPos || PL.gun();
     let gun = PL.muzzle || hand;
     const bx = PL.x + PL.w / 2, by = PL.y + 5;
@@ -287,6 +289,7 @@
     Wd.updateBurn();
     Wd.updateIce();
     Wd.updateChunks(dt);
+    WTP.structs.update(dt);
     Wd.updateSand();
     if (quality >= 2 || (run.frame & 1)) Wd.updateSand();
     FX.update(dt);
@@ -382,6 +385,7 @@
     }
     const held = WP.heldChunk?.();
     if (held) DR.drawChunk(ctx, held, false);
+    WTP.structs.draw(ctx, alpha);
     ctx.setTransform(S * zs, 0, 0, S * zs, sx + zx, sy + zy);
     const fxr = FX.render(ctx, cam, viewW(), viewH());
     ctx.drawImage(fxr.back, fxr.ox, fxr.oy);
@@ -436,6 +440,7 @@
     ctx.fillStyle = c; ctx.fillRect(x - 1.5, y - 1.5, 3, 3);
   }
 
+  G.renderNow = () => render(0.016, 1);
   G.aim = aim;
   G.cam = cam;
   G.scale = () => S;

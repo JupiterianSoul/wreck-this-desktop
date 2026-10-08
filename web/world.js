@@ -215,7 +215,8 @@
     if (x < 0 || x >= W.w) return true;
     if (y < 0) return false;
     if (y >= W.h) return true;
-    return isSolidM(mat[y * W.w + x]);
+    const i = y * W.w + x;
+    return isSolidM(mat[i]) || (W.occ !== undefined && W.occ[i] !== 0);
   };
   const hardAt = (x, y) => {
     if (x < 0 || x >= W.w) return true;
@@ -230,8 +231,10 @@
   const G = () => WTP.game;
   const FX = () => WTP.fx;
   const PR = () => WTP.props;
+  const STR = () => WTP.structs;
   function counted(i, n = 1) {
     W.destroyed += n;
+    if (rid[i]) STR()?.dirty?.(rid[i]);
     const t = tgt[i];
     if (t && W.targets[t]) { const T = W.targets[t]; T.left--; if (!T.done && T.left <= T.total * T.need) { T.done = true; G()?.targetDown?.(T); } }
     const p = pgid[i];
@@ -313,11 +316,12 @@
             if (kind[i] === K_TEXT && gid[i] && hitG.length < 24 && hitG.indexOf(gid[i]) < 0) hitG.push(gid[i]);
             n += kill(i, x, y, cx, cy, chance, force, o.dopt);
           } else if (m === ICE) { iceHit = i; }
+          else if (W.occ && W.occ[i]) { n += STR().hitCell(i, cx, cy, force); continue; }
           else if (m === RUBBLE || m === DEBRIS) kill(i, x, y, cx, cy, o.clean ? 0 : chance, force);
           if (backR > 0 && (back[i] || code[i]) && mat[i] !== SOLID) {
             const fz = 0.8 + (hash(y, x) & 7) / 20;
             let ch = false;
-            if (back[i] && d2 <= backR * backR * fz) { back[i] = 0; ch = true; }
+            if (back[i] && d2 <= backR * backR * fz) { back[i] = 0; ch = true; if (rid[i]) STR()?.dirty?.(rid[i]); }
             if (!back[i] && code[i] && codeR > 0 && d2 <= codeR * codeR * fz) { code[i] = 0; ch = true; }
             if (ch) { pix[i] = color(i); markTile(x, y); touchEdges(i); }
           }
@@ -346,6 +350,7 @@
     if (o.letters) n += letterRing(cx, cy, r, r + o.letters, force);
     if ((n || backR > 0) && !o.noCrumble) n += crumble(cx, cy, Math.max(0, r - 1), r + (o.crumbleR || 5));
     if (n) G()?.scored?.(n, cx, cy, o.cause);
+    if (pow >= 2 && !o.noCrack) STR()?.impact?.(cx, cy, r, pow);
     return n;
   }
   function letterRing(cx, cy, r0, r1, force) {
@@ -899,7 +904,7 @@
       if (mat[i] === SOLID) continue;
       const dx = x + 0.5 - cx, dy = y + 0.5 - cy;
       if (dx * dx + dy * dy > r * r) continue;
-      if (back[i]) back[i] = 0; else code[i] = 0;
+      if (back[i]) { back[i] = 0; if (rid[i]) STR()?.dirty?.(rid[i]); } else code[i] = 0;
       pix[i] = color(i); markTile(x, y); touchEdges(i);
     }
   }

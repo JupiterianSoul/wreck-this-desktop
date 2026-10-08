@@ -131,6 +131,7 @@
     st.thermals.push({ x, y, r, k: Math.min(1, r / 20) });
     if (st.thermals.length > 12) st.thermals.shift();
     WTP.props?.damageAt?.(x, y, r, r * 3);
+    WTP.structs?.blast?.(x, y, r, 1);
     FX().explosion(x, y, r, o.kind || 'fire');
     FX().blast(x, y, r * 3, 260);
     const g = G();
@@ -941,6 +942,7 @@
       if (ready && tryFire(d, o)) { st.cd = d.rate * (1 - 0.08 * lv); st.charge = 0; G()?.startTimer?.(); }
     }
     if (alt && ALT[d.id]) ALT[d.id](o);
+    for (const f of EXT.updates) f(dt, o, d, want);
     wasFiring = want;
     if (d.id === 'wrecking' || st.ball) updateBall(dt, o, d.id === 'wrecking');
     if (d.id !== 'gravity' && st.held) RELEASE.gravity(o);
@@ -1655,9 +1657,9 @@
           }
           break;
         }
-        default: break;
+        default: if (EXT.shots[s.t]) dead = EXT.shots[s.t].step(s, dt) || dead; break;
       }
-      if (dead) { const ix = shots.indexOf(s); if (ix >= 0) shots.splice(ix, 1); }
+      if (dead) { const ix = shots.indexOf(s); if (ix >= 0) shots.splice(ix, 1); if (EXT.shots[s.t] && EXT.shots[s.t].end) EXT.shots[s.t].end(s); }
     }
     for (let k = st.orb.length - 1; k >= 0; k--) {
       const O = st.orb[k];
@@ -1750,8 +1752,10 @@
   }
 
   function draw(ctx) {
+    for (const f of EXT.draws) f(ctx);
     for (const s of shots) {
       if (s.delay > 0) continue;
+      if (EXT.shots[s.t] && EXT.shots[s.t].draw) { EXT.shots[s.t].draw(ctx, s); continue; }
       const sp = s.spr && PR[s.spr];
       if (s.t === 'flame') {
         const k = Math.min(1, s.age / 0.45), r = Math.round(1 + k * 3);
@@ -1900,6 +1904,7 @@
   }
   function reset() {
     shots.length = 0;
+    for (const f of EXT.resets) f();
     Object.assign(st, { cd: 0, spin: 0, charge: 0, mag: {}, reload: 0, reloadFor: null, held: null, ball: null, portals: [], stickies: [], mines: [], boomers: 0, waves: [], tornados: [], quakeT: 0, orb: [], whip: null, latch: null, cut: null, tank: 0, tankCols: [], blowing: 0, ink: 1, penLast: null, zones: [], glove: 0, kickCd: 0, thermals: [] });
     WTP.audio.stopLoops();
   }
@@ -1927,8 +1932,19 @@
     W().crumble(x, y, 0, r * 0.7);
     G()?.shake?.(8);
   }
+  const EXT = { shots: {}, draws: [], updates: [], resets: [] };
+  function register(def, impl = {}) {
+    if (BY[def.id]) { Object.assign(BY[def.id], def); } else { def.idx = D.length; D.push(def); BY[def.id] = def; }
+    const d = BY[def.id];
+    d.sprite = impl.sprite || d.sprite || SP.WEAPON[d.id] || SP.WEAPON.pistol;
+    if (impl.fire) FIRE[d.id] = impl.fire;
+    if (impl.alt) ALT[d.id] = impl.alt;
+    if (impl.hold) HOLD[d.id] = impl.hold;
+    if (impl.release) RELEASE[d.id] = impl.release;
+    return d;
+  }
   WTP.weapons = {
-    CATS, DEFS: D, BY, st, shots, update, draw, reset, select, owned, explode, impactChunk, melee, glitchAt, shockwave, conduct, upg, upCost,
+    CATS, DEFS: D, BY, st, shots, EXT, register, FIRE, ALT, HOLD, RELEASE, addShot, bullet, lob, hitscan, travel, aimPoint, tryFire, update, draw, reset, select, owned, explode, impactChunk, melee, glitchAt, shockwave, conduct, upg, upCost,
     get dmgMul() { return R.dmgMul; },
     heldChunk: () => st.held || st.cut,
     magnetOn: () => st.cur === 'magnet' && WTP.input.wantFire(),

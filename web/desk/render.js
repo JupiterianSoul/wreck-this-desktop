@@ -102,6 +102,13 @@
       for (let dy = 0; dy < ey; dy++) hpix.fill(v, (py0 + dy) * PW + px0, (py0 + dy) * PW + px0 + ex);
       return;
     }
+    if (Wd.crack && Wd.crack[i]) {
+      const mt = Wd.mtl[i];
+      const glint = (WTP.hash(cx, cy) & 7) === 0;
+      const ck = mt === 0 || mt === 1 ? 0.74 : mt === 2 || mt === 5 ? (glint ? 1.6 : 0.4) : mt === 7 ? 0.5 : 0.45;
+      if (mode === 2) flat = WTP.shade(flat, ck, ck > 1 ? 20 : 0);
+      else { k = k * ck; dr = dr * ck; dg = dg * ck; db = db * ck; if (ck > 1) { dr += 30; dg += 30; db += 30; k = 1; } }
+    }
     if (mode === 2) {
       const f = (flat | 0xff000000) >>> 0;
       for (let dy = 0; dy < ey; dy++) hpix.fill(f, (py0 + dy) * PW + px0, (py0 + dy) * PW + px0 + ex);
@@ -228,4 +235,5 @@
     ctx.globalAlpha = 1;
   };
   R.size = () => ({ PW, PH, CP });
+  R.shot32 = () => shot32;
 })();

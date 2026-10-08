@@ -25,6 +25,7 @@
     const WTD = window.WTD;
     applyTheme(WTD.session.theme);
     WTP.world.buildDesk(seg);
+    WTP.structs.init();
     WTP.world.finalize();
     WTP.deskRender.init(WTD.shot, null);
     WTP.game.start({ seg, session: WTD.session, monitor: WTD.monitor });

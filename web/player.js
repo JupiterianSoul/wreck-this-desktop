@@ -18,7 +18,9 @@
     if (xx < 0 || xx >= Wd.w) return 3;
     if (yy < 0) return 0;
     if (yy >= Wd.h) return 3;
-    return Wd.mat[yy * Wd.w + xx];
+    const i = yy * Wd.w + xx;
+    if (Wd.occ && Wd.occ[i]) return 1;
+    return Wd.mat[i];
   }
   const collide = (x, y, w, h) => {
     const x0 = Math.floor(x), x1 = Math.floor(x + w - 0.001), y0 = Math.floor(y), y1 = Math.floor(y + h - 0.001);
@@ -245,6 +247,8 @@
       break;
     }
     if (!P.ground && P.vy >= 0 && (collide(P.x, P.y + 0.3, P.w, P.h) || softRow(P.x, P.w, Math.floor(P.y + P.h + 0.3 - 0.001)))) P.ground = true;
+    P.on = 0;
+    if (P.ground && W().occ) { const yy = Math.floor(P.y + P.h + 0.3); for (let xx = Math.floor(P.x); xx <= Math.floor(P.x + P.w - 0.001); xx++) { if (xx < 0 || yy < 0 || xx >= W().w || yy >= W().gh) continue; const o = W().occ[yy * W().w + xx]; if (o) { P.on = o; break; } } }
     if (P.wall === 0 && !P.ground) {
       if (collide(P.x - 0.5, P.y + 1, P.w, P.h - 4)) P.wall = -1;
       else if (collide(P.x + 0.5, P.y + 1, P.w, P.h - 4)) P.wall = 1;

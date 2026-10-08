@@ -7,6 +7,7 @@
   const timers = [];
   const R = { ents, playing: [] };
   WTP.props = R;
+  R.popRegion = (...a) => popRegion(...a);
 
   const BTN_FX = [
     [/(buy|cart|shop|order|checkout|deal|sale|price|\$|pay|bid|add to)/i, 'coins'],
@@ -31,6 +32,7 @@
     else if (t === 'rocket') launchProp(p);
     else if (t === 'barrel') { if (!p.state) { p.state = 'lit'; p.fuse = 0.35 + Math.random() * 0.2; A('fuse'); } }
     else if (t === 'slider') slide(p, cx);
+    else if (t === 'widget') WTP.deskGags?.widgetHit?.(p, cx, cy, pow, o);
     else if (t === 'bell') { A('bell'); for (let k = 0; k < 6; k++) FX().spark((p.x0 + p.x1) / 2, p.y0, rand(-60, 60), rand(-80, -20), P32.y, 0.3); if (p.hits > 4) popRegion(p, 'bell'); }
   }
   function cellGone(p) {
@@ -38,6 +40,7 @@
     if ((p.t === 'crate' || p.t === 'safe' || p.t === 'gift' || p.t === 'piggy') && p.left < p.n * (p.t === 'safe' ? 0.5 : 0.62)) breakLoot(p);
     else if (p.t === 'barrel' && !p.state) { p.state = 'lit'; p.fuse = 0.2; }
     else if (p.t === 'video' && p.left < p.n * 0.55) breakVideo(p);
+    else if (p.t === 'widget' && p.left < p.n * 0.6) WTP.deskGags?.widgetBreak?.(p);
   }
   const center = (p) => ({ x: (p.x0 + p.x1) / 2 + 0.5, y: (p.y0 + p.y1) / 2 + 0.5 });
   function popRegion(p, why, vx = rand(-80, 80), vy = -rand(120, 200), extra = {}) {

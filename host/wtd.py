@@ -62,7 +62,18 @@ def spawn_watchdog():
                             start_new_session=True, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
 
 
+def close_launcher_popup():
+    if not os.environ.get("JGAME_ID") or TEST or os.environ.get("WTD_FIXTURE"):
+        return
+    try:
+        subprocess.run(["jupiterian-games", "close"], timeout=2)
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    time.sleep(0.35)
+
+
 def cmd_run(args):
+    close_launcher_popup()
     fd = lock()
     if fd is None:
         log("already running")
