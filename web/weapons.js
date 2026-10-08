@@ -112,7 +112,7 @@
     if (s.lv == null) s.lv = curLv;
     s.from = s.from || 'p';
     shots.push(s);
-    if (shots.length > 700) shots.shift();
+    if (shots.length > 900) shots.splice(0, shots.length - 900);
     return s;
   }
   function bullet(o, spread, speed, r, dmg, extra = {}) {
@@ -1184,6 +1184,7 @@
     const Wd = W();
     for (let k = shots.length - 1; k >= 0; k--) {
       const s = shots[k];
+      if (!s) continue;
       if (s.delay > 0) { s.delay -= dt; continue; }
       if (s.from === 'p') setPow(s.lv | 0); else setPow(0);
       s.age += dt; s.life -= dt;

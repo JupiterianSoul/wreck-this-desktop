@@ -24,7 +24,7 @@ const { launch } = require('./harness.js');
     ok(!r.err.length && r.wave >= 1, 'chaos mode 40s ' + r.err.slice(0, 2).join(' | '));
     await h.ev(`WTP.save.settings.mode = 'free'`);
     await h.shot('/tmp/wtd-shots/chaos.png');
-  } catch (e) { fail++; console.log('FAIL', e.message); }
+  } catch (e) { fail++; console.log('FAIL', e.message, e.stack); }
   await h.close();
   console.log(fail ? 'ENEMIES FAIL' : 'ENEMIES OK');
   process.exit(fail ? 1 : 0);

@@ -793,7 +793,7 @@
     const P = WTP.player;
     for (let k = L.length - 1; k >= 0; k--) {
       const c = L[k];
-      if (c.held) continue;
+      if (!c || c.held) continue;
       c.t += dt;
       if (c.drive) { c.vx = c.drive; c.va *= 0.8; c.a *= 0.9; if (Math.random() < 0.4) FX().smoke(c.x - Math.sign(c.drive) * c.rad, c.y + c.rad * 0.4, 1); }
       if (c.fuse) { c.fuse -= dt; if (c.fuse <= 0) { L.splice(k, 1); settle(c, false, true); WTP.weapons?.explode?.(c.x, c.y, 16 + Math.min(10, c.n / 60), { letters: 8 }); continue; } }
