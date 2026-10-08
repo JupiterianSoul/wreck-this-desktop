@@ -476,7 +476,7 @@
     fire(o) { return WP.FIRE.portal(o); },
     alt() {
       const P2 = st.portals || [];
-      if (P2.length < 2) { A('deny'); G()?.label?.('PLACE BOTH PORTALS FIRST', 800); return; }
+      if (P2.length < 2 || !P2[0] || !P2[1]) { A('deny'); G()?.label?.('PLACE BOTH PORTALS FIRST', 800); return; }
       const [a, b] = P2;
       const Wd = W();
       const R = 9;
@@ -494,7 +494,7 @@
   });
   WP.EXT.draws.push((ctx) => {
     if (WP.st.cur !== 'wsportal') return;
-    (st.portals || []).forEach((p, k) => WTP.font.draw(ctx, String(k + 1), Math.round(p.x), Math.round(p.y - 12), { align: 'center', color: k ? 'o' : 'c', outline: '0' }));
+    (st.portals || []).forEach((p, k) => p && WTP.font.draw(ctx, String(k + 1), Math.round(p.x), Math.round(p.y - 12), { align: 'center', color: k ? 'o' : 'c', outline: '0' }));
   });
 
   reg({ id: 'screenshot', name: 'Screenshot Flash', rate: 0.9, snd: 'shutter', recoil: 1, shake: 2, does: 'Print key flash: freezes an area into ice with a camera shutter', altDoes: 'Region capture: freezes a whole rectangle at once', tip: 'Say cheese. Then shatter.' }, {

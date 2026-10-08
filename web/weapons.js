@@ -1101,6 +1101,7 @@
   function updatePortals(dt) {
     if (st.portals.length < 2) return;
     const [b, o] = st.portals;
+    if (!b || !o) return;
     const P = PL();
     st.portalCd = Math.max(0, (st.portalCd || 0) - dt);
     const pc = P.center();
