@@ -619,10 +619,12 @@
   };
   ST.slabAt = (x, y) => { const Wd = W(); if (!occ || x < 0 || y < 0 || x >= Wd.w || y >= Wd.gh) return null; const id = occ[y * Wd.w + x]; return id ? ST.byId.get(id) || null : null; };
 
+  ST.hooks = [];
   ST.collapse = (rid, o = {}) => {
     const w = ST.wins[rid];
     const Wd = W();
     if (!w) return false;
+    if (w.state === 'static') for (const h of ST.hooks) { try { if (h(w, o) === true) return true; } catch (e) { console.warn(e); } }
     if (w.state === 'hanging') { const s = ST.slabs.find((x) => x.win === w && !x.dead); if (s) { s.pivot = null; w.state = 'falling'; s.vy = -120; s.va = rand(-0.8, 0.8); } return true; }
     if (w.state !== 'static') return false;
     for (const b of w.bolts) if (b.alive) { for (const i of b.cells) if (Wd.mat[i] === SOLID) { Wd.kill(i, i % Wd.w, (i / Wd.w) | 0, b.x, b.y, 1, 120); } }

@@ -24,7 +24,7 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
   window.WTD = { mon, post, test: q.has('test'), probe: q.has('probe'), under: q.has('under'), t0: performance.now() };
   img.onload = () => { if (!window.WTD.under) img.style.visibility = 'visible'; requestAnimationFrame(() => requestAnimationFrame(() => post({ t: 'shown' }))); };
   img.onerror = () => post({ t: 'log', msg: 'shot failed to load' });
-  img.src = 'session/shot-' + mon + '.png';
+  img.src = 'session/' + (q.get('shot') || ('shot-' + mon + '.png'));
 })();
 </script>
 <script src="boot.js"></script>

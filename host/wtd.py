@@ -136,7 +136,13 @@ def run_gui(sess, data):
         add_sig = GLib.unix_signal_add
     for s in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
         add_sig(GLib.PRIORITY_HIGH, s, lambda *a: app.quit() or False)
-    app.run([])
+    try:
+        app.run([])
+    finally:
+        try:
+            merges.restore_now()
+        except Exception as e:
+            log("merge restore failed", e)
     return 0
 
 

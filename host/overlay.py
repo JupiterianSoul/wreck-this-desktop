@@ -155,7 +155,7 @@ class Overlay:
         view.set_background_color(Gdk.RGBA(0, 0, 0, 0))
         view.connect("context-menu", lambda *a: True)
         view.connect("web-process-terminated", self.on_crash)
-        q = "?mon=" + mon["name"]
+        q = "?mon=" + mon["name"] + "&shot=" + mon["shot"]
         if TEST:
             q += "&test=1"
         if os.environ.get("WTD_PROBE"):
@@ -255,6 +255,20 @@ class Overlay:
 
     def send_wallpaper(self):
         self.js(f"window.WTD && WTD.onWallpaper && WTD.onWallpaper({json.dumps(self.wall)})")
+
+    def reload(self, data):
+        mon = next(m for m in data["monitors"] if m["focused"])
+        if self.under:
+            self.under.set_filename(str(self.sess / mon["shot"]))
+        q = "?mon=" + mon["name"] + "&shot=" + mon["shot"] + "&n=" + str(int(time.time() * 1000))
+        if layer_ok():
+            q += "&under=1"
+        if TEST:
+            q += "&test=1"
+        self.wall_done = False
+        self.wall_want = False
+        threading.Thread(target=self.fetch_wallpaper, daemon=True).start()
+        self.view.load_uri("wtd://game/index.html" + q)
 
     def hide(self, on):
         for w in self.windows:

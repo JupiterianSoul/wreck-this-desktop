@@ -80,4 +80,29 @@
     G()?.event?.(name, c.x, c.y + 8, 1);
   };
   GG.kindOf = kindOf;
+  WTP.structs.hooks.push((w) => {
+    if (!gagsOn() || w.reg.type !== 'window') return false;
+    const Wd = W();
+    const app = w.reg.app;
+    if (app === 'terminal') {
+      const lines = (Wd.lines || []).filter((l) => l.rid === w.id).sort((a, b) => b.y0 - a.y0);
+      lines.forEach((l, k) => {
+        const ids = new Set(l.ids);
+        const ch = Wd.detachRegion((i) => ids.has(Wd.gid[i]), l.x0, l.y0, l.x1, l.y1, rand(-60, 60), -rand(20, 120), { mtl: Wd.M.GLASS, life: 8 });
+        if (ch) { ch.va = rand(-0.6, 0.6); ch.vy += k * 4; }
+      });
+      if (lines.length) { G()?.event?.('STDOUT SPILLED', (w.reg.x0 + w.reg.x1) / 2, w.reg.y0 + 8, 1); A('keyclack'); }
+      return false;
+    }
+    if (app === 'browser') {
+      for (let y = w.reg.y0; y <= w.reg.y1; y++) for (let x = w.reg.x0; x <= w.reg.x1; x++) { const i = y * Wd.w + x; if (Wd.rid[i] === w.id && (Wd.flag[i] & Wd.F_TITLE) && Math.random() < 0.08) Wd.igniteAt(x, y, 2); }
+      G()?.event?.('TAB ON FIRE', (w.reg.x0 + w.reg.x1) / 2, w.reg.y0 + 4, 1);
+      return false;
+    }
+    if (app === 'media') {
+      const n = WTP.structs.detachGrid(w.id, 6, 4, false);
+      if (n) { G()?.event?.('BUFFERING...', (w.reg.x0 + w.reg.x1) / 2, (w.reg.y0 + w.reg.y1) / 2, 2); A('glitch'); return true; }
+    }
+    return false;
+  });
 })();

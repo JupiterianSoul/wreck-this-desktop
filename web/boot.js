@@ -8,7 +8,7 @@
   WTD.quit = (why) => { try { WTP.audio?.stopLoops?.(); } catch (e) { } WTD.post({ t: 'quit', why: why || 'quit' }); };
   window.addEventListener('keydown', (e) => { if (e.code === 'F12') { e.preventDefault(); WTD.quit('panic'); } }, true);
 
-  const getJSON = async (u, d) => { try { const r = await fetch(u); if (!r.ok) return d; return await r.json(); } catch (e) { return d; } };
+  const getJSON = async (u, d) => { try { const r = await fetch(u, { cache: 'no-store' }); if (!r.ok) return d; return await r.json(); } catch (e) { return d; } };
   const [session, saved] = await Promise.all([getJSON('session/session.json', null), getJSON('session/save.json', {})]);
   if (!session) { log('no session'); WTD.quit('no-session'); return; }
   WTD.session = session;
@@ -35,7 +35,7 @@
   };
 
   const load = (src) => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('load ' + src)); document.body.appendChild(s); });
-  const SCRIPTS = ['core.js', 'font.js', 'sprites.js', 'audio.js', 'world.js', 'fx.js', 'input.js', 'player.js', 'rig.js', 'gadgets.js', 'weapons.js', 'props.js', 'enemies.js', 'modes.js', 'progress.js', 'desk/segment.js', 'desk/render.js', 'desk/structures.js', 'desk/sounds.js', 'desk/gags.js', 'desk/weapons-desk.js', 'desk/alts.js', 'desk/enemies-desk.js', 'desk/disasters.js', 'desk/level.js', 'game.js', 'ui.js'];
+  const SCRIPTS = ['core.js', 'font.js', 'sprites.js', 'audio.js', 'world.js', 'fx.js', 'input.js', 'player.js', 'rig.js', 'gadgets.js', 'weapons.js', 'props.js', 'enemies.js', 'modes.js', 'progress.js', 'desk/segment.js', 'desk/render.js', 'desk/structures.js', 'desk/sounds.js', 'desk/gags.js', 'desk/weapons-desk.js', 'desk/alts.js', 'desk/enemies-desk.js', 'desk/disasters.js', 'desk/merges.js', 'desk/level.js', 'game.js', 'ui.js'];
 
   const shotImg = document.getElementById('shot');
   const shotReady = shotImg.complete && shotImg.naturalWidth ? Promise.resolve() : new Promise((r) => { shotImg.addEventListener('load', r, { once: true }); shotImg.addEventListener('error', r, { once: true }); });

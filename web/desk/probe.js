@@ -13,6 +13,8 @@
     if (k === 10) { __wtd.select('flame'); __wtd.setAim(1, 0.3); __wtd.fire(true); }
     if (k === 40) { __wtd.fire(false); __wtd.select('minigun'); __wtd.setAim(-1, 0.1); __wtd.fire(true); }
     if (k === 70) __wtd.fire(false);
+    if (k === 75) { const w = WTP.structs.wins.find((w) => w && w.reg.app === 'terminal'); if (w) WTP.weapons.closeWindow(w.id, 300, 0); }
+    if (k === 90) WTP.deskWeapons.bsod(false);
   }, 100);
   function done() {
     clearInterval(iv);

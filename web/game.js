@@ -30,7 +30,7 @@
   G.camTop = () => 0;
   G.mouseWorld = () => ({ x: (I.mouse.x * PW) / (window.innerWidth * S), y: (I.mouse.y * PH) / (window.innerHeight * S) });
   G.inPlayer = (x, y) => PL.inside(x, y);
-  G.shake = (n) => { shakeT = Math.min(34, Math.max(shakeT, shakeT * 0.6 + n)); };
+  G.shake = (n) => { shakeT = Math.min(34, Math.max(shakeT, shakeT * 0.6 + n)); if (n >= 10) WTP.merges?.nudge?.(Math.min(1, n / 30)); };
   G.hitstop = (t) => { hitstopT = Math.max(hitstopT, t); };
   G.slowmo = (scale, dur) => { timeScale = scale; slowT = dur; G.stat('slowmos', 1); };
   G.killcam = (x, y, power) => {
@@ -151,6 +151,7 @@
     G.opts = opts;
     if (!WTP.save.hotbar.some(Boolean)) WTP.save.hotbar = WTP.progress.defaultHotbar().slice();
     G.prepare(opts);
+    WTP.merges?.apply?.();
     WTD.post({ t: 'log', msg: `game started ${PW}x${PH} cell ${S} dpr ${window.devicePixelRatio} inner ${window.innerWidth}x${window.innerHeight} battery ${bat} q${maxQ} cap ${capFps}` });
   };
   G.prepare = (opts) => {
@@ -210,7 +211,7 @@
     else { last = performance.now(); cv.focus({ preventScroll: true }); }
     WTP.ui?.pauseMenu?.(on);
   };
-  G.quit = (why) => { G.stopLoop(); WTD.quit(why || 'quit'); };
+  G.quit = (why) => { G.stopLoop(); WTP.merges?.beforeQuit?.(); WTD.quit(why || 'quit'); };
   G.showFinish = (on) => WTP.ui?.showFinish?.(on);
 
   G.end = (reason) => {
@@ -379,7 +380,7 @@
       zx = zoomX * S * (1 - zs); zy = zoomY * S * (1 - zs);
     }
     ctx.setTransform(zs, 0, 0, zs, sx + zx, sy + zy);
-    DR.drawLevel(ctx, sx !== 0 || sy !== 0 || zs !== 1 || fullT > 0);
+    DR.drawLevel(ctx, sx !== 0 || sy !== 0 || zs !== 1 || fullT > 0 || DR.xray);
     DR.drawVoid(ctx, dt, PW, PH);
     ctx.setTransform(S * zs, 0, 0, S * zs, sx + zx, sy + zy);
     ctx.drawImage(Wd.levelCv, 0, 0, Wd.w, Wd.gh, 0, 0, Wd.w, Wd.gh);

@@ -173,7 +173,7 @@ def option(name, default):
     return default
 
 
-def capture(sess, only_focused_shot=False):
+def capture(sess, suffix=""):
     t0 = time.time()
     mons = [m for m in (query("monitors") or []) if not m.get("disabled")]
     if not mons:
@@ -185,7 +185,7 @@ def capture(sess, only_focused_shot=False):
     procs = []
     shots = {}
     for m in mons:
-        p = sess / f"shot-{m['name']}.png"
+        p = sess / f"shot-{m['name']}{suffix}.png"
         shots[m["name"]] = p.name
         if FIX:
             grim(m, p)
