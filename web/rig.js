@@ -200,9 +200,9 @@
     const pix = !!R.target;
     const flash = P.iframes > 0 && !P.victory && (Math.floor(performance.now() / 70) & 1);
     return {
-      fg: flash ? '#ffffff' : (P.hurtT > 0 ? '#ff6a5a' : (th.bright_foreground || th.light_foreground || '#ececec')),
+      fg: flash ? '#ffffff' : (P.hurtT > 0 ? '#ff6a5a' : (WTP.shop?.bodyColor?.() || th.bright_foreground || th.light_foreground || '#ececec')),
       out: pix ? 'rgba(0,0,0,0)' : (th.darker_background || '#060607'),
-      scarf: scarfColor(th),
+      scarf: WTP.shop?.scarfColor?.() || scarfColor(th),
       eye: th.background || '#121213'
     };
   }
@@ -302,7 +302,7 @@
       const T = R.target || ctx;
       const wx = R.target ? fx + (hx - fx) * kx : hx, wy = R.target ? fy + (hy - fy) * ky : hy;
       if (R.target) R.flush();
-      if (weaponSprite.vector) weaponSprite.draw(T, wx, wy, a, flip);
+      if (weaponSprite.vector) weaponSprite.draw(T, wx, wy, a, flip, WTP.shop?.skinFor?.(WTP.weapons.st.cur));
       else {
         const r = weaponSprite.rotated(a, flip);
         T.imageSmoothingEnabled = false;
@@ -319,6 +319,7 @@
     strokeSet(ctx, front, LW, c.out);
     strokeSet(ctx, front, FW, c.fg);
     WTP.rigGadgets?.draw?.(ctx, p, 'front', c);
+    WTP.shop?.drawHat?.(ctx, p, c, HEAD);
     ctx.restore();
   };
   const PB = { p: null, ox: 0, oy: 0, pool: [], pi: 0 };

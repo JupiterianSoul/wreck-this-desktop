@@ -174,8 +174,41 @@
       this.rot.set(key, r);
       return r;
     }
-    draw(ctx, x, y, ang, flip) {
-      const r = this.rotated(ang, flip);
+    skinned(c, skin, a, flip, ox, oy) {
+      const out = document.createElement('canvas');
+      out.width = c.width; out.height = c.height;
+      const g = out.getContext('2d', { willReadFrequently: true });
+      g.drawImage(c, 0, 0);
+      const im = g.getImageData(0, 0, c.width, c.height), d = im.data;
+      const ca = Math.cos(-a), sa = Math.sin(-a), W = c.width;
+      const bx = -this.b.x0, by = -this.b.y0;
+      for (let i = 0, j = 0; i < d.length; i += 4, j++) {
+        if (!d[i + 3] || (d[i] === OUTC[0] && d[i + 1] === OUTC[1] && d[i + 2] === OUTC[2])) continue;
+        const px = (j % W) + 0.5 - ox * PXD, py = Math.floor(j / W) + 0.5 - oy * PXD;
+        let lx = px * ca - py * sa, ly = px * sa + py * ca;
+        if (flip) ly = -ly;
+        const q = skin.fn(d[i], d[i + 1], d[i + 2], Math.floor(lx + bx * PXD), Math.floor(ly + by * PXD), skin.frame || 0);
+        d[i] = q[0]; d[i + 1] = q[1]; d[i + 2] = q[2];
+      }
+      g.putImageData(im, 0, 0);
+      return out;
+    }
+    skinBase(skin) {
+      const k = `b|${skin.key}|${skin.frame || 0}`;
+      this.sk = this.sk || new Map();
+      let c = this.sk.get(k);
+      if (!c) { c = this.skinned(this.base(), skin, 0, false, this.gx, this.gy); this.sk.set(k, c); }
+      return c;
+    }
+    draw(ctx, x, y, ang, flip, skin) {
+      let r = this.rotated(ang, flip);
+      if (skin) {
+        const k = `${r.a}|${flip ? 1 : 0}|${skin.key}|${skin.frame || 0}`;
+        this.sk = this.sk || new Map();
+        let c = this.sk.get(k);
+        if (!c) { c = this.skinned(r.cv, skin, r.a, flip, r.ox, r.oy); this.sk.set(k, c); if (this.sk.size > 1500) this.sk.clear(); }
+        r = { cv: c, ox: r.ox, oy: r.oy };
+      }
       const sm = ctx.imageSmoothingEnabled;
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(r.cv, Math.round((x - r.ox) * PXD) / PXD, Math.round((y - r.oy) * PXD) / PXD, r.cv.width / PXD, r.cv.height / PXD);

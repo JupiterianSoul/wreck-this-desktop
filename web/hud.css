@@ -200,3 +200,42 @@
 .hud .ach:not(.done) .trophy { background: var(--fg2); opacity: .5; }
 .hud .slot.locked img { filter: brightness(0); opacity: .7; }
 .hud .slot.locked::after { content: ''; position: absolute; right: 4px; bottom: 4px; width: 9px; height: 11px; background: var(--warn); clip-path: path('M2 5 V3 A2.5 2.5 0 0 1 7 3 V5 H9 V11 H0 V5 Z M3.5 5 H5.5 V3 A1 1 0 0 0 3.5 3 Z'); }
+.hud .crates { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.hud .crate { display: grid; gap: 8px; justify-items: center; padding: 14px 10px; border: 1px solid color-mix(in srgb, var(--cc) 45%, var(--line)); border-radius: 12px; background: linear-gradient(180deg, color-mix(in srgb, var(--cc) 14%, transparent), var(--glass2)); }
+.hud .crate b { font-size: 15px; color: var(--fg); }
+.hud .crate .cbox { width: 64px; height: 52px; position: relative; image-rendering: pixelated; }
+.hud .crate .cbox::before { content: ''; position: absolute; inset: 10px 4px 0; background: var(--cc); box-shadow: inset 0 -8px 0 rgba(0, 0, 0, .35), inset 0 4px 0 rgba(255, 255, 255, .25), 0 0 0 3px #0a0b0e; }
+.hud .crate .cbox::after { content: ''; position: absolute; left: 0; right: 0; top: 4px; height: 12px; background: color-mix(in srgb, var(--cc) 80%, white); box-shadow: 0 0 0 3px #0a0b0e; }
+.hud .crate .cbox i { position: absolute; left: 50%; top: 14px; width: 10px; height: 14px; margin-left: -5px; background: #0a0b0e; z-index: 1; }
+.hud .crate .codds { display: grid; gap: 1px; font-size: 11px; text-align: center; font-family: var(--font); }
+.hud .crate .b { display: flex; align-items: center; gap: 2px; }
+.hud .crate .b[disabled] { opacity: .45; cursor: not-allowed; }
+.hud .roulette { position: relative; margin-top: 14px; height: 300px; overflow: hidden; border-radius: 12px; border: 1px solid var(--line2); background: var(--glass2); }
+.hud .rtrack { display: flex; position: absolute; left: 0; top: 18px; will-change: transform; }
+.hud .ritem { width: 124px; margin: 0 4px; height: 118px; flex: none; display: grid; justify-items: center; align-content: center; gap: 4px; border-radius: 8px; background: linear-gradient(180deg, color-mix(in srgb, var(--rc) 10%, transparent), color-mix(in srgb, var(--rc) 28%, transparent)); border-bottom: 4px solid var(--rc); }
+.hud .ritem img { image-rendering: pixelated; max-width: 108px; max-height: 52px; }
+.hud .ritem span { font-size: 11px; color: var(--fg); max-width: 116px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hud .ritem em { font-style: normal; font-size: 10.5px; color: var(--rc); }
+.hud .rmark { position: absolute; left: 50%; top: 8px; width: 3px; height: 138px; margin-left: -1px; background: var(--warn); box-shadow: 0 0 10px var(--warn); }
+.hud .reveal { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 8px; background: color-mix(in srgb, var(--bg2) 88%, transparent); animation: rv .4s ease-out; }
+.hud .reveal img { image-rendering: pixelated; filter: drop-shadow(0 0 18px var(--rc)); }
+.hud .reveal b { font-size: 18px; color: var(--rc); }
+.hud .reveal span { font-size: 13px; color: var(--fg2); }
+.hud .reveal div { display: flex; gap: 8px; margin-top: 6px; }
+@keyframes rv { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
+.hud .skin-grid { display: grid; gap: 10px; }
+.hud .skw b { font-size: 13px; color: var(--fg2); text-transform: uppercase; letter-spacing: .06em; }
+.hud .skrow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.hud .sk { width: 96px; height: 72px; display: grid; justify-items: center; align-content: center; gap: 4px; border-radius: 8px; border: 1px solid var(--line); border-bottom: 3px solid var(--rc, var(--line)); background: var(--glass2); color: var(--fg); font: inherit; cursor: pointer; }
+.hud .sk img { image-rendering: pixelated; }
+.hud .sk span { font-size: 11px; }
+.hud .sk.on { border-color: var(--accent); background: var(--hi); }
+.hud .pskins { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.hud .ps { display: grid; gap: 3px; padding: 8px 10px; text-align: left; border-radius: 8px; border: 1px solid var(--line); background: var(--glass2); color: var(--fg); font: inherit; cursor: pointer; }
+.hud .ps .sw { width: 100%; height: 6px; border-radius: 3px; }
+.hud .ps b { font-size: 13px; }
+.hud .ps span { font-size: 11.5px; color: var(--fg2); display: flex; align-items: center; }
+.hud .ps.on { border-color: var(--accent); background: var(--hi); }
+.hud .ps.needs { opacity: .55; }
+.hud .crate b, .hud .ps b, .hud .reveal b, .hud .skw b { font-family: var(--ui); font-weight: 700; letter-spacing: 0; }
+.hud .muted { color: var(--fg2); }
