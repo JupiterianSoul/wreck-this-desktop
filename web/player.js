@@ -44,7 +44,7 @@
   P.spawn = (x, y) => {
     if (P.carry) { WTP.world.releaseChunk(P.carry, 0, 0); P.carry = null; }
     WTP.rig?.reset?.();
-    Object.assign(P, { h: 22, crouch: false, rollT: 0, ragdoll: false, ragT: 0, on: 0, x, y, vx: 0, vy: 0, ground: false, wall: 0, jumps: 1, airDash: 1, coyote: 0, buffer: 0, dashT: 0, dashCd: 0, land: 0, hurtT: 0, iframes: 0, hp: P.maxHp, dead: false, victory: false, ghosts: [], recoil: 0, swing: 0, kickT: 0, idleT: 0, stuckT: 0, gravMul: 1, maxFall: 410, ctrl: 1, pose: null, squash: 0, stretch: 0, airT: 0 });
+    Object.assign(P, { mantle: null, h: 22, crouch: false, rollT: 0, ragdoll: false, ragT: 0, on: 0, x, y, vx: 0, vy: 0, ground: false, wall: 0, jumps: 1, airDash: 1, coyote: 0, buffer: 0, dashT: 0, dashCd: 0, land: 0, hurtT: 0, iframes: 0, hp: P.maxHp, dead: false, victory: false, ghosts: [], recoil: 0, swing: 0, kickT: 0, idleT: 0, stuckT: 0, gravMul: 1, maxFall: 410, ctrl: 1, pose: null, squash: 0, stretch: 0, airT: 0 });
     P.setSkin(WTP.save.skin);
     GD()?.reset?.();
   };
@@ -208,6 +208,16 @@
       move(dt);
       return;
     }
+    if (P.mantle) {
+      const m = P.mantle;
+      m.t += dt;
+      const k = Math.min(1, m.t / m.dur), ky = Math.min(1, k / 0.65), kx = Math.max(0, (k - 0.45) / 0.55);
+      P.y = m.y0 + (m.y1 - m.y0) * (1 - (1 - ky) * (1 - ky)); P.x = m.x0 + (m.x1 - m.x0) * kx;
+      P.vx = 0; P.vy = 0; P.pose = 'apex'; P.face = m.dir;
+      if (k >= 1) { P.mantle = null; P.ground = true; P.land = 0.08; P.jumps = 1 + P.extraJumps; P.airDash = 1; puff(3); }
+      return;
+    }
+    if (!ctl && !P.ground && mx && P.vy > -120 && !P.carry && (P.wall === Math.sign(mx) || wallNear() === Math.sign(mx)) && tryMantle(Math.sign(mx))) return;
     const gctl = gd ? gd.update(dt, P, { mx, down, held, ctl }) : null;
     if (gctl && gctl.skip) { move(dt); afterMove(dt, P.ground, P.vy); return; }
     const RUN = P.crouch ? 45 : P.carry ? 88 : 104;
@@ -273,6 +283,19 @@
     return 0;
   }
   P.wallNear = wallNear;
+  function tryMantle(dir) {
+    const nx = P.x + dir * 2;
+    if (!collide(nx, P.y, P.w, P.h)) return false;
+    for (let up = 6; up <= 15; up++) {
+      if (collide(P.x, P.y - up, P.w, P.h)) return false;
+      if (!collide(nx, P.y - up, P.w, P.h)) {
+        P.mantle = { t: 0, dur: 0.14 + up * 0.009, x0: P.x, y0: P.y, x1: nx, y1: P.y - up, dir };
+        WTP.audio.play('jump');
+        return true;
+      }
+    }
+    return false;
+  }
   function tryDash(mx) {
     if (P.dashCd > 0 || P.dead) return;
     if (!P.ground && P.airDash <= 0) return;

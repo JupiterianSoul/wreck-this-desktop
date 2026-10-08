@@ -239,3 +239,22 @@
 .hud .ps.needs { opacity: .55; }
 .hud .crate b, .hud .ps b, .hud .reveal b, .hud .skw b { font-family: var(--ui); font-weight: 700; letter-spacing: 0; }
 .hud .muted { color: var(--fg2); }
+
+.hud .intro { position: absolute; left: 50%; top: 70px; transform: translate(-50%, -20px); opacity: 0; transition: opacity .45s, transform .45s; display: grid; gap: 6px; justify-items: center; padding: 16px 22px; text-align: center; min-width: 420px; pointer-events: none; }
+.hud .intro.on { opacity: 1; transform: translate(-50%, 0); }
+.hud .intro > b { font-family: var(--ui); font-weight: 800; font-size: 22px; letter-spacing: .08em; color: var(--accent); }
+.hud .intro .im { font-size: 16px; color: var(--fg); display: flex; gap: 10px; align-items: baseline; }
+.hud .intro .im em { font-style: normal; font-size: 12px; color: var(--fg2); }
+.hud .intro > span { font-size: 13px; color: var(--fg2); }
+.hud .intro small { font-size: 12px; color: var(--fg2); margin-top: 2px; }
+.hud .daily { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 9px 14px; margin: 6px 0 12px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--line)); background: color-mix(in srgb, var(--warn) 9%, var(--glass2)); text-align: left; }
+.hud .daily b { font-family: var(--ui); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--warn); }
+.hud .daily span { font-size: 14px; color: var(--fg); }
+.hud .daily em { font-style: normal; font-family: var(--font); font-size: 13px; color: var(--shard); display: flex; align-items: center; }
+.hud .daily.done { border-color: color-mix(in srgb, var(--good) 45%, var(--line)); }
+.hud .daily.done em { color: var(--good); }
+.hud.photo > * { display: none !important; }
+.photohint { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); padding: 8px 16px; border-radius: 8px; background: rgba(8, 9, 12, .78); color: #eee; font: 600 13px "Figtree", sans-serif; letter-spacing: .1em; pointer-events: none; z-index: 30; }
+.camflash { position: fixed; inset: 0; background: #fff; pointer-events: none; z-index: 40; animation: camf .45s ease-out forwards; }
+@keyframes camf { from { opacity: .85; } to { opacity: 0; } }
+.hud .gpx { display: block; width: 16px; height: 16px; background: #f4c542; box-shadow: 0 0 0 3px #0a0b0e, 0 0 14px rgba(255, 210, 80, .8); }

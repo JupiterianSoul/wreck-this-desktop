@@ -352,7 +352,14 @@
     F.flashes = F.flashes.filter((f) => f.t < f.dur);
     for (const h of F.hits) h.t += dt;
     F.hits = F.hits.filter((h) => h.t < h.dur);
-    for (const p of F.parts) { p.t += dt; p.vy += (p.g || 0) * dt; if (p.drag) { p.vx *= 1 - p.drag * dt; p.vy *= 1 - p.drag * dt; } p.x += p.vx * dt; p.y += p.vy * dt; }
+    const Wd = WTP.world;
+    for (const p of F.parts) {
+      p.t += dt; p.vy += (p.g || 0) * dt;
+      if (p.drag) { p.vx *= 1 - p.drag * dt; p.vy *= 1 - p.drag * dt; }
+      const nx = p.x + p.vx * dt, ny = p.y + p.vy * dt;
+      if (p.streak && Wd.solid(Math.floor(nx), Math.floor(ny))) { if (Wd.solid(Math.floor(p.x), Math.floor(ny))) p.vy *= -0.45; else p.vx *= -0.5; p.vx *= 0.8; continue; }
+      p.x = nx; p.y = ny;
+    }
     F.parts = F.parts.filter((p) => p.t < p.dur);
     if (F.parts.length > 500) F.parts.splice(0, F.parts.length - 500);
   }

@@ -356,6 +356,7 @@
     const run = G.run;
     if (tab === 'play') {
       body.innerHTML = `<h2>Paused</h2>
+        ${WTP.extras?.dailyHtml?.() || ''}
         <div class="btns"><button class="b primary" data-a="resume">Resume</button><button class="b" data-a="restart">Restart this desktop</button><button class="b" data-a="finish">Finish and grade</button>${st.nextLevel ? '<button class="b" data-a="next">Next workspace</button>' : ''}<button class="b danger" data-a="quit">Quit to desktop</button></div>
         <h3>Mode</h3>
         <div class="modes">${MD.ORDER.map((m) => { const M = MD.MODES[m]; const best = M.bestKey ? WTP.getBest(M.bestKey({ goal: run.goal })) : null; return `<button class="mode${run.modeId === m ? ' on' : ''}" data-mode="${m}"><b>${esc(M.name)}</b><span>${esc(M.desc)}</span>${best != null ? `<em>best ${esc(M.fmt ? M.fmt(best) : fmtInt(best))}</em>` : ''}</button>`; }).join('')}</div>

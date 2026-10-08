@@ -25,7 +25,7 @@ class Merges:
         self.busy = False
 
     def handlers(self):
-        return {"next-level": self.next_level, "notify-watch": self.notify_watch, "wreckage": self.wreckage, "nudge": self.nudge}
+        return {"next-level": self.next_level, "notify-watch": self.notify_watch, "wreckage": self.wreckage, "nudge": self.nudge, "photo": self.photo}
 
     def focused_monitor(self):
         return next(m for m in self.data["monitors"] if m["focused"])
@@ -115,6 +115,22 @@ class Merges:
             GLib.idle_add(lambda: ov.js(f"window.WTD && WTD.onNotify && WTD.onNotify({payload})") and False)
 
         threading.Thread(target=reader, args=(self.notif_proc,), daemon=True).start()
+
+    def photo(self, msg, ov):
+        data = msg.get("png") or ""
+        if not data.startswith("data:image/png;base64,"):
+            return
+        d = os.environ.get("WTD_PHOTO_DIR")
+        if not d:
+            if TEST:
+                return
+            d = str(Path.home() / "Pictures" / "Wreck This Desktop")
+        out = Path(d)
+        out.mkdir(parents=True, exist_ok=True)
+        f = out / time.strftime("wreck-%Y%m%d-%H%M%S.png")
+        f.write_bytes(base64.b64decode(data.split(",", 1)[1]))
+        log("photo", f)
+        ov.js(f"window.WTD && WTD.onPhoto && WTD.onPhoto({json.dumps(str(f))})")
 
     def wreckage(self, msg, ov):
         if TEST:
