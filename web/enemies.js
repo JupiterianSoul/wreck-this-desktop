@@ -71,7 +71,7 @@
     const key = `${type}|${v}|${f}`;
     let s = sprCache.get(key);
     if (s) return s;
-    s = finish(PAINT[type](v, f));
+    s = finish(EXT[type] && EXT[type].paint ? EXT[type].paint(v, f, HELP) : PAINT[type](v, f));
     sprCache.set(key, s);
     return s;
   }
@@ -298,6 +298,7 @@
       return g;
     }
   };
+  const EXT = {};
   const VARIANTS = { survey: SURVEYS.length, progress: 4, scroll: 3, clip: 2, ad: ADS.length, captcha: 3, cookie: 4, cursor: 4, chat: 4, bell: 9, spinner: 2, video: 3, ghost: 2, tracker: 1, paywall: 2, spam: 3, update: 1, crawler: 2, virus: 1, notif: 1, modal: 2, algo: 2 };
   const FRAMES = { survey: 6, progress: 8, scroll: 2, clip: 3, ad: 2, captcha: 3, cookie: 2, cursor: 2, chat: 3, bell: 3, spinner: 8, video: 4, ghost: 2, tracker: 2, paywall: 2, spam: 2, update: 4, crawler: 2, virus: 2, notif: 1, modal: 2, algo: 4 };
 
@@ -319,7 +320,9 @@
         if (this.shielded > 0) mul *= 0.3;
         if (this.type === 'spinner' && Math.abs(this.vx) > 70 && !/boom|freeze|kick|pound|slam|lightning/.test(cause || '')) { mul *= 0.2; if (Math.random() < 0.3) { FX().spark(this.x, this.y, rand(-60, 60), rand(-60, 0), P32['7'], 0.2); A('ricochet'); } }
         if (this.type === 'paywall' && fx != null && Math.sign(fx - this.x) === this.dir && !/boom|kick|pound|slam|lightning|orbital|nuke|quake|fire|acid/.test(cause || '')) { mul *= 0.1; if (Math.random() < 0.4) { A('clank'); FX().spark(this.x + this.dir * 8, this.y, this.dir * 60, rand(-60, 0), P32.y, 0.2); } }
+        if (EXT[this.type] && EXT[this.type].damageMul) mul *= EXT[this.type].damageMul(this, cause, fx);
         const dd = d * mul;
+        if (dd <= 0) return false;
         this.hp -= dd;
         this.flash = 0.08;
         if (dd >= 8) FX().pop(this.x + rand(-4, 4), this.y - this.h / 2 - 2, `${Math.round(dd)}`, { scale: 1, ramp: mul < 0.5 ? ['5', '4'] : ['7', 'Y', 'y'], life: 0.6, vy: -40 });
@@ -350,6 +353,7 @@
     }
     if (!D.tiny) FX().explosion(e.x, e.y, D.boss ? 30 : 9, e.type === 'virus' ? 'plasma' : 'fire');
     if (D.boss) { G()?.slowmo?.(0.3, 1.2); G()?.chroma?.(1); FX().flash(0.8, '#ff5fa2'); for (let k = 0; k < 6; k++) WTP.props.later(k * 0.15, () => WTP.weapons.explode(e.x + rand(-25, 25), e.y + rand(-15, 15), 14, { noPush: true })); }
+    if (EXT[e.type] && EXT[e.type].die) EXT[e.type].die(e, cause);
     if (e.type === 'virus') for (let k = 0; k < 2; k++) WTP.props.later(0.1 + k * 0.15, () => WTP.weapons.glitchAt(e.x + rand(-12, 12), e.y + rand(-12, 12)));
     if (e.type === 'spam' && e.gen < 2) for (let k = 0; k < 2; k++) { const c = spawn('spam', e.x + (k ? 6 : -6), e.y, { v: e.gen + 1, hpMul: 1 }); if (c) { c.spawnT = 0.15; c.vx = (k ? 1 : -1) * 120; c.vy = -160; } }
     A(D.tiny ? 'pop' : D.boss ? 'bossDie' : 'enemyDie');
@@ -397,7 +401,7 @@
       if (e.burn > 0) { e.burn -= dt; e.damage(12 * dt, 'fire'); if (Math.random() < 0.3) FX().flame(e.x + rand(-e.w / 2, e.w / 2), e.y); }
       e.cd -= dt * slow;
       const dx = pc.x - e.x, dy = pc.y - e.y, d = Math.hypot(dx, dy) || 1;
-      let walk = false, noCollide = false, grav = 0;
+      let walk = false, noCollide = false, grav = 0, noMove = false;
       switch (e.type) {
         case 'ad': {
           fly(e, pc.x + Math.sin(e.t * 0.7 + e.v) * 60, pc.y - 45 + Math.sin(e.t * 1.3) * 12, 1.2, dt, slow);
@@ -631,7 +635,11 @@
           }
           break;
         }
-        default: break;
+        default: {
+          const X = EXT[e.type];
+          if (X && X.update) { const r = X.update(e, dt, { P, pc, dx, dy, d, slow, v, Wd }) || {}; walk = !!r.walk; noCollide = !!r.noCollide; grav = r.grav || 0; noMove = !!r.manual; }
+          break;
+        }
       }
       if (e.type === 'crawler') { e.vx = e.vx2 || 0; e.vy = e.vy2 || 0; }
       else if (walk) {
@@ -644,7 +652,7 @@
           if (box(e.x, ny, e)) { if (e.vy > 0) e.ground = true; e.vy = 0; } else e.y = ny;
         }
         let g = 0; while (box(e.x, e.y, e) && g++ < 20) e.y -= 1;
-      } else { e.x += e.vx * dt; e.y += e.vy * dt; }
+      } else if (!noMove) { e.x += e.vx * dt; e.y += e.vy * dt; }
       if (e.type !== 'video' && (e.y > Wd.h + 40 || e.x < -60 || e.x > Wd.w + 60)) { e.dead = true; continue; }
       const touchR = 3;
       if (!(e.type === 'ghost' && e.alpha < 0.6) && !(e.type === 'tracker' && e.inside) && Math.abs(pc.x - e.x) < e.w / 2 + touchR && Math.abs(pc.y - e.y) < e.h / 2 + 6) {
@@ -736,6 +744,7 @@
         ctx.drawImage(img, x + wob, y);
       }
       ctx.globalAlpha = 1;
+      if (EXT[e.type] && EXT[e.type].draw) EXT[e.type].draw(ctx, e, sp);
       if (e.shielded > 0) { ctx.fillStyle = PAL.l; for (let q = 0; q < 12; q++) { const a = (q / 12) * Math.PI * 2 + e.t * 3; ctx.fillRect(Math.round(e.x + Math.cos(a) * (e.w / 2 + 3)), Math.round(e.y + Math.sin(a) * (e.h / 2 + 3)), 1, 1); } }
       if (e.T.healer && e.healing && !e.healing.dead && ((e.t * 10) | 0) & 1) FX().beam([e.x, e.y, e.healing.x, e.healing.y], { kind: 'tractor', life: 0.03, c1: P32.l, c2: P32.L });
       if (e.type === 'cursor' && e.mode === 'dash') { ctx.fillStyle = PAL.c; ctx.fillRect(x + 2, y + sp.h, 2, 1); }
@@ -825,5 +834,7 @@
     const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(s.cv, 0, 0, c.width, c.height);
     return c.toDataURL();
   };
-  WTP.enemies = { TYPES: T, ORDER, ADS, list, bullets, pickups, spawn, spawnEdge, update, draw, at, damageCircle, rayHit, nearest, pull, push, reset, drop, bombDrop, sprite, portrait, count: () => list.filter((e) => !e.dead && !e.T.tiny).length };
+  const HELP = { grid, rect, rows, text, textW, set, C };
+  function register(type, D, X) { T[type] = { ...D, ext: true }; EXT[type] = X || {}; VARIANTS[type] = X && X.variants || 1; FRAMES[type] = X && X.frames || 1; if (!ORDER.includes(type)) ORDER.push(type); }
+  WTP.enemies = { register, EXT, HELP, shoot, fly, kill, TYPES: T, ORDER, ADS, list, bullets, pickups, spawn, spawnEdge, update, draw, at, damageCircle, rayHit, nearest, pull, push, reset, drop, bombDrop, sprite, portrait, count: () => list.filter((e) => !e.dead && !e.T.tiny).length };
 })();

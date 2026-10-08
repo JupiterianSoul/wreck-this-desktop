@@ -176,6 +176,7 @@
     const gadgets = `<div class="gads">${GD.DEFS.map((g) => `<button class="slot gad${g.id === gcur ? ' cur' : ''}" data-g="${g.id}" title="${esc(g.name)}"><img alt="" src="${gImg(g.id)}"></button>`).join('')}</div>`;
     html += `<div class="center"><div class="nm">${esc(hov ? hov.name : '')}</div><div class="ds">${esc(hov ? hov.does || '' : '')}${hov && hov.altDoes ? `<br>Alt: ${esc(hov.altDoes)}` : ''}</div><div class="items">${list.map((d) => `<button class="slot${d.id === WP.st.cur ? ' cur' : ''}" data-w="${d.id}" title="${esc(d.name)}"><img alt="" src="${wImg(d.id)}"></button>`).join('')}</div><div class="sub">gadget, key ${esc(U.keyName(S().keys.gadget?.[0]))}</div>${gadgets}</div>`;
     ring.innerHTML = html;
+    if (wheelHover) ring.querySelectorAll(`[data-w="${wheelHover}"]`).forEach((b) => b.classList.add('cur'));
     ring.querySelectorAll('[data-g]').forEach((b) => {
       b.addEventListener('mouseenter', () => { const g = WTP.gadgets.BY[b.dataset.g]; ring.querySelector('.center .nm').textContent = g.name; ring.querySelector('.center .ds').textContent = g.tip; });
       b.addEventListener('click', () => { S().gadget = b.dataset.g; WTP.persist(); WTP.gadgets.reset?.(); AU.play('select'); renderWheel(); });
@@ -297,8 +298,33 @@
   };
   U.showFinish = () => { };
   U.closeOverlays = () => { $('hPause').hidden = true; $('hRes').hidden = true; $('hWheel').hidden = true; };
+  let navIdx = 0;
   U.padNav = () => {
-    if (I.take('pause')) G.pause(false);
+    const open = [$('hPause'), $('hRes')].find((o) => !o.hidden);
+    if (!open) return;
+    const btns = [...open.querySelectorAll('button')];
+    if (!btns.length) return;
+    if (I.take('navDown') || I.take('navRight')) navIdx = (navIdx + 1) % btns.length;
+    if (I.take('navUp') || I.take('navLeft')) navIdx = (navIdx - 1 + btns.length) % btns.length;
+    btns.forEach((b, k) => b.classList.toggle('focus', k === navIdx));
+    if (I.take('navOk')) { const b = btns[navIdx]; navIdx = 0; b.click(); }
+    if (I.take('navBack') || I.take('pause')) { if (!$('hPause').hidden) G.pause(false); }
+  };
+  U.padWheel = () => {
+    if (!U.wheelOpen() || !I.gp) return;
+    const ax = I.gpAxes[2], ay = I.gpAxes[3];
+    if (Math.hypot(ax, ay) > 0.6) {
+      const n = CATS().length;
+      const a = (Math.atan2(ay, ax) + Math.PI / 2 + Math.PI * 2) % (Math.PI * 2);
+      const k = Math.round((a / (Math.PI * 2)) * n) % n;
+      if (k !== wheelCat) { wheelCat = k; wheelHover = null; renderWheel(); AU.play('tick'); }
+    }
+    const list = WP.DEFS.filter((d) => d.cat === CATS()[wheelCat].id);
+    let idx = Math.max(0, list.findIndex((d) => d.id === wheelHover));
+    if (I.take('next')) { idx = (idx + 1) % list.length; wheelHover = list[idx].id; renderWheel(); }
+    if (I.take('prev')) { idx = (idx - 1 + list.length) % list.length; wheelHover = list[idx].id; renderWheel(); }
+    if (I.take('navOk') || I.take('jump')) { G.selectWeapon(wheelHover || list[0].id); U.wheel(false); }
+    if (I.take('navBack') || I.take('wheel')) U.wheel(false);
   };
   U.nextLevel = () => {
     if (!S().settings.nextLevel) return;

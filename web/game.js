@@ -266,9 +266,12 @@
     if (I.take('reset')) { G.restart(); return; }
     if (I.take('mute')) WTP.ui?.toggleMute?.();
     if (I.take('fps')) { WTP.save.settings.fps = !WTP.save.settings.fps; WTP.persist(); }
-    if (I.take('wheel')) WTP.ui?.wheel?.(true);
-    if (I.take('next')) G.cycle(1);
-    if (I.take('prev')) G.cycle(-1);
+    if (WTP.ui?.wheelOpen?.()) { if (I.take('wheel') && !I.gp) WTP.ui.wheel(false); }
+    else {
+      if (I.take('wheel')) WTP.ui?.wheel?.(true);
+      if (I.take('next')) G.cycle(1);
+      if (I.take('prev')) G.cycle(-1);
+    }
     if (I.take('next_level')) WTP.ui?.nextLevel?.();
     prevP.x = PL.x; prevP.y = PL.y;
     for (const c of Wd.chunks) { c.px = c.x; c.py = c.y; c.pa = c.a; }
@@ -318,6 +321,7 @@
     frameMs = frameMs * 0.92 + dt * 1000 * 0.08;
     adapt();
     I.pollPad();
+    if (WTP.ui?.wheelOpen?.()) WTP.ui.padWheel?.();
     if (!G.paused && G.run) {
       if (pendingSlot != null) { G.slotKey(pendingSlot); pendingSlot = null; }
       if (slowT > 0) { slowT -= dt; timeScale = slowT <= 0 ? 1 : Math.min(1, timeScale + dt * 0.25); }

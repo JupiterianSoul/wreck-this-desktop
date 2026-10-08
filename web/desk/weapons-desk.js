@@ -1254,5 +1254,5 @@
     alt(o) { if (!K.cooldown('peeler', 2)) return; peel(o, true); }
   });
 
-  WTP.deskWeapons = { K, closeWindow, strike, wordAt, popWord, rainLine, textPixels };
+  WTP.deskWeapons = { K, closeWindow, strike, wordAt, popWord, rainLine, textPixels, bsod, tearAt };
 })();

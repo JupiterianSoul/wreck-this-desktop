@@ -143,6 +143,7 @@
   P.unstick = unstick;
 
   P.update = (dt, ctl) => {
+    if (P.frozenT > 0) { P.frozenT -= dt; ctl = true; P.vx *= 0.8; }
     const In = I();
     const gd = GD();
     const mx = ctl ? 0 : In.moveX();

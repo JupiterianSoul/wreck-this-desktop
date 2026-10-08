@@ -164,7 +164,7 @@
       el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('pointerleave', up);
     }
   };
-  const GP = { jump: [0], dash: [1], melee: [2], gadget: [10, 11], alt: [6], fire: [7], prev: [4], next: [5], wheel: [3], reset: [8], pause: [9] };
+  const GP = { jump: [0], dash: [1], melee: [2], gadget: [10], pickup: [11], alt: [6], fire: [7], prev: [4], next: [5], wheel: [3], reset: [8], pause: [9] };
   function gpDown(a) {
     const g = I.gp;
     if (!g) return false;

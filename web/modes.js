@@ -12,8 +12,12 @@
       name: 'Free Wreck', short: 'Free', music: 'wreck', respawn: true,
       desc: 'No clock, no rules. Wreck your desktop however you like, finish when you want a grade.',
       hud: { pct: true, time: true, score: true, goal: 80 },
-      setup(run) { run.goal = 80; G().label('WRECK THIS DESKTOP', 2200); EN().schedule?.({ light: true }); },
-      tick(run) { if (!run.goalHit && pct() >= run.goal) { run.goalHit = true; G().announce('DESKTOP FLATTENED!', 4); G().showFinish(true); } },
+      setup(run) { run.goal = 80; run.enT = 35; G().label('WRECK THIS DESKTOP', 2200); },
+      tick(run, dt) {
+        if (!run.goalHit && pct() >= run.goal) { run.goalHit = true; G().announce('DESKTOP FLATTENED!', 4); G().showFinish(true); }
+        run.enT -= dt;
+        if (run.enT <= 0) { run.enT = rand(28, 45); if (EN().count() < 2) EN().spawnEdge(pick(EN().LIGHT || ['cursor']), { hpMul: 0.8 }); }
+      },
       grade() { return gradeBy(pct(), 90, 70, 45, 20); },
       bestKey: () => `free:${deskKey()}`, bestVal: (run) => Math.round(run.score), higher: true,
       rows(run) { return [['Destroyed', `${pct().toFixed(1)}%`], ['Time', WTP.fmtTime(run.t)], ['Score', WTP.fmtInt(run.score)], ['Best combo', run.maxCombo]]; }
