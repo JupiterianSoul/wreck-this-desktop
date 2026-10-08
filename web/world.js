@@ -310,7 +310,7 @@
             if (pgid[i] && hitP.length < 8 && hitP.indexOf(pgid[i]) < 0) hitP.push(pgid[i]);
             if (kind[i] === K_GLASS) { if (hitGlass.indexOf(gid[i]) < 0) hitGlass.push(gid[i]); continue; }
             const t = TOUGH[mtl[i]];
-            if (t > 1.05) {
+            if (t > 1.05 && !W.rootPierce) {
               const pl = pow * (1 - 0.45 * Math.sqrt(d2) / (r + 0.01));
               const nd = dmg[i] + pl * 20;
               if (nd < t * 20) { dmg[i] = Math.min(255, nd); dent(i, x, y); dented++; if (mtl[i] === M.METAL) metalHit++; continue; }

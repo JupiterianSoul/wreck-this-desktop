@@ -42,6 +42,11 @@
 .hud .fire-badge { position: absolute; left: 50%; bottom: 92px; transform: translateX(-50%); padding: 6px 14px; border-radius: 999px; background: color-mix(in srgb, #e8484f 85%, transparent); color: #fff; font-weight: 800; letter-spacing: .1em; font-size: 13px; display: flex; gap: 8px; align-items: center; box-shadow: 0 0 18px rgba(232, 72, 79, .5); }
 .hud .fire-badge i { width: 9px; height: 9px; border-radius: 50%; background: #fff; animation: blink .6s infinite alternate; }
 .hud .fire-badge span { font-weight: 500; letter-spacing: 0; opacity: .85; }
+.hud .root-badge { position: absolute; left: 50%; top: 56px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 6px 14px 9px; background: #1a0607; border: 2px solid #e8484f; color: #ffd6d8; box-shadow: 0 0 0 2px #1a0607, 0 0 22px rgba(232, 72, 79, .55); }
+.hud .root-badge b { color: #fff; background: #e8484f; padding: 1px 7px; letter-spacing: .14em; font-size: 15px; }
+.hud .root-badge span { font-family: var(--font); font-size: 16px; font-weight: 700; min-width: 3.4em; text-align: right; }
+.hud .root-badge i { position: absolute; left: 4px; bottom: 3px; height: 3px; background: #e8484f; transition: width .1s linear; }
+.hud .root-badge.low { animation: blink .3s infinite alternate; }
 @keyframes blink { from { opacity: .3; } to { opacity: 1; } }
 
 .hud .hotbar { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 5px; padding: 6px; transition: opacity .5s; pointer-events: auto; }

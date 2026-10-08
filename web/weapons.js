@@ -95,7 +95,15 @@
   const upCost = (id, lv) => { const d = BY[id]; return Math.round((Math.max(300, d.price * 0.55) * [1, 1.8, 3][lv]) / 50) * 50; };
   let curLv = 0;
   const R = { dmgMul: 1 };
-  function setPow(lv) { curLv = lv | 0; W().powMul = 1 + 0.15 * curLv; R.dmgMul = 1 + 0.25 * curLv; }
+  const ROOT_SU = { dmg: 1, pow: 1.15, rad: 1, metal: true, rate: 1.5 };
+  const ROOT_BURST = { dmg: 2, pow: 1.3, rad: 2, burst: true };
+  function setPow(lv) {
+    curLv = lv | 0;
+    const rk = st.rootNow, Wd = W();
+    Wd.powMul = (1 + 0.15 * curLv) * (rk ? rk.pow : 1);
+    R.dmgMul = (1 + 0.25 * curLv) * (rk ? rk.dmg : 1);
+    Wd.rootPierce = !!(rk && rk.metal);
+  }
 
   const st = { whip: null, latch: null, cut: null, tank: 0, tankCols: [], blowing: 0, ink: 1, penLast: null, zones: [], glove: 0, kickCd: 0, thermals: [], cur: 'pistol', cd: 0, spin: 0, charge: 0, mag: {}, reload: 0, held: null, heldT: 0, ball: null, portals: [], portalNext: 0, stickies: [], mines: [], boomers: 0, dualSide: 0, katanaDir: 1, was: false, quakeT: 0, tornados: [], beam: null, orb: [], paintIdx: 0, ammo: null, nukeT: 0 };
   const shots = [];
@@ -111,6 +119,7 @@
     s.age = 0;
     if (s.lv == null) s.lv = curLv;
     s.from = s.from || 'p';
+    if (s.from === 'p' && st.rootNow && !s.root) { s.root = st.rootNow; if (s.dmg) s.dmg *= st.rootNow.dmg; if (st.rootNow.metal && s.t === 'bullet') s.pierce = (s.pierce || 0) + 3; }
     if (s.w === undefined) s.w = s.from === 'p' ? (WTP.budget?.src || st.cur) : '';
     shots.push(s);
     if (shots.length > 900) shots.splice(0, shots.length - 900);
@@ -128,6 +137,7 @@
 
   function explode(x, y, r, o = {}) {
     const Wd = W();
+    if (st.rootNow && st.rootNow.rad !== 1) r = Math.min(Math.max(r, 90), r * st.rootNow.rad);
     const n = Wd.carve(x, y, r, { debris: 0.45, force: 110 + r * 3, scorch: o.scorch !== false, back: r >= 9 ? (o.back ?? 0.72) : 0.4, code: r >= 30 ? 0.6 : r >= 16 ? 0.35 : 0, letters: o.letters ?? Math.min(16, r * 0.7), ignite: o.fire ?? 0.12, cause: o.cause || 'boom', crumbleR: 6 + r * 0.25, pow: 2 + r * 0.25 });
     st.thermals.push({ x, y, r, k: Math.min(1, r / 20) });
     if (st.thermals.length > 12) st.thermals.shift();
@@ -927,6 +937,10 @@
     const d = BY[st.cur];
     const BU = WTP.budget;
     if (BU) BU.src = d.id;
+    st.su = Math.max(0, (st.su || 0) - dt);
+    if (st.suWas && !st.su) { G()?.label?.('ROOT SHELL CLOSED', 800); A('sudoEnd'); }
+    st.suWas = st.su > 0;
+    st.rootNow = st.su > 0 ? ROOT_SU : null;
     const lv = upg(d.id);
     setPow(lv);
     st.cd = Math.max(0, st.cd - dt);
@@ -955,17 +969,18 @@
     if (d.hold) {
       const ok = !st.ammo || (st.ammo[d.id] ?? 0) > 0;
       if (want && ok) {
-        HOLD[d.id](o, dt);
+        HOLD[d.id](o, st.su > 0 ? dt * ROOT_SU.rate : dt);
         if (d.loop) WTP.audio.loop(d.loop, true);
         if (st.ammo && (st.holdAcc = (st.holdAcc || 0) + dt) > 0.5) { st.holdAcc = 0; st.ammo[d.id]--; G()?.ammoChanged?.(); }
         if (!wasFiring) { G()?.stat?.('shots', 1); }
+        if (d.id !== 'sudo') st.lastFired = d.id;
         G()?.weaponUsed?.(d.id, dt);
         G()?.startTimer?.();
       } else if (d.loop) WTP.audio.loop(d.loop, false);
       if (wasFiring && !want && RELEASE[d.id]) RELEASE[d.id](o);
     } else if (want && st.cd <= 0 && st.reload <= 0) {
       const ready = !(d.spin && st.spin < 1) && !(d.charge && st.charge < d.charge);
-      if (ready && tryFire(d, o)) { st.cd = d.rate * (1 - 0.08 * lv); st.charge = 0; G()?.startTimer?.(); }
+      if (ready && tryFire(d, o)) { st.cd = d.rate * (1 - 0.08 * lv) / (st.su > 0 && d.id !== 'sudo' ? ROOT_SU.rate : 1); st.charge = 0; G()?.startTimer?.(); }
     }
     if (alt && ALT[d.id]) ALT[d.id](o);
     for (const f of EXT.updates) f(dt, o, d, want);
@@ -986,6 +1001,8 @@
     updateLatch(dt);
     setPow(0);
     updateShots(dt);
+    st.rootNow = null;
+    setPow(0);
     if (BU) BU.src = null;
     updateWaves(dt);
     if (BU) BU.src = 'tornado';
@@ -1001,6 +1018,7 @@
       const r = W().raycast(o.x, o.y, o.ax, o.ay, 300, 1);
       FX().beam([o.x, o.y, r.x, r.y], { kind: 'sight', life: 0.02, c1: P32.e });
     }
+    st.rootNow = null;
     setPow(0);
     if (BU) BU.src = null;
   }
@@ -1216,6 +1234,7 @@
       const s = shots[k];
       if (!s) continue;
       if (s.delay > 0) { s.delay -= dt; continue; }
+      st.rootNow = s.from === 'p' ? s.root || null : null;
       if (s.from === 'p') setPow(s.lv | 0); else setPow(0);
       if (WTP.budget) WTP.budget.src = s.from === 'p' ? s.w : null;
       s.age += dt; s.life -= dt;
@@ -1982,6 +2001,9 @@
   WTP.weapons = {
     CATS, DEFS: D, BY, st, shots, EXT, register, FIRE, ALT, HOLD, RELEASE, addShot, bullet, lob, hitscan, travel, aimPoint, tryFire, update, draw, reset, select, owned, explode, impactChunk, melee, glitchAt, shockwave, conduct, upg, upCost,
     get dmgMul() { return R.dmgMul; },
+    setPow, ROOT_BURST, ROOT_SU,
+    root: () => (st.su > 0 ? st.su : 0),
+    shown: () => (st.burst ? BY[st.burst.id] : null),
     heldChunk: () => st.held || st.cut,
     magnetOn: () => st.cur === 'magnet' && WTP.input.wantFire(),
     current: () => BY[st.cur],

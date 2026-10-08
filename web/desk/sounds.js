@@ -52,6 +52,8 @@
   add('click', () => { if (!throttle('mclick', 25)) return; noise(0.01, 5000, 4000, 0.3, 'highpass', 1); osc('square', vary(2400), 1800, 0.012, 0.03); });
   add('bluescreen', () => SFX.bsod());
   add('tile', () => { for (let k = 0; k < 6; k++) noise(0.03, 4500, 2500, 0.2, 'bandpass', 4, { delay: k * 0.04 }); });
+  add('sudoSu', () => { osc('square', 110, 110, 0.1, 0.06, { lp: 1800 }); osc('square', 165, 165, 0.1, 0.06, { delay: 0.09, lp: 1800 }); osc('square', 220, 440, 0.35, 0.07, { delay: 0.18, lp: 2400 }); thump(90, 40, 0.3, 0.35, { delay: 0.18 }); });
+  add('sudoEnd', () => { osc('square', 330, 110, 0.25, 0.05, { lp: 1500 }); });
   add('sudo', () => { osc('triangle', 220, 220, 0.12, 0.08); osc('triangle', 330, 330, 0.12, 0.08, { delay: 0.1 }); osc('triangle', 440, 440, 0.25, 0.09, { delay: 0.2 }); });
   add('panic', () => { for (let k = 0; k < 10; k++) osc('square', 880, 880, 0.05, 0.04, { delay: k * 0.12 }); });
   add('segv', () => { if (!throttle('segv', 50)) return; noise(0.05, 1200, 200, 0.3, 'lowpass', 2); osc('square', vary(70), 40, 0.1, 0.08); });

@@ -20,6 +20,7 @@
       <div class="row shards" id="hShardsW" hidden><span>shards</span><b><i class="shard"></i><em id="hShards">0</em></b></div>
     </div>
     <div class="combo" id="hCombo"><div class="n" id="hComboN"></div><div class="m" id="hComboM"></div><div class="t" id="hComboT"></div></div>
+    <div class="root-badge" id="hRoot" hidden><b>ROOT</b><span id="hRootT">8.0</span><i id="hRootB"></i></div>
     <div class="fire-badge" id="hFire" hidden><i></i>FIRING <span>click or V to stop</span></div>
     <div class="card hotbar" id="hHot"></div>
     <div class="card wname" id="hName"></div>
@@ -121,6 +122,9 @@
       $('hComboM').classList.toggle('pop', (run.comboPop || 0) > 0.4);
       $('hComboT').style.width = `${Math.round(140 * Math.max(0, run.comboT / 1.6))}px`;
     }
+    const ru = WP.root?.() || 0;
+    $('hRoot').hidden = !(ru > 0) || G.paused;
+    if (ru > 0) { $('hRootT').textContent = `${ru.toFixed(1)}s`; $('hRootB').style.width = `${Math.round((ru / 8) * 100)}%`; $('hRoot').classList.toggle('low', ru < 2); }
     $('hFire').hidden = !(I.firing() && (S().settings.toggleFire || I.fireLock)) || G.paused;
     const px = P.x * WTP.world.CP / devicePixelRatio, py = P.y * WTP.world.CP / devicePixelRatio;
     $('hStats').classList.toggle('dim', px > window.innerWidth - 280 && py < 280);

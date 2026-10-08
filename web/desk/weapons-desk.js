@@ -82,7 +82,7 @@
   K.wrapFire = wrapFire;
   for (const id of Object.keys(WP.FIRE)) wrapFire(id);
 
-  WP.EXT.resets.push(() => { marks.length = 0; queue.length = 0; ents.length = 0; st.clip = null; st.overT = 0; st.rootShots = 0; st.capsT = 0; st.drag = null; st.lastFired = null; st.minigunHold = false; W().capsT = 0; });
+  WP.EXT.resets.push(() => { marks.length = 0; queue.length = 0; ents.length = 0; st.clip = null; st.overT = 0; st.su = 0; st.suWas = false; st.burst = null; st.rootNow = null; st.capsT = 0; st.drag = null; st.lastFired = null; st.minigunHold = false; W().capsT = 0; });
   WP.EXT.updates.push((dt, o, d, want) => {
     for (let k = marks.length - 1; k >= 0; k--) { const m = marks[k]; m.t += dt; if (m.t > m.life) marks.splice(k, 1); }
     for (let k = queue.length - 1; k >= 0; k--) { const q = queue[k]; q.t -= dt; if (q.t <= 0) { queue.splice(k, 1); try { q.fn(); } catch (e) { console.warn(e); } } }
@@ -587,17 +587,6 @@
     }
   });
 
-  K.pre.push((id) => {
-    if (st.rootShots > 0 && id !== 'sudo') {
-      st.rootShots--;
-      const Wd = W();
-      const pm = Wd.powMul;
-      Wd.powMul = pm * 2.2;
-      if (!st.rootShots) G()?.label?.('ROOT SESSION ENDED', 700);
-      return () => { Wd.powMul = pm; };
-    }
-    return null;
-  });
   function rainLine(text, x, opts = {}) {
     const tp = textPixels(text, '7');
     const sc = opts.scale || 1;

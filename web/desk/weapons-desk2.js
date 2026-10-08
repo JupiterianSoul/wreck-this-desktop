@@ -18,7 +18,7 @@
   let aimO = null;
   WP.EXT.updates.push((dt, o) => { aimO = o; });
 
-  const sudoTarget = () => { const l = st.lastFired; return l && WP.FIRE[l] && l !== 'sudo' && WP.BY[l] ? l : null; };
+  const sudoTarget = () => { const l = st.lastFired; return l && (WP.FIRE[l] || WP.HOLD[l]) && l !== 'sudo' && WP.BY[l] ? l : null; };
   function rootBeam(o) {
     const Wd = W();
     const hit = K.beam(o, 260, () => false);
@@ -28,27 +28,82 @@
     EN()?.damageCircle?.(hit.x, hit.y, 6, 80, 'sudo');
     G()?.shake?.(5);
   }
-  reg({ id: 'sudo', name: 'sudo !!', rate: 0.9, snd: 'sudo', st: [4, 2, 4, 4], does: 'Fires the last weapon you used again, twice, at double power. Its icon floats above you so you know what runs next. With no history it fires a root beam that cuts through metal', altDoes: 'sudo -s: your next five shots, with any weapon, run as root and punch through metal', tip: 'With great power comes great wreckage.' }, {
+  function rootFire(id, o) {
+    const d = WP.BY[id];
+    const res = WP.FIRE[id](o);
+    if (res === false) return false;
+    const P = PL();
+    P.recoil = Math.max(P.recoil, d.recoil || 0);
+    if (d.kick) P.impulse(-o.ax * d.kick * 0.7, -o.ay * d.kick * 0.6);
+    if (d.shake) G()?.shake?.(d.shake);
+    if (d.flash) FX().flashSprite(d.flash, o.x, o.y, Math.atan2(o.ay, o.ax));
+    if (d.shell) FX().shell(o.hx, o.hy - 1, P.face, P32.a);
+    if (d.snd) A(d.snd);
+    if (d.throw) { st.swing = 0.15; st.swingDir = 1; }
+    G()?.stat?.('shots', 1);
+    G()?.weaponUsed?.(id);
+    return true;
+  }
+  function burst(id) {
+    const d = WP.BY[id], DUR = 1.5;
+    const slow = !d.hold && d.rate >= 0.3;
+    const iv = d.hold ? 0 : slow ? Math.min(d.rate / 2, 0.35) : d.rate / 2;
+    const max = slow ? 2 : Infinity;
+    let acc = 0, n = 0, lastO = null;
+    st.burst = { id, t: 0, dur: DUR };
+    if (d.spin) st.spin = 1;
+    K.ent({
+      life: DUR, src: id,
+      update(dt, o) {
+        lastO = o || lastO;
+        if (!lastO || !st.burst) return true;
+        st.burst.t += dt;
+        const pre = st.rootNow;
+        st.rootNow = WP.ROOT_BURST;
+        WP.setPow(WP.upg(id));
+        try {
+          if (d.spin) st.spin = 1;
+          if (d.hold) {
+            WP.HOLD[id](lastO, dt);
+            WP.HOLD[id](lastO, dt);
+            if (d.loop) WTP.audio.loop(d.loop, true);
+          } else {
+            acc += dt;
+            while (acc >= 0 && n < max) { rootFire(id, lastO); n++; acc -= iv; }
+          }
+        } finally { st.rootNow = pre; WP.setPow(0); }
+        if (Math.random() < 0.4) { const P = PL(); FX().pix(P.x + rand(0, P.w), P.y + rand(0, P.h), rand(-10, 10), -rand(20, 50), Math.random() < 0.5 ? P32.e : P32.R, 0.4); }
+        return n >= max && !d.hold;
+      },
+      end() {
+        if (d.hold) {
+          if (d.loop && WP.st.cur !== id) WTP.audio.loop(d.loop, false);
+          const pre = st.rootNow;
+          st.rootNow = WP.ROOT_BURST;
+          try { WP.RELEASE[id]?.(lastO || aimO); } finally { st.rootNow = pre; WP.setPow(0); }
+        }
+        if (d.spin && WP.st.cur !== id) st.spin = 0;
+        st.burst = null;
+      }
+    });
+  }
+  reg({ id: 'sudo', name: 'sudo !!', rate: 2.2, snd: 'sudo', st: [4, 2, 4, 4], does: 'Repeats the last weapon you fired as a 1.5 second root burst: double damage, double blast radius, double fire rate. Slow weapons fire twice, the minigun skips its spin up, charge and hold weapons work too. With no history it fires a root beam that cuts through metal', altDoes: 'sudo su: 8 seconds of root for every weapon. Shots cut through metal and fire 1.5x faster', tip: 'With great power comes great wreckage.' }, {
     fire(o) {
       const last = sudoTarget();
-      K.mark({ kind: 'text', text: last ? `sudo ${WP.BY[last].name}` : 'sudo rm -rf', x: o.x, y: o.y - 10, life: 0.9, color: 'l' });
+      K.mark({ kind: 'text', text: last ? `sudo ${WP.BY[last].name}` : 'sudo rm -rf', x: o.x, y: o.y - 10, life: 0.9, color: last ? 'e' : 'l' });
       if (!last) { rootBeam(o); return; }
-      const Wd = W(), d = WP.BY[last];
-      if (d.hold) {
-        let lastO = o;
-        K.ent({
-          life: 1,
-          update(dt, o2) { lastO = o2 || lastO; const pm = Wd.powMul; Wd.powMul = pm * 2; try { WP.HOLD[last](lastO, dt); } finally { Wd.powMul = pm; } },
-          end() { WP.RELEASE[last]?.(lastO); }
-        });
-      } else {
-        const pm = Wd.powMul;
-        Wd.powMul = pm * 2;
-        try { WP.FIRE[last](o); K.later(0.12, () => { const p2 = Wd.powMul; Wd.powMul = p2 * 2; try { WP.FIRE[last](aimO || o); } finally { Wd.powMul = p2; } }); } finally { Wd.powMul = pm; }
-      }
+      burst(last);
       st.lastFired = last;
     },
-    alt() { st.rootShots = 5; A('sudo'); G()?.label?.('ROOT FOR 5 SHOTS', 1200); }
+    alt() {
+      if (st.su > 0) { G()?.label?.(`ROOT ${st.su.toFixed(1)}s LEFT`, 600); return; }
+      if (!K.cooldown('sudosu', 30)) return;
+      st.su = 8;
+      A('sudoSu');
+      G()?.announce?.('ROOT SHELL', 4);
+      const P = PL();
+      K.mark({ kind: 'text', text: '# whoami: root', x: P.x + 3, y: P.y - 10, life: 1.4, color: 'e' });
+    }
   });
 
   function grepMatches(wd) {

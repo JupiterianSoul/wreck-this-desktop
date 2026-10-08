@@ -441,7 +441,8 @@
     const cur = WP.current();
     const rx = PL.x, ry = PL.y;
     PL.x = prevP.x + (rx - prevP.x) * alpha; PL.y = prevP.y + (ry - prevP.y) * alpha;
-    PL.draw(ctx, dt, G.run.ended && G.run.won ? null : cur.sprite, aim, { swing: WP.swing(), oneHand: cur.melee || cur.throw || cur.cat === 'side' });
+    const shown = WP.shown?.() || cur;
+    PL.draw(ctx, dt, G.run.ended && G.run.won ? null : shown.sprite, aim, { swing: WP.swing(), oneHand: shown.melee || shown.throw || shown.cat === 'side' });
     PL.x = rx; PL.y = ry;
     if (PL.carry) { ctx.setTransform(zs, 0, 0, zs, sx + zx, sy + zy); DR.drawChunk(ctx, PL.carry, true); ctx.setTransform(S * zs, 0, 0, S * zs, sx + zx, sy + zy); }
     if (PL.muzzle && !G.run.ended) {
