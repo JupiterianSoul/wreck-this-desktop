@@ -97,7 +97,7 @@
   }
   P.hurt = (dmg, fromX, o = {}) => {
     if (P.iframes > 0 || P.dead || P.dashT > 0 || P.victory) return false;
-    const hp = WTP.game?.run?.hud?.hp;
+    const hp = WTP.game?.run && !WTP.game.run.mode.noDamage;
     if (hp) P.hp -= dmg;
     P.hurtT = 0.35; P.iframes = hp ? 1.1 : 0.6; P.knocked = true;
     P.vx = (P.x + P.w / 2 < fromX ? -1 : 1) * (o.knock || 120); P.vy = -150; P.ground = false;

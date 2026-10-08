@@ -236,29 +236,45 @@
 
   function updateAim(dt) {
     const o = PL.center();
-    const oy = PL.y + 5;
+    const oy = PL.y + 7;
     let tx = null, ty = null;
     const setT = (x, y) => { const m = Math.hypot(x, y); if (m > 0.01) { tx = x / m; ty = y / m; } };
+    const st = WTP.save.settings;
     const src = I.aim.src;
-    if (I.gp && Math.hypot(I.gpAxes[2], I.gpAxes[3]) > 0.3) setT(I.gpAxes[2], I.gpAxes[3]);
+    const ka = I.keyAim();
+    if (ka) setT(ka[0], ka[1]);
+    else if (I.gp && Math.hypot(I.gpAxes[2], I.gpAxes[3]) > 0.3) setT(I.gpAxes[2], I.gpAxes[3]);
     else if (src === 'mouse' && I.mouse.in) { const m = G.mouseWorld(); setT(m.x - o.x, m.y - oy); }
     else if (src === 'test') { tx = aim.x; ty = aim.y; }
+    else if (src === 'keys') { tx = aim.x; ty = aim.y; }
     else {
-      const e = EN.nearest(o.x, oy, 140);
+      const e = EN.nearest(o.x, oy, 160);
       if (e) setT(e.x - o.x, e.y - oy); else setT(PL.face, 0);
     }
-    const assist = WTP.save.settings.aimAssist;
-    if (tx != null && assist && I.gp && src !== 'mouse') {
-      const e = EN.nearest(o.x, oy, 170, Math.atan2(ty, tx), 0.3);
-      if (e) { const ex = e.x - o.x, ey = e.y - oy, m = Math.hypot(ex, ey) || 1; setT(tx * 0.55 + (ex / m) * 0.45, ty * 0.55 + (ey / m) * 0.45); }
+    const assist = st.autoAim | 0;
+    if (tx != null && assist) {
+      const cone = assist >= 2 ? 0.55 : 0.28;
+      const e = EN.nearest(o.x, oy, assist >= 2 ? 220 : 170, Math.atan2(ty, tx), cone);
+      if (e) { const ex = e.x - o.x, ey = e.y - oy, m = Math.hypot(ex, ey) || 1; const k = assist >= 2 ? 0.8 : 0.45; setT(tx * (1 - k) + (ex / m) * k, ty * (1 - k) + (ey / m) * k); }
+      else if (assist >= 2 && src !== 'mouse') {
+        const r = Wd.nearestSolid(o.x + tx * 40, oy + ty * 40, 24);
+        if (r) { const ex = r[0] - o.x, ey = r[1] - oy, m = Math.hypot(ex, ey) || 1; setT(tx * 0.6 + (ex / m) * 0.4, ty * 0.6 + (ey / m) * 0.4); }
+      }
     }
     if (tx != null) {
       const want = Math.atan2(ty, tx);
-      if (src === 'mouse') aim.ang = want;
-      else { let da = want - aim.ang; while (da > Math.PI) da -= Math.PI * 2; while (da < -Math.PI) da += Math.PI * 2; aim.ang += da * Math.min(1, dt * 12); }
+      const smooth = st.aimSmooth || 0;
+      if (src === 'mouse' && !ka && !smooth) aim.ang = want;
+      else { let da = want - aim.ang; while (da > Math.PI) da -= Math.PI * 2; while (da < -Math.PI) da += Math.PI * 2; aim.ang += da * Math.min(1, dt * (src === 'mouse' ? 30 * (1 - smooth * 0.8) : ka ? 14 : 12)); }
       aim.x = Math.cos(aim.ang); aim.y = Math.sin(aim.ang);
     }
     if (Math.abs(aim.x) > 0.08 && PL.dashT <= 0) PL.face = aim.x > 0 ? 1 : -1;
+    I.autoFire = false;
+    if (st.autoFire && !PL.dead) {
+      const e = EN.nearest(o.x, oy, 200, aim.ang, 0.22);
+      if (e) I.autoFire = true;
+      else { const r = Wd.raycast(o.x, oy, aim.x, aim.y, 70, 1); if (r.hit && I.firing()) I.autoFire = true; }
+    }
   }
 
   function step(dt) {
@@ -353,10 +369,18 @@
     else if (workMs < budget * 0.55) { fastFrames++; slowFrames = 0; if (fastFrames > 400 && quality < maxQ) { setQuality(quality + 1); fastFrames = 0; } }
     if (quality > maxQ) setQuality(maxQ);
   }
+  G.applyQuality = () => {
+    const pref = WTP.save.settings.quality;
+    const saver = G.battery;
+    maxQ = pref === 'low' ? 0 : pref === 'medium' ? 1 : pref === 'high' ? 2 : pref === 'battery' ? 1 : saver ? 1 : 2;
+    capFps = pref === 'battery' || (pref === 'auto' && saver) ? 60 : 0;
+    setQuality(maxQ);
+  };
+  G.applyFx = () => setQuality(quality);
   function setQuality(q) {
     quality = q;
     Wd.quality = q;
-    FX.cap = [2500, 5000, 8500][q];
+    FX.cap = Math.round([2500, 5000, 8500][q] * (WTP.save.settings.fxAmount ?? 1));
     Wd.chunkLimit = [30, 50, 80][q];
     Wd.componentLimit = [500, 750, 1000][q];
   }
@@ -435,18 +459,21 @@
     WTP.font.draw(ctx, txt, 16, PH - 40, { color: 'l', outline: '0', scale: 3 });
   }
   function drawCrosshair() {
-    if (!I.mouse.in || I.aim.src !== 'mouse' || G.run.ended || G.paused) return;
-    const x = Math.round((I.mouse.x * PW) / window.innerWidth), y = Math.round((I.mouse.y * PH) / window.innerHeight);
+    if (G.run.ended || G.paused || PL.dead) return;
+    let x, y;
+    if (I.aim.src === 'mouse' && I.mouse.in) { x = Math.round((I.mouse.x * PW) / window.innerWidth); y = Math.round((I.mouse.y * PH) / window.innerHeight); }
+    else { const m = PL.muzzle || PL.center(); const d = 46; x = Math.round((m.x + aim.x * d) * S); y = Math.round((m.y + aim.y * d) * S); }
     const fire = I.wantFire();
     const th = WTP.deskTheme || {};
     const c = fire ? (th.yellow || '#ffe066') : (th.accent || '#ffffff');
-    const g = fire ? 5 : 8, L = 9;
-    ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(0,0,0,.65)';
+    const big = WTP.save.settings.bigCross ? 1.8 : 1;
+    const g = (fire ? 5 : 8) * big, L = 9 * big;
+    ctx.lineWidth = 6 * Math.sqrt(big); ctx.strokeStyle = 'rgba(0,0,0,.65)';
     ctx.beginPath();
     ctx.moveTo(x - g - L, y); ctx.lineTo(x - g, y); ctx.moveTo(x + g, y); ctx.lineTo(x + g + L, y);
     ctx.moveTo(x, y - g - L); ctx.lineTo(x, y - g); ctx.moveTo(x, y + g); ctx.lineTo(x, y + g + L);
     ctx.stroke();
-    ctx.lineWidth = 2.5; ctx.strokeStyle = c;
+    ctx.lineWidth = 2.5 * Math.sqrt(big); ctx.strokeStyle = c;
     ctx.stroke();
     ctx.fillStyle = c; ctx.fillRect(x - 1.5, y - 1.5, 3, 3);
   }

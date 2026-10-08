@@ -9,7 +9,7 @@
 
   const MODES = {
     free: {
-      name: 'Free Wreck', short: 'Free', music: 'wreck', respawn: true,
+      name: 'Free Wreck', short: 'Free', music: 'wreck', respawn: true, noDamage: true,
       desc: 'No clock, no rules. Wreck your desktop however you like, finish when you want a grade.',
       hud: { pct: true, time: true, score: true, goal: 80 },
       setup(run) { run.goal = 80; run.enT = 35; G().label('WRECK THIS DESKTOP', 2200); },
@@ -21,7 +21,7 @@
       rows(run) { return [['Destroyed', `${pct().toFixed(1)}%`], ['Time', WTP.fmtTime(run.t)], ['Score', WTP.fmtInt(run.score)], ['Best combo', run.maxCombo]]; }
     },
     time: {
-      name: 'Time Attack', short: 'Time', music: 'wreck2', respawn: true,
+      name: 'Time Attack', short: 'Time', music: 'wreck2', respawn: true, noDamage: true,
       desc: 'Sixty seconds on the clock. Destroy as much of the screen as you can before it hits zero.',
       hud: { pct: true, time: true, score: true, countdown: true, big: 'time' },
       setup(run) { run.limit = 60; G().label('60 SECONDS. WRECK EVERYTHING.', 2200); G().startTimer(); },
@@ -35,7 +35,7 @@
       rows(run) { return [['Destroyed', `${pct().toFixed(1)}%`], ['Score', WTP.fmtInt(run.score)], ['Best combo', run.maxCombo]]; }
     },
     zen: {
-      name: 'Zen', short: 'Zen', music: 'zen', respawn: true, noHp: true, infinite: true,
+      name: 'Zen', short: 'Zen', music: 'zen', respawn: true, noHp: true, noDamage: true, infinite: true,
       desc: 'No enemies, infinite ammo, no pressure. Just you and a desktop slowly falling apart.',
       hud: { minimal: true },
       setup() { G().label('BREATHE IN. BREATHE OUT. WRECK.', 2600); },
@@ -44,7 +44,7 @@
       rows(run) { return [['Destroyed', `${pct().toFixed(1)}%`], ['Time relaxing', WTP.fmtClock(run.t)]]; }
     },
     chaos: {
-      name: 'Chaos', short: 'Chaos', music: 'survival', respawn: true,
+      name: 'Chaos', short: 'Chaos', music: 'survival', respawn: true, waves: true,
       desc: 'A disaster every few seconds and waves of desktop annoyances. Survive and wreck.',
       hud: { pct: true, time: true, score: true, hp: true },
       setup(run) { run.disT = 4; run.wave = 0; run.waveT = 3; PL().maxHp = 8; PL().hp = 8; G().label('CHAOS MODE: THE DESKTOP FIGHTS BACK', 2400); G().startTimer(); },

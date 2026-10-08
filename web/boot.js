@@ -67,5 +67,13 @@
   WTP.level.start(seg);
   WTD.post({ t: 'want-wallpaper' });
   WTD.ready = true;
+  if (!WTD.test && !WTD.probe) setTimeout(() => {
+    try {
+      const ac = window.Curio.audioContext();
+      if (!ac) return;
+      const t0 = ac.currentTime;
+      setTimeout(() => { WTD.audioOk = ac.currentTime > t0 || ac.state === 'running'; if (!WTD.audioOk) WTP.ui?.label?.('NO SOUND OUTPUT FOUND, SEE SETTINGS', 3000); }, 1200);
+    } catch (e) { WTD.audioOk = false; }
+  }, 500);
   if (WTD.probe) load('desk/probe.js');
 })();

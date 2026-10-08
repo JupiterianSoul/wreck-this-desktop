@@ -22,7 +22,8 @@
   I.take = (a) => { const v = pending[a]; pending[a] = false; return !!v; };
   I.press = (a) => { pending[a] = true; };
   I.clear = () => { held.clear(); for (const k in pending) pending[k] = false; I.pointerFire = false; I.touchBtns = {}; };
-  const AIMKEYS = { KeyI: [0, -1], KeyK: [0, 1], KeyJ: [-1, 0], KeyL: [1, 0] };
+  const AIMDIR = { aimUp: [0, -1], aimDown: [0, 1], aimLeft: [-1, 0], aimRight: [1, 0] };
+  const aimOf = (code) => { const m = keymap(); for (const a in AIMDIR) if ((m[a] || []).includes(code)) return AIMDIR[a]; return null; };
   const BLOCK = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab'];
 
   window.addEventListener('keydown', (e) => {
@@ -31,22 +32,22 @@
     if (WTP.game?.paused || (WTP.ui?.wheelOpen?.())) return;
     const tg = e.target;
     if (tg && (tg.tagName === 'TEXTAREA' || tg.tagName === 'INPUT' || tg.tagName === 'SELECT')) return;
-    if (BLOCK.includes(e.code) || AIMKEYS[e.code]) e.preventDefault();
+    if (BLOCK.includes(e.code) || aimOf(e.code)) e.preventDefault();
     I.lastKey = performance.now();
-    if (AIMKEYS[e.code]) I.aim.src = 'keys';
+    if (aimOf(e.code)) I.aim.src = 'keys';
     if (e.repeat) { held.add(e.code); return; }
     held.add(e.code);
     for (const a of actionsFor(e.code)) pending[a] = true;
     if (e.key && e.key.length === 1) { const kk = 'key:' + e.key.toLowerCase(); held.add(kk); for (const a of actionsFor(kk)) pending[a] = true; }
     if (/^Digit[0-9]$/.test(e.code)) pending.slot = Number(e.code.slice(5));
-    if (e.code === 'KeyV') { I.fireLock = !I.fireLock; WTP.game?.label?.(I.fireLock ? 'FIRE LOCK ON (V)' : 'FIRE LOCK OFF', 900); }
+    for (const a of actionsFor(e.code)) if (a === 'firelock') { I.fireLock = !I.fireLock; WTP.game?.label?.(I.fireLock ? 'FIRING (PRESS AGAIN TO STOP)' : 'FIRE STOPPED', 900); }
   });
   window.addEventListener('keyup', (e) => { held.delete(e.code); if (e.key && e.key.length === 1) held.delete('key:' + e.key.toLowerCase()); });
   window.addEventListener('blur', () => { held.clear(); I.pointerFire = false; });
 
   function keyAim() {
     let x = 0, y = 0;
-    for (const c in AIMKEYS) if (held.has(c)) { x += AIMKEYS[c][0]; y += AIMKEYS[c][1]; }
+    const m = keymap(); for (const a in AIMDIR) for (const c of m[a] || []) if (held.has(c)) { x += AIMDIR[a][0]; y += AIMDIR[a][1]; }
     return x || y ? [x, y] : null;
   }
   I.keyAim = keyAim;
@@ -55,7 +56,7 @@
   I.bindCanvas = (cv) => {
     cv.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse' || e.pointerType === 'pen') { if (!cv.classList.contains('aiming')) cv.classList.add('aiming'); const r = cv.getBoundingClientRect(); I.mouse.x = e.clientX - r.left; I.mouse.y = e.clientY - r.top; I.mouse.in = true; I.mouse.lastMove = performance.now(); I.aim.src = 'mouse'; } });
     cv.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') I.mouse.in = I.pointerFire || I.mouse.in; });
-    const toggleMode = () => WTP.save.settings.toggleFire && !C.touchpad;
+    const toggleMode = () => WTP.save.settings.toggleFire;
     const startFire = (p) => {
       if (p.pointerType === 'touch') return;
       I.mouse.x = p.x; I.mouse.y = p.y; I.mouse.in = true; I.aim.src = 'mouse'; I.mouse.lastMove = performance.now();
@@ -205,6 +206,7 @@
   };
   I.downHeld = () => I.down('down') || (I.stickL.id != null && I.stickL.y > 0.72) || I.gpAxes[1] > 0.7;
   I.jumpHeld = () => I.down('jump') || !!I.touchBtns.jump;
-  I.wantFire = () => I.pointerFire || I.fireLock || I.down('fire') || held.has('Enter') || held.has('NumpadEnter') || !!I.touchBtns.fire;
+  I.wantFire = () => I.pointerFire || I.fireLock || I.down('fire') || held.has('NumpadEnter') || !!I.touchBtns.fire || !!I.autoFire;
+  I.firing = () => I.pointerFire || I.fireLock;
   I.gpNav = (a) => I.take(a);
 })();
