@@ -69,6 +69,7 @@ node tests/ui.test.js
 node tests/pxanim.test.js
 node tests/melee.test.js
 node tests/idle.test.js
+node tests/skins.test.js
 tests/host.test.sh tiled3
 ```
 

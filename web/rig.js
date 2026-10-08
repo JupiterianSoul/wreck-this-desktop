@@ -495,7 +495,9 @@
     if (P.dashT > 0 && P.ghosts.length) { const gh = P.ghosts[P.ghosts.length - 1]; if (!gh.pose) gh.pose = JSON.parse(JSON.stringify(p)); }
     drawScarf(ctx, c);
     WTP.rigGadgets?.draw?.(ctx, p, 'back', c);
+    WTP.costumes?.draw?.(ctx, p, 'back', HEAD);
     const front = drawBody(ctx, p, c);
+    WTP.costumes?.draw?.(ctx, p, 'body', HEAD);
     if (P.carry) {
       const ch = P.carry;
       ch.x = (p.armF.ex + p.armB.ex) / 2; ch.y = Math.min(p.armF.ey, p.armB.ey) - ch.rad * 0.7; ch.a = 0;
@@ -523,6 +525,7 @@
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     strokeSet(ctx, front, LW, c.out);
     strokeSet(ctx, front, FW, c.fg);
+    WTP.costumes?.draw?.(ctx, p, 'front', HEAD);
     WTP.rigGadgets?.draw?.(ctx, p, 'front', c);
     WTP.shop?.drawHat?.(ctx, p, c, HEAD);
     ctx.restore();

@@ -43,20 +43,35 @@
   fin('holo', 'Hologram', 'mythic', (r, g, b, x, y, t) => hsl(x * 14 + y * 9 + t * 60, 0.75, 0.35 + lumOf(r, g, b) * 0.45), true);
   fin('rainbow', 'Rainbow Road', 'mythic', (r, g, b, x, y, t) => hsl(x * 26 - t * 60, 0.9, 0.3 + lumOf(r, g, b) * 0.45), true);
   fin('glitch', 'Corrupted', 'mythic', (r, g, b, x, y, t) => { const row = hash(y, t, 11); if (row > 0.75) return hash(x, y + t, 12) > 0.5 ? [255, 40, 200] : [40, 255, 230]; return row > 0.6 ? [g, b, r] : tone('#2a2d35')(r, g, b); }, true);
+  fin('sakura', 'Sakura', 'rare', (r, g, b, x, y) => { const L = lumOf(r, g, b); if (hash(x >> 1, y >> 1, 21) > 0.82) return [255, 190, 215]; return ramp([[60, 30, 40], [150, 80, 100], [240, 200, 210]], L * 1.1); });
+  fin('woodgrain', 'Walnut', 'common', (r, g, b, x, y) => { const L = lumOf(r, g, b), k = Math.sin(y * 1.3 + noise(x / 6, y / 2, 8) * 4) * 0.12; return ramp([[50, 30, 18], [110, 66, 38], [176, 122, 79]], L + k); });
+  fin('blueprint', 'Blueprint', 'common', (r, g, b, x, y) => (x % 4 === 0 || y % 4 === 0) ? [180, 210, 255] : ramp([[15, 40, 90], [30, 80, 160]], lumOf(r, g, b)));
+  fin('zebra', 'Zebra', 'rare', (r, g, b, x, y) => Math.sin(x * 0.9 + Math.sin(y * 0.6) * 2) > 0.2 ? [20, 20, 24] : [235, 235, 230]);
+  fin('circuit', 'Circuit Board', 'epic', (r, g, b, x, y) => { const h = hash(x >> 1, y >> 1, 31); if ((x % 6 === 0 && h > 0.4) || (y % 5 === 0 && h < 0.5)) return [220, 190, 80]; return ramp([[10, 40, 20], [30, 110, 50]], lumOf(r, g, b)); });
+  fin('marble', 'Marble', 'epic', (r, g, b, x, y) => { const v = Math.abs(Math.sin(x * 0.4 + noise(x / 3, y / 3, 13) * 5)); return v < 0.12 ? [120, 120, 130] : ramp([[200, 200, 205], [245, 245, 248]], lumOf(r, g, b)); });
+  fin('damascus', 'Damascus', 'legendary', (r, g, b, x, y) => { const v = Math.sin(x * 0.7 + Math.sin(y * 0.9 + x * 0.2) * 3); return ramp([[40, 44, 52], [120, 128, 140], [220, 226, 236]], 0.4 + v * 0.3 + lumOf(r, g, b) * 0.2); });
+  fin('sunset', 'Synth Sunset', 'legendary', (r, g, b, x, y) => ramp([[40, 10, 80], [200, 40, 120], [255, 140, 60], [255, 230, 120]], (y % 12) / 12 * 0.7 + lumOf(r, g, b) * 0.3));
+  fin('pixelcamo', 'Digital Camo', 'rare', (r, g, b, x, y) => { const n = hash(x >> 1, y >> 1, 41); return n < 0.33 ? [40, 46, 56] : n < 0.66 ? [80, 92, 108] : [140, 150, 160]; });
+  fin('terminal', 'Terminal', 'mythic', (r, g, b, x, y, t) => ((y + t) % 3 === 0 ? [20, 60, 30] : ramp([[5, 20, 10], [40, 200, 90], [180, 255, 200]], lumOf(r, g, b) * 1.1 + (hash(x, y, t) > 0.95 ? 0.4 : 0))), true);
+  fin('void', 'Void', 'mythic', (r, g, b, x, y, t) => { const d = Math.sin(x * 0.5 + y * 0.3 - t * 1.2); return mixC([10, 0, 20], [150, 60, 255], Math.max(0, d) * 0.7 + lumOf(r, g, b) * 0.2); }, true);
+  fin('omarchy', 'Omarchy', 'epic', (r, g, b) => { const th = WTP.deskTheme || {}; const st = [hexRGB(th.dark_background || '#0b0b0c'), hexRGB(th.background || '#121213'), hexRGB(th.accent || '#d8d8d8'), hexRGB(th.bright_foreground || th.foreground || '#eaeaea')]; return ramp(st, lumOf(r, g, b) * 1.2); });
   const FRAMES = 6;
 
   const CRATES = [
     { id: 'wreck', name: 'Wreck Crate', price: 100, col: '#c8372d', w: [70, 22, 6, 1.6, 0.4], fins: ['olive', 'desert', 'crimson', 'camo', 'tiger', 'chrome', 'toxic', 'gold', 'holo'] },
     { id: 'desktop', name: 'Desktop Crate', price: 150, col: '#4cc6ec', w: [62, 26, 8, 3, 1], fins: ['slate', 'arctic', 'carbon', 'ocean', 'neon', 'candy', 'galaxy', 'rainbow'] },
     { id: 'glitch', name: 'Glitch Crate', price: 250, col: '#ff3ad1', w: [45, 32, 14, 6.5, 2.5], fins: ['crimson', 'slate', 'carbon', 'neon', 'toxic', 'lava', 'galaxy', 'glitch', 'holo'] },
-    { id: 'golden', name: 'Golden Crate', price: 500, col: '#e3b94b', w: [0, 50, 30, 14, 6], fins: ['camo', 'ocean', 'chrome', 'candy', 'gold', 'lava', 'galaxy', 'holo', 'rainbow', 'glitch'] }
+    { id: 'omarchy', name: 'Omarchy Crate', price: 350, col: '#7fd07a', w: [40, 34, 16, 7, 3], fins: ['woodgrain', 'blueprint', 'pixelcamo', 'zebra', 'sakura', 'circuit', 'marble', 'omarchy', 'damascus', 'sunset', 'terminal', 'void'] },
+    { id: 'golden', name: 'Golden Crate', price: 500, col: '#e3b94b', w: [0, 50, 30, 14, 6], fins: ['camo', 'ocean', 'chrome', 'candy', 'gold', 'lava', 'galaxy', 'damascus', 'holo', 'rainbow', 'glitch', 'void'] }
   ];
 
   const PLAYER = {
-    body: [['theme', 'Theme', 0, null], ['snow', 'Snow', 0, '#f4f4f4'], ['cyan', 'Cyan', 100, '#5ad4f0'], ['pink', 'Pink', 100, '#ff7ab8'], ['lime', 'Lime', 100, '#a6e05a'], ['ember', 'Ember', 150, '#ff7a3a'], ['shadow', 'Shadow', 200, '#55586a'], ['gold', 'Gold', 400, '#f0c850']],
-    scarf: [['theme', 'Theme', 0, null], ['none', 'No scarf', 0, 'rgba(0,0,0,0)'], ['red', 'Red', 50, '#d83a32'], ['blue', 'Blue', 50, '#3e70d9'], ['green', 'Green', 50, '#3fae5a'], ['purple', 'Purple', 80, '#9b5de5'], ['white', 'White', 80, '#f2f2f2'], ['rainbow', 'Rainbow', 400, 'rainbow']],
-    hat: [['none', 'None', 0], ['cap', 'Cap', 120], ['party', 'Party Hat', 150], ['headphones', 'Headphones', 200], ['tophat', 'Top Hat', 250], ['horns', 'Horns', 250], ['halo', 'Halo', 300, 'g:wave:hardcore:8'], ['crown', 'Crown', 500, 'g:bosses:5']],
-    trail: [['none', 'None', 0], ['smoke', 'Smoke', 120, ['#9aa0aa', '#c3c8cf']], ['sparks', 'Sparks', 150, ['#ffd34a', '#ff8a2e']], ['pixels', 'Pixels', 200, ['#4cc6ec', '#ff6aa8', '#a6e05a']], ['rainbow', 'Rainbow', 400, null]]
+    costume: [['none', 'Default', 0], ...(WTP.costumes ? WTP.costumes.list().map((d) => [d.id, d.name, d.price, d.sw]) : [])],
+    body: [['theme', 'Theme', 0, null], ['snow', 'Snow', 0, '#f4f4f4'], ['cyan', 'Cyan', 300, '#5ad4f0'], ['pink', 'Pink', 300, '#ff7ab8'], ['lime', 'Lime', 300, '#a6e05a'], ['ember', 'Ember', 400, '#ff7a3a'], ['shadow', 'Shadow', 500, '#55586a'], ['violet', 'Violet', 500, '#a78bfa'], ['gold', 'Gold', 800, '#f0c850']],
+    scarf: [['theme', 'Theme', 0, null], ['none', 'No scarf', 0, 'rgba(0,0,0,0)'], ['red', 'Red', 300, '#d83a32'], ['blue', 'Blue', 300, '#3e70d9'], ['green', 'Green', 300, '#3fae5a'], ['purple', 'Purple', 400, '#9b5de5'], ['white', 'White', 400, '#f2f2f2'], ['black', 'Black', 400, '#16181d'], ['rainbow', 'Rainbow', 800, 'rainbow']],
+    hat: [['none', 'None', 0], ['cap', 'Cap', 500], ['beanie', 'Beanie', 500], ['party', 'Party Hat', 600], ['beret', 'Beret', 600], ['headphones', 'Headphones', 700], ['bunny', 'Bunny Ears', 700], ['propeller', 'Propeller Cap', 800], ['santa', 'Santa Hat', 800], ['tophat', 'Top Hat', 900], ['horns', 'Horns', 900], ['cowboy', 'Cowboy Hat', 900], ['pixel', 'Pixel Fedora', 1000], ['viking', 'Viking Helmet', 1100], ['halo', 'Halo', 1200, 'g:wave:hardcore:8'], ['crown', 'Crown', 1500, 'g:bosses:5']],
+    face: [['none', 'None', 0], ['mustache', 'Mustache', 500], ['clown', 'Clown Nose', 500], ['shades', 'Sunglasses', 500], ['nerd', 'Nerd Glasses', 600], ['patch', 'Eye Patch', 600], ['threed', '3D Glasses', 700], ['monocle', 'Monocle', 900], ['gasmask', 'Gas Mask', 1200], ['deal', 'Pixel Shades', 1500]],
+    trail: [['none', 'None', 0], ['smoke', 'Smoke', 500, ['#9aa0aa', '#c3c8cf']], ['sparks', 'Sparks', 600, ['#ffd34a', '#ff8a2e']], ['snow', 'Snowflakes', 600, null], ['bubbles', 'Bubbles', 600, null], ['hearts', 'Hearts', 700, null], ['pixels', 'Pixels', 800, ['#4cc6ec', '#ff6aa8', '#a6e05a']], ['code', 'Source Code', 900, null], ['confetti', 'Confetti', 900, null], ['fire', 'Fire', 1000, null], ['glitch', 'Glitch', 1300, null], ['rainbow', 'Rainbow', 1500, null]]
   };
 
   const SV = () => {
@@ -105,8 +120,10 @@
   const scarfColor = () => { const v = pItem('scarf', pEq('scarf'))?.[3]; if (v === 'rainbow') { const c = hsl(performance.now() / 8, 0.85, 0.55); return `rgb(${c.map(Math.round).join(',')})`; } return v || null; };
 
   function drawHat(ctx, p, c, HEAD) {
+    WTP.costumes?.draw?.(ctx, p, 'head', HEAD);
+    WTP.costumes?.face?.(ctx, p, HEAD);
     const id = pEq('hat');
-    if (id === 'none' || PL().dead) return;
+    if (id === 'none' || PL().dead || WTP.costumes?.hidesHat?.()) return;
     const x = p.hx, y = p.hy - HEAD, f = p.face || 1;
     const R = (dx, dy, w, h, col) => { ctx.fillStyle = col; ctx.fillRect(x + (f > 0 ? dx : -dx - w), y + dy, w, h); };
     if (id === 'cap') { R(-2.5, -1.2, 5, 1.6, '#d83a32'); R(1.5, -0.2, 2.6, 0.8, '#a82a24'); }
@@ -116,6 +133,7 @@
     else if (id === 'horns') { R(-2.6, -1.6, 1.2, 1.8, '#d83a32'); R(1.6, -1.6, 1.2, 1.8, '#d83a32'); R(-3.2, -2.6, 1, 1.2, '#d83a32'); R(2.4, -2.6, 1, 1.2, '#d83a32'); }
     else if (id === 'halo') { ctx.strokeStyle = '#ffe07a'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(x, y - 2.4, 2.8, 0.9, 0, 0, Math.PI * 2); ctx.stroke(); }
     else if (id === 'crown') { ctx.fillStyle = '#f0c850'; ctx.beginPath(); ctx.moveTo(x - 2.6, y + 0.4); ctx.lineTo(x - 2.6, y - 2.6); ctx.lineTo(x - 1.3, y - 1.2); ctx.lineTo(x, y - 3.2); ctx.lineTo(x + 1.3, y - 1.2); ctx.lineTo(x + 2.6, y - 2.6); ctx.lineTo(x + 2.6, y + 0.4); ctx.closePath(); ctx.fill(); R(-0.4, -1.2, 1, 1, '#d83a32'); }
+    else WTP.costumes?.hat?.(id, ctx, x, y, f, R);
   }
 
   let trailAcc = 0;
@@ -128,7 +146,8 @@
     if ((trailAcc += dt * Math.min(3, sp / 80) * 30) < 1) return;
     trailAcc = 0;
     const it = pItem('trail', id);
-    const col = it[3] ? it[3][(Math.random() * it[3].length) | 0] : `rgb(${hsl(performance.now() / 4, 0.9, 0.6).map(Math.round).join(',')})`;
+    const ext = WTP.costumes?.TRAILS?.[id];
+    const col = ext ? ext.cols[(Math.random() * ext.cols.length) | 0] : it[3] ? it[3][(Math.random() * it[3].length) | 0] : `rgb(${hsl(performance.now() / 4, 0.9, 0.6).map(Math.round).join(',')})`;
     const big = id === 'smoke';
     WTP.feel.parts.push({ x: P.x + P.w / 2 + (Math.random() - 0.5) * 3, y: P.y + P.h * (0.4 + Math.random() * 0.5), vx: -P.vx * 0.05, vy: big ? -10 : 0, t: 0, dur: big ? 0.6 : 0.4, c: col, r: big ? 1 : 0.5, grow: big ? 2 : 0, a: big ? 0.35 : 1, g: id === 'sparks' ? 60 : 0 });
   });
@@ -215,11 +234,11 @@
       const ids = Object.keys(by).sort((a, b) => WP.BY[a].idx - WP.BY[b].idx);
       inner = ids.length ? `<div class="skin-grid">${ids.map((w) => `<div class="skw"><b>${esc(WP.BY[w].name)}</b><div class="skrow"><button class="sk${!s.skins.eq[w] ? ' on' : ''}" data-w="${w}" data-f=""><img alt="" src="${skinIcon(w, '')}"><span>Default</span></button>${by[w].sort((a, b) => RI[F[b].rar] - RI[F[a].rar]).map((f) => `<button class="sk${s.skins.eq[w] === f ? ' on' : ''}" data-w="${w}" data-f="${f}" style="--rc:${RAR[RI[F[f].rar]].col}"><img alt="" src="${skinIcon(w, f)}"><span>${esc(F[f].name)}</span></button>`).join('')}</div></div>`).join('')}</div>` : '<p class="muted">No skins yet. Open crates to get some.</p>';
     } else {
-      const lbl = { body: 'Body colour', scarf: 'Scarf', hat: 'Hat', trail: 'Trail' };
+      const lbl = { costume: 'Costume', body: 'Body colour', scarf: 'Scarf', hat: 'Hat', face: 'Glasses and masks', trail: 'Trail' };
       inner = Object.keys(PLAYER).map((slot) => `<h3>${lbl[slot]}</h3><div class="pskins">${PLAYER[slot].map((it) => {
         const [id, nm, price] = it;
         const own = pOwned(slot, id), eq = pEq(slot) === id, req = pReq(slot, id), reqOk = !req || !!WTP.save.ach?.done?.[req];
-        const sw = slot === 'body' || slot === 'scarf' ? `<i class="sw" style="background:${it[3] === 'rainbow' ? 'linear-gradient(90deg,#f55,#fd5,#5f5,#5df,#a5f)' : it[3] || 'var(--accent)'}"></i>` : '';
+        const sw = slot === 'costume' && id !== 'none' ? `<img class="cprev" alt="" src="${WTP.costumes?.preview?.(id, 3) || ''}">` : slot === 'body' || slot === 'scarf' ? `<i class="sw" style="background:${it[3] === 'rainbow' ? 'linear-gradient(90deg,#f55,#fd5,#5f5,#5df,#a5f)' : it[3] || 'var(--accent)'}"></i>` : '';
         const tag = eq ? 'Equipped' : own ? 'Equip' : !reqOk ? `Needs: ${esc(WTP.ach?.BY?.[req]?.name || 'achievement')}` : `<i class="shard"></i>${price}`;
         return `<button class="ps${eq ? ' on' : ''}${!own && !reqOk ? ' needs' : ''}" data-slot="${slot}" data-id="${id}">${sw}<b>${esc(nm)}</b><span>${tag}</span></button>`;
       }).join('')}</div>`).join('');
@@ -274,5 +293,5 @@
     }
   };
 
-  WTP.shop = { F, RAR, CRATES, PLAYER, shards, earn, spend, skinOf, skinFor, skinCanvas, skinIcon, renderCrates, renderSkins, drawHat, bodyColor, scarfColor, rollCrate, grant, runShards };
+  WTP.shop = { pEq, F, RAR, CRATES, PLAYER, shards, earn, spend, skinOf, skinFor, skinCanvas, skinIcon, renderCrates, renderSkins, drawHat, bodyColor, scarfColor, rollCrate, grant, runShards };
 })();
