@@ -353,12 +353,12 @@
       else FX().debris(x0 + x, y0 + y, (dx / d) * rand(40, 140), (dy / d) * rand(40, 140) - 60, c, { ns: Math.random() < 0.5 });
     }
     if (!D.tiny) FX().explosion(e.x, e.y, D.boss ? 30 : 9, e.type === 'virus' ? 'plasma' : 'fire');
-    if (D.boss) { G()?.slowmo?.(0.3, 1.2); G()?.chroma?.(1); FX().flash(0.8, '#ff5fa2'); for (let k = 0; k < 6; k++) WTP.props.later(k * 0.15, () => WTP.weapons.explode(e.x + rand(-25, 25), e.y + rand(-15, 15), 14, { noPush: true })); }
+    if (D.boss) WTP.budget.with('boss', () => { G()?.slowmo?.(0.3, 1.2); G()?.chroma?.(1); FX().flash(0.8, '#ff5fa2'); G()?.shake?.(20); for (let k = 0; k < 6; k++) WTP.props.later(k * 0.15, () => WTP.weapons.explode(e.x + rand(-25, 25), e.y + rand(-15, 15), 14, { noPush: true })); });
     if (EXT[e.type] && EXT[e.type].die) EXT[e.type].die(e, cause);
     if (e.type === 'virus') for (let k = 0; k < 2; k++) WTP.props.later(0.1 + k * 0.15, () => WTP.weapons.glitchAt(e.x + rand(-12, 12), e.y + rand(-12, 12)));
     if (e.type === 'spam' && e.gen < 2) for (let k = 0; k < 2; k++) { const c = spawn('spam', e.x + (k ? 6 : -6), e.y, { v: e.gen + 1, hpMul: 1 }); if (c) { c.spawnT = 0.15; c.vx = (k ? 1 : -1) * 120; c.vy = -160; } }
     A(D.tiny ? 'pop' : D.boss ? 'bossDie' : 'enemyDie');
-    G()?.shake?.(D.boss ? 20 : D.tiny ? 1 : 5);
+    if (!D.boss) G()?.shake?.(D.tiny ? 1 : 4);
     if (!D.tiny) G()?.enemyKilled?.(e, cause);
     if (D.tiny) return;
     if (Math.random() < (D.boss ? 1 : 0.12)) pickups.push({ t: 'heart', x: e.x, y: e.y, vx: rand(-40, 40), vy: -120, life: 12 });

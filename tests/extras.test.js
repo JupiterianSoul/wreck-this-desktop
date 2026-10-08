@@ -15,7 +15,7 @@ const { launch } = require('./harness.js');
       const sh0 = WTP.save.shards || 0;
       Wd.mat[g.i] = Wd.HOLE; __wtd.step(2);
       out.revealed = g.st === 1;
-      const P = WTP.player; __wtd.tp(g.x - P.w / 2, g.y - P.h / 2); __wtd.step(2);
+      const P = WTP.player; for (let k = 0; k < 10 && g.st !== 2; k++) { __wtd.tp(g.x - P.w / 2, g.y - P.h / 2); __wtd.step(1); }
       out.collected = g.st === 2 && (WTP.save.shards || 0) - sh0 >= 25 && WTP.ach.stats().golden >= 1;
       const run = WTP.game.run; run.combo = 55; __wtd.step(2);
       out.finisher = run.finisherAt === 100;
@@ -56,7 +56,7 @@ const { launch } = require('./harness.js');
       const i = FX.shard(110.5, 320, 0, 40, WTP.P32.C);
       for (let k = 0; k < 90; k++) FX.update ? FX.update(1 / 60) : __wtd.step(1);
       out.shardKept = FX.np > 0;
-      const s0 = FX.np; FX.steam(120, 300, 4); out.steam = FX.np - s0 === 4;
+      const s0 = FX.np; WTP.budget.with('nuke', () => FX.steam(120, 300, 4)); out.steam = FX.np - s0 === 4;
       let arcs = 0; const ob = FX.bolt; FX.bolt = (...a) => { arcs++; return ob(...a); }; WTP.weapons.conduct(110, 333); __wtd.step(30); FX.bolt = ob; out.arcs = arcs > 0;
       const P = WTP.player; P.idleT = 9; WTP.rig.relax = 3; WTP.game.renderNow(); const a = WTP.rig.lastPose.aimA; out.lowered = Math.abs(Math.cos(a)) < 0.7 && Math.sin(a) > 0.5;
       WTP.rig.relax = 0;

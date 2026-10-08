@@ -134,7 +134,7 @@
     if (s.v >= 1 && !s.maxed) {
       s.maxed = true;
       if (s.kind === 'volume') { G()?.event?.('VOLUME 100%', c.x, c.y - 10, 2); A('sound'); WTP.weapons.shockwave?.(c.x, c.y, 70); }
-      else if (s.kind === 'bright') { G()?.event?.('BRIGHTNESS 100%', c.x, c.y - 10, 2); FX().flash(0.9, '#ffffff'); for (const e of EN()?.list || []) e.stun = 2; }
+      else if (s.kind === 'bright') { G()?.event?.('BRIGHTNESS 100%', c.x, c.y - 10, 2); FX().flash(0.6, '#ffffff', true); for (const e of EN()?.list || []) e.stun = 2; }
       else { G()?.event?.('MAXED OUT', c.x, c.y - 10, 2); WTP.weapons.explode(c.x, c.y, 12, { noPush: true }); }
     } else if (s.v < 1) s.maxed = false;
   }
@@ -152,7 +152,7 @@
       Wd.col[i] = c; Wd.touch(i);
     }
   }
-  function later(t, fn) { timers.push({ t, fn }); }
+  function later(t, fn) { timers.push({ t, fn: WTP.budget ? WTP.budget.bind(fn) : fn }); }
   R.later = later;
 
   const CAT = ['....0.0.', '...0000.', '...0y0y.', '0..0000.', '.0.0000.', '.0000000', '.0000000', '.0.0..0.'];

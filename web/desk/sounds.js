@@ -14,6 +14,8 @@
   opt('achieve', () => { [784, 988, 1175].forEach((f, i) => osc('triangle', f, f, 0.14, 0.07, { delay: i * 0.08 })); });
   opt('unlock', () => { [523, 659, 784, 1046].forEach((f, i) => osc('square', f, f, 0.1, 0.05, { delay: i * 0.06 })); osc('triangle', 1568, 1568, 0.35, 0.05, { delay: 0.26 }); });
   opt('tinkle', () => { if (!throttle('tinkle', 35)) return; const f = 2600 + Math.random() * 2400; osc('sine', f, f * 0.98, 0.09, 0.025); osc('sine', f * 1.5, f * 1.5, 0.05, 0.012, { delay: 0.02 }); });
+  add('metalTick', (r = 2) => { if (!throttle('metalTick', 60)) return; const k = Math.min(1, r / 5); osc('triangle', vary(2300), 1700, 0.035, 0.012 + 0.016 * k); noise(0.02, 5200, 3000, 0.05 + 0.05 * k, 'bandpass', 3); });
+  add('finisher', () => { thump(110, 38, 0.45, 0.45); noise(0.5, 400, 2400, 0.12, 'bandpass', 1.2); [523, 784, 1046].forEach((f, i) => osc('triangle', f, f, 0.18, 0.035, { delay: 0.05 + i * 0.06 })); });
   add('perfect', () => { osc('triangle', 1760, 1760, 0.12, 0.08); osc('sine', 2640, 2640, 0.18, 0.05); });
   add('burst', () => { noise(0.05, 4000, 900, 0.22, 'bandpass', 1.2); thump(140, 0.05, 0.12); });
   opt('laserZap', () => { osc('sawtooth', 1800, 300, 0.25, 0.06, { lp: 4000 }); noise(0.2, 5000, 2000, 0.15, 'bandpass', 2); });

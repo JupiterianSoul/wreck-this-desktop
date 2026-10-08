@@ -103,7 +103,7 @@
     P.vx = (P.x + P.w / 2 < fromX ? -1 : 1) * (o.knock || 120); P.vy = -150; P.ground = false;
     WTP.audio.play('hurt');
     WTP.game?.shake?.(8); WTP.game?.hitstop?.(0.06);
-    WTP.fx.flash(0.35, '#e8484f');
+    WTP.fx.flash(0.18, '#e8484f', true);
     WTP.vibe(80);
     GD()?.interrupt?.();
     if (P.hp <= 0) { P.dead = true; WTP.audio.play('die'); WTP.game?.playerDied?.(); }

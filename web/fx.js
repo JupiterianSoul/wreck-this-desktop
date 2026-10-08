@@ -12,6 +12,9 @@
   const PRIORITY_LOW = new Set([K.DUST, K.SMOKE, K.EMBER, K.TRAIL, K.SPARK, K.ASH, K.PAPER]);
 
   function add(k, x, y, ivx, ivy, c, l, a = 0, b = 0, f = 0) {
+    const adm = WTP.budget ? WTP.budget.admit(k) : 1;
+    if (!adm) return -1;
+    if (adm > 1 && k === K.SMOKE) b *= adm;
     let i = FX.np;
     if (i >= FX.cap) {
       if (PRIORITY_LOW.has(k)) return -1;
@@ -59,12 +62,22 @@
     let best = set[0];
     for (const s of set) if (Math.abs(s.size - size) < Math.abs(best.size - size)) best = s;
     FX.anims.push({ frames: best.frames, size: best.size, x, y, t: -(o.delay || 0), dur, flip: Math.random() < 0.5, layer: o.layer || 1 });
-    if (FX.anims.length > 60) FX.anims.shift();
+    if (FX.anims.length > 30) FX.anims.shift();
   };
   FX.flashSprite = (kind, x, y, ang) => { FX.anims.push({ flash: kind, x, y, t: 0, dur: 0.07, ang }); };
   FX.beam = (pts, o) => { FX.beams.push({ pts, t: 0, life: o.life ?? 0.05, ...o }); };
-  FX.pop = (x, y, text, o = {}) => { FX.pops.push({ x, y, text, t: 0, life: o.life || 1.1, scale: o.scale || 1, ramp: o.ramp, vy: o.vy ?? -26 }); if (FX.pops.length > 18) FX.pops.shift(); };
-  FX.flash = (a, c = '#fff') => { if (!WTP.save.settings.flashes) a *= 0.25; FX.flashA = Math.max(FX.flashA, a); FX.flashC = c; };
+  FX.pop = (x, y, text, o = {}) => {
+    const num = /^\+[\d,]+$/.test(text) ? +text.slice(1).replace(/,/g, '') : 0;
+    if (num) {
+      for (const p of FX.pops) if (p.num && p.t < 0.35 && Math.abs(p.x - x) < 16 && Math.abs(p.y - y) < 12) { p.num += num; p.text = `+${WTP.fmtInt(p.num)}`; p.t = Math.min(p.t, 0.08); p.scale = Math.min(2, Math.max(p.scale, o.scale || 1) + (p.num >= 1000 ? 0.5 : 0)); if (o.ramp && num >= 400) p.ramp = o.ramp; return; }
+    }
+    FX.pops.push({ x, y, text, t: 0, life: o.life || 1.1, scale: o.scale || 1, ramp: o.ramp, vy: o.vy ?? -26, num });
+    if (FX.pops.length > 14) FX.pops.shift();
+  };
+  FX.flash = (a, c = '#fff', force) => {
+    if (!force && WTP.budget && !WTP.budget.heavy()) return;
+    if (!WTP.save.settings.flashes) a *= 0.25; FX.flashA = Math.max(FX.flashA, a); FX.flashC = c;
+  };
 
   FX.explosion = (x, y, r, kind = 'fire') => {
     if (WTP.booms) WTP.booms.add(x, y, r, kind);

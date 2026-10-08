@@ -27,9 +27,9 @@
   const marks = [];
   const K = {};
   WP.K = K;
-  K.later = (t, fn) => queue.push({ t, fn });
+  K.later = (t, fn) => queue.push({ t, fn: WTP.budget ? WTP.budget.bind(fn) : fn });
   WP.later = K.later;
-  K.ent = (e) => { e.t = 0; ents.push(e); return e; };
+  K.ent = (e) => { e.t = 0; e.src = e.src ?? WTP.budget?.src; ents.push(e); return e; };
   K.ents = ents;
   K.mark = (m) => { m.t = 0; marks.push(m); };
   K.rot = (o, da) => { const a = Math.atan2(o.ay, o.ax) + da; return { ...o, ax: Math.cos(a), ay: Math.sin(a) }; };
@@ -86,7 +86,7 @@
   WP.EXT.updates.push((dt, o, d, want) => {
     for (let k = marks.length - 1; k >= 0; k--) { const m = marks[k]; m.t += dt; if (m.t > m.life) marks.splice(k, 1); }
     for (let k = queue.length - 1; k >= 0; k--) { const q = queue[k]; q.t -= dt; if (q.t <= 0) { queue.splice(k, 1); try { q.fn(); } catch (e) { console.warn(e); } } }
-    for (let k = ents.length - 1; k >= 0; k--) { const e = ents[k]; e.t += dt; let done = false; try { done = e.update(dt, o) === true; } catch (er) { console.warn(er); done = true; } if (done || (e.life && e.t > e.life)) { ents.splice(k, 1); try { e.end?.(); } catch (er) { console.warn(er); } } }
+    for (let k = ents.length - 1; k >= 0; k--) { const e = ents[k]; e.t += dt; let done = false; try { done = (e.src && WTP.budget ? WTP.budget.with(e.src, () => e.update(dt, o)) : e.update(dt, o)) === true; } catch (er) { console.warn(er); done = true; } if (done || (e.life && e.t > e.life)) { ents.splice(k, 1); try { if (e.src && WTP.budget) WTP.budget.with(e.src, () => e.end?.()); else e.end?.(); } catch (er) { console.warn(er); } } }
     if (st.overT > 0) {
       st.overT -= dt;
       st.cd = Math.max(0, st.cd - dt);

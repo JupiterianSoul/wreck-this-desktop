@@ -15,6 +15,13 @@
 
   B.add = (x, y, r0, kind = 'fire') => {
     const r = r0 * 1.3;
+    for (const e of B.list) {
+      if (e.t > 0.12 || Math.hypot(e.x - x, e.y - y) > Math.max(e.r, r) * 0.7) continue;
+      if (r > e.r) { e.x = (e.x + x) / 2; e.y = (e.y + y) / 2; }
+      e.r = Math.min(Math.max(e.r, r) * 1.08, Math.max(e.r, r) + 6);
+      e.dur = 0.45 + e.r * 0.012; e.life = 1.4 + e.r * 0.04; e.ring = e.r >= 8;
+      return;
+    }
     const K = KINDS[kind] || KINDS.fire;
     const q = WTP.world.quality;
     const blobs = [];
@@ -30,7 +37,7 @@
       smokes.push({ x: Math.cos(a) * d, y: Math.sin(a) * d * 0.7, r0: rand(0.3, 0.5) * r, r1: rand(0.8, 1.3) * r, vx: Math.cos(a) * rand(2, 10) + rand(-3, 3), vy: -rand(6, 16), delay: rand(0.12, 0.3) });
     }
     B.list.push({ x, y, r, K, t: 0, dur: 0.45 + r * 0.012, life: 1.4 + r * 0.04, blobs, smokes, ring: r >= 8 });
-    if (B.list.length > 40) B.list.shift();
+    if (B.list.length > 18) B.list.shift();
   };
   B.clear = () => { B.list.length = 0; };
   B.draw = (ctx, dt) => {

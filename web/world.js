@@ -339,7 +339,7 @@
     if (o.ignite) igniteRing(cx, cy, r, o.ignite);
     if (dented) {
       G()?.stat?.('cracks', dented);
-      if (metalHit) { WTP.audio.play('clank', metalHit); for (let k = 0; k < Math.min(4, metalHit); k++) FX().spark(cx, cy, rand(-90, 90), rand(-110, -10), Math.random() < 0.5 ? P32['7'] : P32.y, 0.2); }
+      if (metalHit) { if (r < 5) WTP.audio.play('metalTick', r); else WTP.audio.play('clank', metalHit); for (let k = 0; k < Math.min(r < 5 ? 2 : 4, metalHit); k++) FX().spark(cx, cy, rand(-90, 90), rand(-110, -10), Math.random() < 0.5 ? P32['7'] : P32.y, 0.2); }
       else WTP.audio.play('thud', dented);
     }
     if (hitP.length) for (const p of hitP) PR()?.hit?.(W.props[p], cx, cy, pow, o);

@@ -111,6 +111,7 @@
     s.age = 0;
     if (s.lv == null) s.lv = curLv;
     s.from = s.from || 'p';
+    if (s.w === undefined) s.w = s.from === 'p' ? (WTP.budget?.src || st.cur) : '';
     shots.push(s);
     if (shots.length > 900) shots.splice(0, shots.length - 900);
     return s;
@@ -924,6 +925,8 @@
   let wasFiring = false;
   function update(dt, want, alt, o) {
     const d = BY[st.cur];
+    const BU = WTP.budget;
+    if (BU) BU.src = d.id;
     const lv = upg(d.id);
     setPow(lv);
     st.cd = Math.max(0, st.cd - dt);
@@ -983,9 +986,13 @@
     updateLatch(dt);
     setPow(0);
     updateShots(dt);
+    if (BU) BU.src = null;
     updateWaves(dt);
+    if (BU) BU.src = 'tornado';
     updateTornados(dt);
+    if (BU) BU.src = 'quake';
     updateQuake(dt);
+    if (BU) BU.src = null;
     updatePortals(dt);
     updateZones(dt);
     for (let k = st.thermals.length - 1; k >= 0; k--) { const t = st.thermals[k]; t.k -= dt * 0.6; if (t.k <= 0) st.thermals.splice(k, 1); }
@@ -995,6 +1002,7 @@
       FX().beam([o.x, o.y, r.x, r.y], { kind: 'sight', life: 0.02, c1: P32.e });
     }
     setPow(0);
+    if (BU) BU.src = null;
   }
   function updateBall(dt, o, active) {
     const P = PL();
@@ -1209,6 +1217,7 @@
       if (!s) continue;
       if (s.delay > 0) { s.delay -= dt; continue; }
       if (s.from === 'p') setPow(s.lv | 0); else setPow(0);
+      if (WTP.budget) WTP.budget.src = s.from === 'p' ? s.w : null;
       s.age += dt; s.life -= dt;
       let dead = s.life <= 0;
       switch (s.t) {
@@ -1951,13 +1960,13 @@
     return true;
   }
 
-  function shockwave(x, y, r) {
+  function shockwave(x, y, r, still) {
     FX().blast(x, y, r, 300);
     for (const e of EN()?.list || []) { const d = Math.hypot(e.x - x, e.y - y); if (d < r && !e.T.boss) { e.vx += ((e.x - x) / (d || 1)) * 300; e.vy -= 200; e.damage(20, 'sound'); } }
     for (const c of W().chunks) { const d = Math.hypot(c.x - x, c.y - y); if (d < r) { c.vx += ((c.x - x) / (d || 1)) * 300; c.vy -= 200; c.rest = 0; } }
     W().letterRing(x, y, 0, r * 0.6, 120);
     W().crumble(x, y, 0, r * 0.7);
-    G()?.shake?.(8);
+    if (!still) G()?.shake?.(8);
   }
   const EXT = { shots: {}, draws: [], updates: [], resets: [], look: null, after: [] };
   function register(def, impl = {}) {

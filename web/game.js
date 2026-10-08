@@ -30,17 +30,28 @@
   G.camTop = () => 0;
   G.mouseWorld = () => ({ x: (I.mouse.x * PW) / (window.innerWidth * S), y: (I.mouse.y * PH) / (window.innerHeight * S) });
   G.inPlayer = (x, y) => PL.inside(x, y);
-  G.shake = (n) => { shakeT = Math.min(34, Math.max(shakeT, shakeT * 0.6 + n)); if (n >= 10) WTP.merges?.nudge?.(Math.min(1, n / 30)); };
-  G.hitstop = (t) => { hitstopT = Math.max(hitstopT, t); };
-  G.slowmo = (scale, dur) => { timeScale = scale; slowT = dur; G.stat('slowmos', 1); };
+  const BG = () => WTP.budget;
+  let stopAt = 0;
+  G.shake = (n) => {
+    const cap = BG() ? BG().shakeCap() : 34;
+    n = Math.min(n, cap);
+    shakeT = Math.max(shakeT, Math.min(cap, shakeT * 0.6 + n));
+    if (n >= 10) WTP.merges?.nudge?.(Math.min(1, n / 30));
+  };
+  G.hitstop = (t) => {
+    if (BG() && !BG().heavy()) { const now = performance.now(); if (now < stopAt) return; stopAt = now + 250; t = Math.min(t, 0.035); }
+    hitstopT = Math.max(hitstopT, t);
+  };
+  G.slowmo = (scale, dur, force) => { if (!force && BG() && !BG().heavy()) return; timeScale = scale; slowT = dur; G.stat('slowmos', 1); };
   G.killcam = (x, y, power) => {
-    if (!WTP.save.settings.killcam || slowT > 0) return;
+    if (!WTP.save.settings.killcam || slowT > 0 || (BG() && !BG().heavy())) return;
     G.slowmo(0.22, 0.5 + Math.min(0.6, power * 0.02));
     zoomT = 0.9; zoomX = x; zoomY = y;
     G.chroma(1);
   };
   G.forceFull = (t) => { fullT = Math.max(fullT, t); };
-  G.chroma = (a) => { if (!WTP.save.settings.flashes) return; chromaT = Math.max(chromaT, 0.1 + a * 0.18); };
+  G.fxState = () => ({ shake: shakeT, chroma: chromaT, slow: slowT, hitstop: hitstopT, flash: FX.flashA });
+  G.chroma = (a, force) => { if (!WTP.save.settings.flashes || (!force && BG() && !BG().heavy())) return; chromaT = Math.max(chromaT, 0.1 + a * 0.18); };
   G.label = (text, ms = 1200) => WTP.ui?.label?.(text, ms);
   G.announce = (text, tier = 2) => { WTP.ui?.announce?.(text, tier); AU.play('announce', tier); };
   G.event = (text, x, y, scale = 2) => { FX.pop(x, y, text, { scale, ramp: ['7', 'Y', 'y', 'a', 'o', 'e'], life: 1.3, vy: -18 }); if (text === 'TIMBER!' && G.run) G.run.timber = true; };
@@ -279,6 +290,7 @@
 
   function step(dt) {
     const run = G.run;
+    WTP.budget?.frame?.();
     if (I.take('pause')) { G.pause(true); return; }
     if (I.take('reset')) { G.restart(); return; }
     if (I.take('mute')) WTP.ui?.toggleMute?.();
@@ -380,7 +392,7 @@
   function setQuality(q) {
     quality = q;
     Wd.quality = q;
-    FX.cap = Math.round([2500, 5000, 8500][q] * (WTP.save.settings.fxAmount ?? 1));
+    FX.cap = Math.round([1500, 3000, 5000][q] * (WTP.save.settings.fxAmount ?? 1));
     Wd.chunkLimit = [30, 50, 80][q];
     Wd.componentLimit = [500, 750, 1000][q];
   }

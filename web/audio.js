@@ -205,7 +205,7 @@
     kickHit() { thump(180, 60, 0.1, 0.45); noise(0.08, 1800, 300, 0.4, 'lowpass', 1); },
     plow() { if (!throttle('plow', 90)) return; noise(0.08, 1200, 500, 0.12, 'lowpass', 1); },
     slide() { if (!throttle('slide', 140)) return; noise(0.12, 3000, 2500, 0.05, 'bandpass', 3); },
-    clank(n = 1) { if (!throttle('clank', 70)) return; fm(vary(520), 1250, 6, 0.22, 0.07 + Math.min(0.06, n * 0.004), { room: 1 }); noise(0.04, 4000, 2000, 0.18, 'bandpass', 2); },
+    clank(n = 1) { if (!throttle('clank', 90)) return; fm(vary(520), 1250, 4, 0.2, 0.045 + Math.min(0.04, n * 0.003), { room: n > 10 }); noise(0.04, 4000, 2000, 0.14, 'bandpass', 2); },
     thud(n = 1) { if (!throttle('thud', 70)) return; thump(vary(130), 70, 0.08, 0.18); noise(0.06, 700, 200, 0.12, 'lowpass', 1); },
     wood(n = 30) { if (!throttle('wood', 70)) return; fm(vary(260), 610, 2, 0.12, 0.08); noise(0.12, 1600, 500, 0.25, 'bandpass', 2); },
     boing() { if (!throttle('boing', 70)) return; osc('sine', 180, 520, 0.22, 0.2, { vib: 22, vibA: 60 }); },

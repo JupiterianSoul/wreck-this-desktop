@@ -87,7 +87,7 @@
   const holes = [];
   if (WTP.feel) {
     const oImp = WTP.feel.impact;
-    WTP.feel.impact = (x, y, col, big) => { oImp(x, y, col, big); holes.push({ x, y, t: 0, dur: big ? 1.6 : 1 }); if (holes.length > 80) holes.shift(); };
+    WTP.feel.impact = (x, y, col, big) => { if (oImp(x, y, col, big) === false) return false; holes.push({ x, y, t: 0, dur: big ? 1.6 : 1 }); if (holes.length > 80) holes.shift(); };
   }
 
   const seenSlabs = new Map();
@@ -134,13 +134,11 @@
   function finisher(combo) {
     const P = PL(), pc = P.center();
     G.announce?.('COMBO FINISHER!', 7);
-    G.slowmo?.(0.35, 1.1);
-    G.shake?.(12); G.chroma?.(1);
-    FX().flash(0.5, '#fff3b0');
-    WP.shockwave(pc.x, pc.y, 90);
+    G.slowmo?.(0.35, 0.7, true);
+    WP.shockwave(pc.x, pc.y, 90, true);
+    WTP.feel?.ring?.(pc.x, pc.y, 90, { dur: 0.55 });
     for (const e of EN()?.list || []) if (!e.dead) e.damage(40 + combo * 0.4, 'finisher');
-    for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; FX().bolt(pc.x, pc.y, pc.x + Math.cos(a) * 60, pc.y + Math.sin(a) * 40); }
-    AU.play('boom', 30);
+    AU.play('finisher');
   }
   X.finisher = finisher;
 

@@ -2,7 +2,7 @@
   const WTP = window.WTP;
   const WP = WTP.weapons, V = WTP.vsprites, FX = WTP.fx;
   const G = () => WTP.game;
-  const F = { flashes: [], hits: [], parts: [] };
+  const F = { flashes: [], hits: [], parts: [], rings: [], glowN: 0 };
   WTP.feel = F;
 
   const T = (c, g, w, len, extra = {}) => ({ k: 'tracer', c, g, w, len, ...extra });
@@ -141,7 +141,7 @@
     const sp = Math.hypot(s.vx, s.vy) || 1, ux = s.vx / sp, uy = s.vy / sp;
     const len = Math.min(sp * L.len, 4 + s.age * sp);
     const th = L.w >= 1.6 ? 1 : 0;
-    glow(ctx, s.x, s.y, 2 + L.w * 1.6, L.g, 0.4);
+    if (++F.glowN <= 14) glow(ctx, s.x, s.y, 2 + L.w * 1.6, L.g, 0.4);
     pxLine(ctx, s.x - ux * len, s.y - uy * len, s.x, s.y, th, (t, x, y) => (t < 0.45 && !dith(x, y, t / 0.45) ? null : t > 0.8 ? L.c : L.g));
   }
 
@@ -296,8 +296,8 @@
     if (!base) return oldFlash(kind, x, y, ang);
     const f = { ...base, ...(PER[id] || {}), x, y, ang, t: 0, dur: 0.075, rot: (Math.random() - 0.5) * 0.3, sp: 0.8 + Math.random() * 0.4 };
     F.flashes.push(f);
-    if (f.smoke) for (let k = 0; k < 3 * f.smoke; k++) F.parts.push({ x: x + Math.cos(ang) * 2, y: y + Math.sin(ang) * 2, vx: Math.cos(ang) * 30 + (Math.random() - 0.5) * 20, vy: Math.sin(ang) * 30 - 12 - Math.random() * 10, t: 0, dur: 0.5 + Math.random() * 0.3, c: '#aab0b9', r: 1.2, grow: 3, a: 0.32, g: -10, drag: 3 });
-    if (F.flashes.length > 24) F.flashes.shift();
+    if (f.smoke && F.flashes.length < 6) for (let k = 0; k < 3 * f.smoke; k++) F.parts.push({ x: x + Math.cos(ang) * 2, y: y + Math.sin(ang) * 2, vx: Math.cos(ang) * 30 + (Math.random() - 0.5) * 20, vy: Math.sin(ang) * 30 - 12 - Math.random() * 10, t: 0, dur: 0.5 + Math.random() * 0.3, c: '#aab0b9', r: 1.2, grow: 3, a: 0.32, g: -10, drag: 3 });
+    if (F.flashes.length > 10) F.flashes.shift();
   };
   const flashCache = new Map();
   function flashSprite(f, stage, step) {
@@ -336,11 +336,31 @@
   }
 
   F.impact = (x, y, col, big) => {
+    for (const h of F.hits) if (h.t < 0.08 && Math.abs(h.x - x) + Math.abs(h.y - y) < 5) { h.t = Math.min(h.t, 0.02); h.r = Math.min(7, h.r + 0.5); return false; }
     F.hits.push({ x, y, c: col, t: 0, dur: big ? 0.22 : 0.14, r: big ? 5 : 3, a0: Math.random() * 6 });
-    const n = big ? 7 : 4;
+    const n = F.hits.length > 8 ? 1 : big ? 6 : 3;
     for (let k = 0; k < n; k++) { const a = Math.random() * Math.PI * 2, sp = 40 + Math.random() * 70; F.parts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 30, t: 0, dur: 0.18 + Math.random() * 0.2, c: Math.random() < 0.4 ? '#ffffff' : col, r: 0.42, g: 260, streak: 1 }); }
-    if (F.hits.length > 60) F.hits.shift();
+    if (F.hits.length > 24) F.hits.shift();
+    return true;
   };
+  F.ring = (x, y, R, o = {}) => { F.rings.push({ x, y, R, t: 0, dur: o.dur || 0.45, c: o.c || '#fff3b0', c2: o.c2 || '#ffffff' }); if (F.rings.length > 6) F.rings.shift(); };
+  function drawRing(ctx, g) {
+    const k = g.t / g.dur, e = 1 - (1 - k) * (1 - k), r = 2 + (g.R - 2) * e;
+    const cx = Math.round(g.x), cy = Math.round(g.y), dens = 1 - k * 0.85;
+    const plot = (px, py, c) => { if (!dith(px, py, dens)) return; ctx.fillStyle = c; ctx.fillRect(px, py, 1, 1); };
+    const circle = (rr, c) => {
+      let x = Math.round(rr), y = 0, err = 1 - x;
+      while (x >= y) {
+        plot(cx + x, cy + y, c); plot(cx - x, cy + y, c); plot(cx + x, cy - y, c); plot(cx - x, cy - y, c);
+        plot(cx + y, cy + x, c); plot(cx - y, cy + x, c); plot(cx + y, cy - x, c); plot(cx - y, cy - x, c);
+        y++;
+        if (err < 0) err += 2 * y + 1; else { x--; err += 2 * (y - x) + 1; }
+      }
+    };
+    circle(r, g.c);
+    if (k < 0.6) circle(r - 1, g.c2);
+    if (k < 0.35) circle(r - 2, g.c);
+  }
   function drawHit(ctx, h) {
     const k = h.t / h.dur;
     glow(ctx, h.x, h.y, h.r * (0.6 + k), h.c, 0.6 * (1 - k));
@@ -391,12 +411,16 @@
     F.flashes = F.flashes.filter((f) => f.t < f.dur);
     for (const h of F.hits) h.t += dt;
     F.hits = F.hits.filter((h) => h.t < h.dur);
+    for (const g of F.rings) g.t += dt;
+    F.rings = F.rings.filter((g) => g.t < g.dur);
   }
   F.step = step;
   WP.EXT.updates.push((dt) => step(dt));
+  WP.EXT.draws.push(() => { F.glowN = 0; });
   WP.EXT.after.push((ctx) => {
+    for (const g of F.rings) drawRing(ctx, g);
     for (const h of F.hits) drawHit(ctx, h);
     for (const f of F.flashes) drawFlash(ctx, f);
   });
-  WP.EXT.resets.push(() => { F.flashes = []; F.hits = []; live.clear(); });
+  WP.EXT.resets.push(() => { F.flashes = []; F.hits = []; F.rings = []; live.clear(); });
 })();

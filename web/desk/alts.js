@@ -111,7 +111,7 @@
     for (let k = 0; k < 7; k++) W().paintAt(tp.x + rand(-10, 10), tp.y + rand(-8, 8), rand(3, 6), P32[pick(cols)]);
     WP.explode(tp.x, tp.y, 6, { letters: 8, cause: 'confetti', fire: 0 }); A('confetti');
   });
-  def('sniper', 'Scope in: slow motion for a perfect shot', 3, () => { G()?.slowmo?.(0.3, 1.6); G()?.label?.('SCOPED', 800); A('rack'); });
+  def('sniper', 'Scope in: slow motion for a perfect shot', 3, () => { G()?.slowmo?.(0.3, 1.6, true); G()?.label?.('SCOPED', 800); A('rack'); });
   def('railgun', 'Overcharge: a wider beam through everything', 3, (o) => { WP.hitscan(o, 2000, 6, 99999, 400, P32.m, true); G()?.shake?.(18); G()?.chroma?.(1); A('rail'); PL().impulse(-o.ax * 260, -o.ay * 200); });
   def('crossbow', 'Explosive bolt', 1, (o) => { WP.addShot({ t: 'xbolt', x: o.x, y: o.y, vx: o.ax * 520, vy: o.ay * 520, life: 2 }); A('twang'); });
   def('harpoon', 'Reel yourself to whatever you hit', 0.6, (o) => {
