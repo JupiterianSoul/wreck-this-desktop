@@ -162,7 +162,7 @@
     const s = SV();
     body.innerHTML = `<h2>Crates</h2>
       <div class="ach-head"><span><i class="shard"></i><b>${fmt(s.shards)}</b> shards</span><span>Duplicates refund 40%</span></div>
-      <div class="crates">${CRATES.map((c) => `<div class="crate" style="--cc:${c.col}"><div class="cbox"><i></i></div><b>${esc(c.name)}</b><div class="codds">${RAR.map((r, i) => c.w[i] ? `<span style="color:${r.col}">${r.name} ${(c.w[i] / c.w.reduce((a, b) => a + b, 0) * 100).toFixed(c.w[i] < 2 ? 1 : 0)}%</span>` : '').join('')}</div><button class="b" data-crate="${c.id}"${s.shards < c.price ? ' disabled' : ''}><i class="shard"></i>${c.price}</button></div>`).join('')}</div>
+      <div class="crates">${CRATES.map((c) => `<div class="crate" style="--cc:${c.col};--cimg:url(${WTP.pixui?.crate?.(c.col) || ''})"><div class="cbox"><i></i></div><b>${esc(c.name)}</b><div class="codds">${RAR.map((r, i) => c.w[i] ? `<span style="color:${r.col}">${r.name} ${(c.w[i] / c.w.reduce((a, b) => a + b, 0) * 100).toFixed(c.w[i] < 2 ? 1 : 0)}%</span>` : '').join('')}</div><button class="b" data-crate="${c.id}"${s.shards < c.price ? ' disabled' : ''}><i class="shard"></i>${c.price}</button></div>`).join('')}</div>
       <div class="roulette" id="shopRoll" hidden></div>`;
     body.querySelectorAll('[data-crate]').forEach((b) => b.addEventListener('click', () => openCrate(body, b.dataset.crate)));
   }

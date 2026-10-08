@@ -6,7 +6,7 @@ const { spawn, execFileSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 const WEB = path.join(ROOT, 'web');
-const MIME = { '.js': 'text/javascript', '.html': 'text/html', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg' };
+const MIME = { '.js': 'text/javascript', '.html': 'text/html', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.ttf': 'font/ttf' };
 
 function serve(sessDir) {
   return new Promise((res) => {

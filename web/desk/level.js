@@ -17,8 +17,8 @@
     root.setProperty('--sel', th.selection || '#3a3b3e');
     root.setProperty('--warn', th.yellow || '#e0b050');
     root.setProperty('--bad', th.red || '#e05050');
-    const font = (window.WTD.session && window.WTD.session.font) || 'monospace';
-    root.setProperty('--font', `"${font}", monospace`);
+    WTP.pixui?.apply?.(th);
+
   }
 
   L.start = (seg) => {

@@ -27,8 +27,11 @@
     <div class="announce" id="hAnn"></div>
     <div class="toasts" id="hToasts"></div>
     <div class="wheel" id="hWheel" hidden>
-      <div class="ring" id="hRing"></div>
-      <div class="card winfo" id="hWInfo"></div>
+      <div class="wbox">
+        <div class="card wcats" id="hCats"></div>
+        <div class="card wpanel"><div class="wtitle" id="hWTitle"></div><div class="wgrid" id="hGrid"></div><div class="wgads" id="hGads"></div></div>
+        <div class="card winfo" id="hWInfo"></div>
+      </div>
       <div class="card wbar" id="hWBar"></div>
     </div>
     <div class="menu" id="hMenu" hidden><div class="card mwin"><nav class="mtabs" id="hTabs"></nav><section class="mbody" id="hBody"></section></div></div>
@@ -108,7 +111,7 @@
     const key = run.mode.noDamage ? 'inv' : `${P.hp}/${P.maxHp}`;
     if (key !== lastHp) {
       lastHp = key;
-      $('hHp').innerHTML = run.mode.noDamage ? '<b class="inv">invulnerable</b>' : Array.from({ length: P.maxHp }, (_, k) => `<i class="${k < P.hp ? '' : 'off'}"></i>`).join('');
+      $('hHp').innerHTML = run.mode.noDamage ? '<b class="inv">invulnerable</b>' : Array.from({ length: P.maxHp }, (_, k) => `<i class="heart${k < P.hp ? '' : ' off'}"></i>`).join('');
     }
     const ammo = WP.ammo();
     if (ammo) { const a = ammo[WP.st.cur]; $('hAmmo').textContent = a == null ? '-' : a; $('hAmmo').classList.toggle('warn', a != null && a <= 3); }
@@ -205,7 +208,7 @@
   window.Curio.muted = !!S().settings.muted || WTD.test || WTD.probe;
 
   const CATS = () => WP.CATS;
-  let wheelCat = 0, wheelHover = null, wheelSlot = null;
+  let wheelCat = 0, wheelHover = null, wheelSlot = null, shownCat = -1;
   U.wheelOpen = () => !$('hWheel').hidden;
   U.wheel = (open, slot) => {
     const w = $('hWheel');
@@ -218,69 +221,77 @@
     const cur = WP.BY[wheelSlot != null ? (S().hotbar[wheelSlot] || WP.st.cur) : WP.st.cur];
     wheelCat = Math.max(0, CATS().findIndex((c) => c.id === cur?.cat));
     wheelHover = null;
+    shownCat = -1;
     renderWheel();
     AU.play('select');
   };
+  const secretName = (d) => (locked(d.id) && WTP.ach.goalFor(d.id)?.secret ? '???' : d.name);
   function infoHtml(d) {
     if (!d) return '';
+    const cat = CATS().find((c) => c.id === d.cat);
     if (locked(d.id)) {
       const a = WTP.ach.goalFor(d.id);
-      return `<div class="wi-name locked">${a && a.secret ? '???' : esc(d.name)}</div><div class="wi-lock"><i class="lock"></i>${a ? esc(a.secret ? `Secret: ${a.hint || 'keep playing to find out'}` : a.desc) : 'Locked'}</div>`;
+      return `<div class="wi-name">${esc(secretName(d))}</div><div class="wi-cat">${esc(cat ? cat.name : '')}, locked</div><div class="wi-body"><div class="wi-lock"><i class="lock"></i><span>${a ? esc(a.secret ? `Secret: ${a.hint || 'keep playing to find out'}` : a.desc) : 'Locked'}</span></div></div><div></div>`;
     }
-    const cat = CATS().find((c) => c.id === d.cat);
-    return `<div class="wi-name">${esc(d.name)}<small>${esc(cat ? cat.name : '')}</small></div>
-      <div class="wi-row"><b>Fire</b><span>${esc(d.does || d.tip || '')}</span></div>
+    return `<div class="wi-name">${esc(d.name)}</div><div class="wi-cat">${esc(cat ? cat.name : '')}</div>
+      <div class="wi-body"><div class="wi-row"><b>Fire</b><span>${esc(d.does || d.tip || '')}</span></div>
       ${d.altDoes ? `<div class="wi-row"><b>Alt</b><span>${esc(d.altDoes)}</span></div>` : ''}
-      ${d.tip && d.does ? `<div class="wi-tip">${esc(d.tip)}</div>` : ''}
+      ${d.tip && d.does ? `<div class="wi-tip">${esc(d.tip)}</div>` : ''}</div>
       ${statsHtml(d)}`;
+  }
+  function catInfoHtml(k) {
+    const c = CATS()[k];
+    const list = WP.DEFS.filter((d) => d.cat === c.id);
+    const own = list.filter((d) => !locked(d.id));
+    return `<div class="wi-name">${esc(c.name)}</div><div class="wi-cat">${own.length} of ${list.length} unlocked</div>
+      <div class="wi-body"><div class="wi-list">${esc(list.map(secretName).join(', '))}</div></div>
+      <div class="wi-tip">Hover a weapon for details. Click to equip, right click to add it to the hotbar.</div>`;
   }
   const STAT_NAMES = ['Power', 'Fire rate', 'Range', 'Chaos'];
   function statsHtml(d) {
-    if (!Array.isArray(d.st)) return '';
+    if (!Array.isArray(d.st)) return '<div></div>';
     return `<div class="wi-stats">${STAT_NAMES.map((n, i) => { const v = Math.max(0, Math.min(5, d.st[i] | 0)); return `<div class="wi-stat"><span>${n}</span><i>${'<em class="on"></em>'.repeat(v)}${'<em></em>'.repeat(5 - v)}</i></div>`; }).join('')}</div>`;
   }
+  function setInfo(html) { const el = $('hWInfo'); if (el.__h !== html) { el.__h = html; el.innerHTML = html; } }
   function renderWheel() {
-    const ring = $('hRing');
     const cats = CATS();
-    const R = 258;
-    let html = '';
-    cats.forEach((c, k) => {
-      const a = -Math.PI / 2 + (k / cats.length) * Math.PI * 2;
-      const x = 300 + Math.cos(a) * R, y = 300 + Math.sin(a) * R;
-      const first = WP.DEFS.find((d) => d.cat === c.id && !locked(d.id)) || WP.DEFS.find((d) => d.cat === c.id);
-      const total = WP.DEFS.filter((d) => d.cat === c.id).length, own = WP.DEFS.filter((d) => d.cat === c.id && !locked(d.id)).length;
-      html += `<div class="cat${k === wheelCat ? ' on' : ''}" data-k="${k}" style="left:${x}px;top:${y}px">${first ? `<img alt="" src="${wImg(first.id, 2, locked(first.id))}">` : ''}<span>${esc(c.name)}</span><em>${own}/${total}</em></div>`;
-    });
-    const list = WP.DEFS.filter((d) => d.cat === cats[wheelCat].id);
-    const GD = WTP.gadgets;
-    const gcur = GD.curId();
-    html += `<div class="center"><div class="ctitle">${esc(cats[wheelCat].name)}</div><div class="items${list.length > 12 ? ' compact' : ''}">${list.map((d) => {
-      const lk = locked(d.id);
-      return `<button class="witem${d.id === WP.st.cur ? ' cur' : ''}${lk ? ' locked' : ''}" data-w="${d.id}" draggable="${lk ? 'false' : 'true'}"><img alt="" src="${wImg(d.id, 3, lk)}"><span>${esc(lk && WTP.ach.goalFor(d.id)?.secret ? '???' : d.name)}</span></button>`;
-    }).join('')}</div><div class="sub">gadget (${esc(U.keyName(S().keys.gadget?.[0]))})</div><div class="gads">${GD.DEFS.map((g) => `<button class="slot gad${g.id === gcur ? ' cur' : ''}" data-g="${g.id}" title="${esc(g.name)}"><img alt="" src="${gImg(g.id)}"></button>`).join('')}</div></div>`;
-    ring.innerHTML = html;
-    $('hWInfo').innerHTML = infoHtml(WP.BY[wheelHover] || WP.BY[WP.st.cur]);
+    const box = $('hCats');
+    if (box.childElementCount !== cats.length) {
+      box.innerHTML = cats.map((c, k) => {
+        const first = WP.DEFS.find((d) => d.cat === c.id && !locked(d.id)) || WP.DEFS.find((d) => d.cat === c.id);
+        const total = WP.DEFS.filter((d) => d.cat === c.id).length, own = WP.DEFS.filter((d) => d.cat === c.id && !locked(d.id)).length;
+        return `<div class="wcat" data-k="${k}">${first ? `<img alt="" src="${wImg(first.id, 2, locked(first.id))}">` : '<i></i>'}<span>${esc(c.name)}</span><em>${own}/${total}</em></div>`;
+      }).join('');
+    }
+    box.querySelectorAll('.wcat').forEach((el) => el.classList.toggle('on', +el.dataset.k === wheelCat));
+    if (shownCat !== wheelCat) {
+      shownCat = wheelCat;
+      const list = WP.DEFS.filter((d) => d.cat === cats[wheelCat].id);
+      $('hWTitle').innerHTML = `<span>${esc(cats[wheelCat].name)}</span><small>${list.length} weapons</small>`;
+      $('hGrid').innerHTML = list.map((d) => { const lk = locked(d.id); return `<button class="witem${lk ? ' locked' : ''}" data-w="${d.id}" draggable="${lk ? 'false' : 'true'}"><img alt="" src="${wImg(d.id, 3, lk)}"><span>${esc(secretName(d))}</span></button>`; }).join('');
+    }
+    $('hGrid').querySelectorAll('[data-w]').forEach((b) => { b.classList.toggle('cur', b.dataset.w === WP.st.cur); b.classList.toggle('hov', b.dataset.w === wheelHover); });
+    const GD = WTP.gadgets, gcur = GD.curId();
+    $('hGads').innerHTML = `<small>gadget (${esc(U.keyName(S().keys.gadget?.[0]))})</small>${GD.DEFS.map((g) => `<button class="slot gad${g.id === gcur ? ' cur' : ''}" data-g="${g.id}" title="${esc(g.name)}"><img alt="" src="${gImg(g.id)}"></button>`).join('')}`;
+    setInfo(wheelHover ? infoHtml(WP.BY[wheelHover]) : (WP.BY[WP.st.cur]?.cat === cats[wheelCat].id ? infoHtml(WP.BY[WP.st.cur]) : catInfoHtml(wheelCat)));
     renderWheelBar();
-    ring.querySelectorAll('[data-g]').forEach((b) => {
-      b.addEventListener('mouseenter', () => { const g = WTP.gadgets.BY[b.dataset.g]; $('hWInfo').innerHTML = `<div class="wi-name">${esc(g.name)}<small>gadget</small></div><div class="wi-row"><b>Use</b><span>${esc(g.tip)}</span></div>`; });
-      b.addEventListener('click', () => { S().gadget = b.dataset.g; WTP.persist(); WTP.gadgets.reset?.(); AU.play('select'); renderWheel(); });
-    });
-    ring.querySelectorAll('.cat').forEach((el) => {
-      el.addEventListener('mouseenter', () => { if (wheelCat !== +el.dataset.k) { wheelCat = +el.dataset.k; wheelHover = null; renderWheel(); AU.play('tick'); } });
-      el.addEventListener('click', () => { wheelCat = +el.dataset.k; renderWheel(); });
-    });
-    ring.querySelectorAll('[data-w]').forEach((b) => {
-      b.addEventListener('mouseenter', () => { wheelHover = b.dataset.w; $('hWInfo').innerHTML = infoHtml(WP.BY[wheelHover]); });
-      b.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/weapon', b.dataset.w); });
-      b.addEventListener('click', () => {
-        const id = b.dataset.w;
-        if (locked(id)) { AU.play('deny'); return; }
-        if (wheelSlot != null) { G.assignSlot(wheelSlot, id); U.label(`${WP.BY[id].name.toUpperCase()} ON SLOT ${(wheelSlot + 1) % 10}`, 900); AU.play('select'); G.selectWeapon(id, true); U.wheel(false); return; }
-        G.selectWeapon(id); U.wheel(false);
-      });
-      b.addEventListener('contextmenu', (e) => { e.preventDefault(); const id = b.dataset.w; if (locked(id)) return; const hb = S().hotbar; const free = hb.findIndex((x) => !x); G.assignSlot(free >= 0 ? free : 9, id); AU.play('select'); renderWheelBar(); });
-    });
   }
+  function pickWeapon(id) {
+    if (locked(id)) { AU.play('deny'); return; }
+    if (wheelSlot != null) { G.assignSlot(wheelSlot, id); U.label(`${WP.BY[id].name.toUpperCase()} ON SLOT ${(wheelSlot + 1) % 10}`, 900); AU.play('select'); G.selectWeapon(id, true); U.wheel(false); return; }
+    G.selectWeapon(id); U.wheel(false);
+  }
+  (() => {
+    const cats = $('hCats'), grid = $('hGrid'), gads = $('hGads');
+    cats.addEventListener('mouseover', (e) => { const el = e.target.closest('.wcat'); if (!el) return; const k = +el.dataset.k; if (k !== wheelCat) { wheelCat = k; wheelHover = null; renderWheel(); AU.play('tick'); } });
+    cats.addEventListener('click', (e) => { const el = e.target.closest('.wcat'); if (el) { wheelCat = +el.dataset.k; renderWheel(); } });
+    grid.addEventListener('mouseover', (e) => { const b = e.target.closest('[data-w]'); if (!b || b.dataset.w === wheelHover) return; wheelHover = b.dataset.w; grid.querySelectorAll('[data-w]').forEach((x) => x.classList.toggle('hov', x === b)); setInfo(infoHtml(WP.BY[wheelHover])); AU.play('hover'); });
+    grid.addEventListener('dragstart', (e) => { const b = e.target.closest('[data-w]'); if (b) e.dataTransfer.setData('text/weapon', b.dataset.w); });
+    grid.addEventListener('click', (e) => { const b = e.target.closest('[data-w]'); if (b) pickWeapon(b.dataset.w); });
+    grid.addEventListener('contextmenu', (e) => { const b = e.target.closest('[data-w]'); if (!b) return; e.preventDefault(); const id = b.dataset.w; if (locked(id)) return; const hb = S().hotbar; const free = hb.findIndex((x) => !x); G.assignSlot(free >= 0 ? free : 9, id); AU.play('select'); renderWheelBar(); });
+    gads.addEventListener('mouseover', (e) => { const b = e.target.closest('[data-g]'); if (!b) return; const g = WTP.gadgets.BY[b.dataset.g]; setInfo(`<div class="wi-name">${esc(g.name)}</div><div class="wi-cat">gadget</div><div class="wi-body"><div class="wi-row"><b>Use</b><span>${esc(g.tip)}</span></div></div><div></div>`); });
+    gads.addEventListener('click', (e) => { const b = e.target.closest('[data-g]'); if (!b) return; S().gadget = b.dataset.g; WTP.persist(); WTP.gadgets.reset?.(); AU.play('select'); renderWheel(); });
+  })();
   function renderWheelBar() {
     const bar = $('hWBar');
     const slots = G.slots();
@@ -300,7 +311,7 @@
       const keys = S().keys;
       if (e.code === 'Escape' || (keys.wheel || []).includes(e.code)) { U.wheel(false); return; }
       if (/^Digit[0-9]$/.test(e.code) && wheelHover && !locked(wheelHover)) { const n = Number(e.code.slice(5)); G.assignSlot(n === 0 ? 9 : n - 1, wheelHover); U.label(`${WP.BY[wheelHover].name.toUpperCase()} ON SLOT ${n}`, 900); AU.play('select'); renderWheelBar(); return; }
-      if (e.code === 'ArrowRight' || e.code === 'ArrowLeft') { wheelCat = (wheelCat + (e.code === 'ArrowRight' ? 1 : -1) + CATS().length) % CATS().length; wheelHover = null; renderWheel(); }
+      if (['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(e.code)) { wheelCat = (wheelCat + (e.code === 'ArrowRight' || e.code === 'ArrowDown' ? 1 : -1) + CATS().length) % CATS().length; wheelHover = null; renderWheel(); AU.play('tick'); }
       return;
     }
     if (!$('hMenu').hidden && rebinding == null) {

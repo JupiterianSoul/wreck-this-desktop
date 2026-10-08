@@ -65,6 +65,7 @@ node tests/enemies.test.js
 node tests/budget.test.js
 node tests/sudo.test.js
 node tests/sound.test.js
+node tests/ui.test.js
 tests/host.test.sh tiled3
 ```
 
