@@ -60,7 +60,7 @@
     }
   }
 
-  const PXD = 2;
+  const PXD = 1, SS = 4;
   V.PXD = PXD;
   const OUTC = [10, 11, 14];
   const rgbOf = (c) => { if (c[0] === '#') return hex(c); const m = /rgba?\(([^)]+)\)/.exec(c); if (!m) return [0, 0, 0]; return m[1].split(',').slice(0, 3).map((v) => +v); };
@@ -75,28 +75,44 @@
     }
     return out;
   }
-  function pixelize(c, pal, outline = true, core = pal.length) {
-    const g = c.getContext('2d', { willReadFrequently: true });
-    const W = c.width, H = c.height;
-    const im = g.getImageData(0, 0, W, H), d = im.data;
-    const on = new Uint8Array(W * H);
+  function snapIndex(pal, core, r, gg, b) {
+    const ch = Math.max(r, gg, b) - Math.min(r, gg, b);
+    let best = 0, bd = 1e12;
+    for (let n = 0; n < pal.length; n++) { const q = pal[n]; const e = ((q[0] - r) ** 2 + (q[1] - gg) ** 2 + (q[2] - b) ** 2 + 3 * (ch - q[3]) ** 2) * (n < core ? 1 : 6); if (e < bd) { bd = e; best = n; } }
+    return best;
+  }
+  function downsample(src, pal, ss, outline = true, core = pal.length, dst = null, opt = {}) {
     for (const q of pal) if (q.length < 4) q[3] = Math.max(q[0], q[1], q[2]) - Math.min(q[0], q[1], q[2]);
-    for (let i = 0, j = 0; i < d.length; i += 4, j++) {
-      if (d[i + 3] < 110) { d[i + 3] = 0; continue; }
-      const a = d[i + 3] / 255, r = d[i] / a, gg = d[i + 1] / a, b = d[i + 2] / a;
-      let best = pal[0], bd = 1e9;
-      const ch = Math.max(r, gg, b) - Math.min(r, gg, b);
-      for (let n = 0; n < pal.length; n++) { const q = pal[n]; const e = ((q[0] - r) ** 2 + (q[1] - gg) ** 2 + (q[2] - b) ** 2 + 3 * (ch - q[3]) ** 2) * (n < core ? 1 : 6); if (e < bd) { bd = e; best = q; } }
-      d[i] = best[0]; d[i + 1] = best[1]; d[i + 2] = best[2]; d[i + 3] = 255; on[j] = 1;
+    const g = src.getContext('2d', { willReadFrequently: true });
+    const W = src.width, H = src.height, w = Math.max(1, Math.floor(W / ss)), h = Math.max(1, Math.floor(H / ss));
+    const d = g.getImageData(0, 0, W, H).data;
+    const idx = new Int16Array(W * H);
+    for (let i = 0, j = 0; j < W * H; i += 4, j++) idx[j] = d[i + 3] < 110 ? -1 : snapIndex(pal, core, d[i], d[i + 1], d[i + 2]);
+    const out = new ImageData(w, h), o = out.data;
+    const on = new Uint8Array(w * h), cnt = new Uint16Array(pal.length), need = Math.max(1, Math.ceil(ss * ss * (opt.need ?? 0.42)));
+    const OC = opt.out || OUTC;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      cnt.fill(0);
+      let n = 0;
+      for (let sy = 0; sy < ss; sy++) { const row = (y * ss + sy) * W + x * ss; for (let sx = 0; sx < ss; sx++) { const k = idx[row + sx]; if (k >= 0) { cnt[k]++; n++; } } }
+      if (n < need) continue;
+      let bk = 0;
+      for (let k = 1; k < pal.length; k++) if (cnt[k] > cnt[bk]) bk = k;
+      const q = pal[bk], i = (y * w + x) * 4;
+      o[i] = q[0]; o[i + 1] = q[1]; o[i + 2] = q[2]; o[i + 3] = 255; on[y * w + x] = 1;
     }
-    if (outline) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      const j = y * W + x;
+    if (outline) for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const j = y * w + x;
       if (on[j]) continue;
-      if ((x > 0 && on[j - 1]) || (x < W - 1 && on[j + 1]) || (y > 0 && on[j - W]) || (y < H - 1 && on[j + W])) { const i = j * 4; d[i] = OUTC[0]; d[i + 1] = OUTC[1]; d[i + 2] = OUTC[2]; d[i + 3] = 255; }
+      if ((x > 0 && on[j - 1]) || (x < w - 1 && on[j + 1]) || (y > 0 && on[j - w]) || (y < h - 1 && on[j + w])) { const i = j * 4; o[i] = OC[0]; o[i + 1] = OC[1]; o[i + 2] = OC[2]; o[i + 3] = 255; }
     }
-    g.putImageData(im, 0, 0);
+    const c = dst || document.createElement('canvas');
+    if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+    c.getContext('2d', { willReadFrequently: true }).putImageData(out, 0, 0);
     return c;
   }
+  const pixelize = (c, pal, outline = true, core = pal.length) => downsample(c, pal, 1, outline, core, c);
+  V.downsample = downsample;
   V.pixelize = pixelize;
   V.paletteOf = paletteOf;
   V.rgbOf = rgbOf;
@@ -118,12 +134,13 @@
     base() {
       if (this._base) return this._base;
       const c = document.createElement('canvas');
-      c.width = Math.max(1, Math.ceil(this.w * PXD)); c.height = Math.max(1, Math.ceil(this.h * PXD));
+      const pw = Math.max(1, Math.ceil(this.w * PXD)), ph = Math.max(1, Math.ceil(this.h * PXD));
+      c.width = pw * SS; c.height = ph * SS;
       const g = c.getContext('2d', { willReadFrequently: true });
-      g.scale(PXD, PXD); g.translate(this.gx, this.gy);
+      g.scale(PXD * SS, PXD * SS); g.translate(this.gx, this.gy);
       paint(g, this.parts, false, true);
       this.pal = this.pal || paletteOf(this.parts);
-      return (this._base = pixelize(c, this.pal));
+      return (this._base = downsample(c, this.pal, SS));
     }
     icon(f = 1, tint) {
       f = Math.max(1, Math.round(f));
@@ -148,12 +165,12 @@
       const a = step * (Math.PI / 32);
       const b = this.b, R = Math.ceil(Math.max(Math.hypot(b.x0, b.y0), Math.hypot(b.x1, b.y0), Math.hypot(b.x0, b.y1), Math.hypot(b.x1, b.y1))) + 2;
       const c = document.createElement('canvas');
-      c.width = R * 2 * PXD; c.height = R * 2 * PXD;
+      c.width = R * 2 * PXD * SS; c.height = R * 2 * PXD * SS;
       const g = c.getContext('2d', { willReadFrequently: true });
-      g.scale(PXD, PXD); g.translate(R, R); g.rotate(a); if (flip) g.scale(1, -1);
+      g.scale(PXD * SS, PXD * SS); g.translate(R, R); g.rotate(a); if (flip) g.scale(1, -1);
       paint(g, this.parts, false, true);
       this.pal = this.pal || paletteOf(this.parts);
-      r = { cv: pixelize(c, this.pal), ox: R, oy: R, a, sc: PXD };
+      r = { cv: downsample(c, this.pal, SS), ox: R, oy: R, a, sc: PXD };
       this.rot.set(key, r);
       return r;
     }

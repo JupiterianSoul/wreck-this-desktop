@@ -197,10 +197,11 @@
   }
   function colors() {
     const th = WTP.deskTheme || {};
+    const pix = !!R.target;
     const flash = P.iframes > 0 && !P.victory && (Math.floor(performance.now() / 70) & 1);
     return {
       fg: flash ? '#ffffff' : (P.hurtT > 0 ? '#ff6a5a' : (th.bright_foreground || th.light_foreground || '#ececec')),
-      out: th.darker_background || '#060607',
+      out: pix ? 'rgba(0,0,0,0)' : (th.darker_background || '#060607'),
       scarf: scarfColor(th),
       eye: th.background || '#121213'
     };
@@ -320,31 +321,28 @@
     WTP.rigGadgets?.draw?.(ctx, p, 'front', c);
     ctx.restore();
   };
-  const PXD = 2;
-  const PB = { cv: null, g: null, ox: 0, oy: 0 };
-  const GAD_COLS = ['#ffffff', '#ff6a5a', '#c84a3a', '#ffe066', '#ff7f3f', '#f2f2f2', '#fff3b0', '#6fcf5a', '#e8484f', '#5c5270', '#c8372d'];
+  const PB = { p: null, ox: 0, oy: 0, pool: [], pi: 0 };
   R.flush = (alpha = 1) => {
-    const V = WTP.vsprites, T = R.target;
-    V.pixelize(PB.cv, R.pal, false, 4);
+    const T = R.target;
+    if (PB.pool.length < 12) PB.pool.push(document.createElement('canvas'));
+    const q = PB.pool[PB.pi++ % PB.pool.length];
+    PB.p.toImage(R.outC, q);
     T.save(); T.globalAlpha = alpha; T.imageSmoothingEnabled = false;
-    T.drawImage(PB.cv, PB.ox, PB.oy, PB.cv.width / PXD, PB.cv.height / PXD);
+    T.drawImage(q, PB.ox, PB.oy, q.width, q.height);
     T.restore();
-    const g = PB.g; g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, PB.cv.width, PB.cv.height); g.restore();
+    PB.p.clear();
   };
   P.draw = (ctx, dt, ws, aim, opts) => {
-    if (!WTP.vsprites) return R.draw(ctx, dt, ws, aim, opts);
+    if (!WTP.PixCtx) return R.draw(ctx, dt, ws, aim, opts);
     const SZ = 80;
-    if (!PB.cv) { PB.cv = document.createElement('canvas'); PB.cv.width = PB.cv.height = SZ * PXD; PB.g = PB.cv.getContext('2d', { willReadFrequently: true }); }
+    if (!PB.p) PB.p = new WTP.PixCtx(SZ, SZ);
     const cx = R.rag ? R.rag.pts[2].x : P.x + P.w / 2, cy = R.rag ? R.rag.pts[2].y : P.y + P.h / 2;
     PB.ox = Math.round(cx) - SZ / 2; PB.oy = Math.round(cy) - SZ / 2;
-    const g = PB.g;
-    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, PB.cv.width, PB.cv.height);
-    g.setTransform(PXD, 0, 0, PXD, -PB.ox * PXD, -PB.oy * PXD);
-    g.globalAlpha = 1;
+    PB.p.begin(PB.ox, PB.oy);
     const c = colors();
-    R.pal = [c.fg, c.out, c.scarf, c.eye, ...GAD_COLS].map((h) => WTP.vsprites.rgbOf(h));
+    R.outC = WTP.vsprites.rgbOf(c.out);
     R.target = ctx;
-    try { R.draw(g, dt, ws, aim, opts); R.flush(); } finally { R.target = null; }
+    try { R.draw(PB.p, dt, ws, aim, opts); R.flush(); } finally { R.target = null; }
   };
   WTP.rigGadgets = {
     draw(ctx, p, layer, c) {
