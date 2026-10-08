@@ -552,7 +552,14 @@
       if (t <= 0) {
         burned++;
         B[k] = B[B.length - 1]; B.pop();
-        if (Math.random() < 0.8) { any += kill(i, x, y, x + 0.5, y + 1, 0.04, 20); if (Math.random() < 0.12) FX().smoke(x, y - 1, 1); if (Math.random() < 0.05) FX().ash(x + 0.5, y); }
+        if (mtl[i] === M.PLASTIC && Math.random() < 0.85) {
+          const c = mix(col[i], P32.o, 0.25);
+          mat[i] = HOLE; counted(i); any++;
+          touch(i); touchEdges(i); wakeAbove(i);
+          if (!placeRubble(x, y, shade(c, 0.8))) FX().lava(x + 0.5, y + 0.5, rand(-10, 10), rand(0, 30));
+          if (Math.random() < 0.08) FX().smoke(x, y - 1, 1, P32['3']);
+        }
+        else if (Math.random() < 0.8) { any += kill(i, x, y, x + 0.5, y + 1, 0.04, 20); if (Math.random() < 0.12) FX().smoke(x, y - 1, 1); if (Math.random() < 0.05) FX().ash(x + 0.5, y); }
         else {
           col[i] = EMBER[hash(x, y) & 3]; flag[i] |= F_CHAR; touch(i);
           if (W.smoulder.length < 3000) W.smoulder.push(i, 60 + ((Math.random() * 160) | 0));
@@ -567,6 +574,7 @@
         if (nx >= 0 && nx < W.w && ny >= 0 && ny < W.h - 3) ignite(ny * W.w + nx, under[i] + 1);
       }
       if (Math.random() < 0.012 * (W.quality + 1) / 3) FX().flame(x + 0.5, y);
+      if (Math.random() < 0.004 * (W.quality + 1)) FX().ember(x + 0.5, y);
     }
     const S = W.smoulder;
     for (let k = S.length - 2; k >= 0; k -= 2) {

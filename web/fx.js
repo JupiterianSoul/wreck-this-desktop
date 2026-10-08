@@ -73,6 +73,7 @@
     for (let k = 0; k < Math.min(18, r * 0.8) * (q() + 1) / 3; k++) FX.smoke(x + rand(-r / 2, r / 2), y + rand(-r / 2, r / 2), 1);
     for (let k = 0; k < Math.min(12, r * 0.5); k++) FX.dust(x + rand(-r, r), y + rand(-r, r));
     if (kind === 'fire') for (let k = 0; k < Math.min(10, r * 0.4); k++) FX.ember(x + rand(-r / 2, r / 2), y + rand(-r / 2, r / 2));
+    if (r >= 10) for (let k = 0; k < Math.min(14, r * 0.4) * (q() + 1) / 3; k++) { const i = add(K.SMOKE, x + rand(-r, r), y + rand(-r * 0.6, r * 0.3), rand(-14, 14), rand(-10, 2), P32['4'], rand(2.2, 4), 0, rand(2, 4)); if (i >= 0) aux2[i] = rand(2.5, 4.5); }
   };
 
   function update(dt) {

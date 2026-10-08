@@ -138,6 +138,7 @@
     g?.shake?.(Math.min(32, 3 + r * 0.75));
     if (r >= 16) g?.hitstop?.(Math.min(0.12, 0.025 + r * 0.0012));
     if (r >= 40) g?.slowmo?.(0.3, 1.1);
+    else if (r >= 22) g?.killcam?.(x, y, r);
     if (r >= 24) FX().flash(Math.min(0.9, r / 70), o.kind === 'ice' ? '#8fe3ff' : o.kind === 'plasma' ? '#d07bff' : '#fff3b0');
     if (r >= 30) g?.chroma?.(Math.min(1, r / 60));
     const P = PL(), pc = P.center();
