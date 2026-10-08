@@ -265,7 +265,7 @@
       if (qn >= 60 && bw >= 6 && bh >= 6 && qn / (bw * bh) > 0.45) {
         const rg = regions[rid[i0]];
         const area = (rg.x1 - rg.x0 + 1) * (rg.y1 - rg.y0 + 1);
-        if (bw * bh > area * 0.45) rg.imagePane = true;
+        if (bw * bh > area * 0.45) { rg.imagePane = true; (rg.paneRects = rg.paneRects || []).push({ x0, y0, x1, y1 }); }
         else imgRects.push({ x0, y0, x1, y1, rid: rid[i0] });
       }
     }
@@ -410,7 +410,7 @@
       if (flag[i] & F_FRAME) { mat[i] = 1; kind[i] = K_BOX; mtl[i] = mats.frame; bcol[i] = col[i]; continue; }
       const tx = ((cx * CP) / TS) | 0, ty = ((cy * CP) / TS) | 0;
       const key = tileKey(tx, ty, r);
-      if (reg.imagePane || reg.app === 'media') { mtl[i] = M.IMAGE; ptex[i] = 1; bcol[i] = col[i]; continue; }
+      if (reg.paneRects && reg.paneRects.some((q) => cx >= q.x0 && cx <= q.x1 && cy >= q.y0 && cy <= q.y1)) { mtl[i] = M.IMAGE; ptex[i] = 1; bcol[i] = col[i]; continue; }
       if (tileBusy[key] === 1 || isImg[i]) {
         mat[i] = 1; kind[i] = K_IMG; mtl[i] = M.IMAGE; bcol[i] = col[i]; ptex[i] = 0;
         continue;

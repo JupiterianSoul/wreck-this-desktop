@@ -53,7 +53,7 @@
 
   let detach = null;
   I.bindCanvas = (cv) => {
-    cv.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse' || e.pointerType === 'pen') { const r = cv.getBoundingClientRect(); I.mouse.x = e.clientX - r.left; I.mouse.y = e.clientY - r.top; I.mouse.in = true; I.mouse.lastMove = performance.now(); I.aim.src = 'mouse'; } });
+    cv.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse' || e.pointerType === 'pen') { if (!cv.classList.contains('aiming')) cv.classList.add('aiming'); const r = cv.getBoundingClientRect(); I.mouse.x = e.clientX - r.left; I.mouse.y = e.clientY - r.top; I.mouse.in = true; I.mouse.lastMove = performance.now(); I.aim.src = 'mouse'; } });
     cv.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') I.mouse.in = I.pointerFire || I.mouse.in; });
     const toggleMode = () => WTP.save.settings.toggleFire && !C.touchpad;
     const startFire = (p) => {
