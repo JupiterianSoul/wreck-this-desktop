@@ -63,6 +63,7 @@
     const run = G.run; if (!run) return;
     run.kills = (run.kills || 0) + 1;
     G.bonus(e.T.score, e.x, e.y - 10);
+    WTP.hardcore?.onKill?.(e);
     G.stat('kills', 1);
     if (e.T.boss) { run.bossKilled = true; G.announce('PROCESS TERMINATED!', 6); }
     G.comboBump(8);
@@ -159,6 +160,7 @@
     const mode = MD.MODES[modeId];
     Wd.reset();
     WTP.structs.reset();
+    WTP.hardcore?.stop?.();
     FX.clear(); WP.reset(); EN.reset(); WP.setAmmo(null);
     WTP.props.reset();
     const run = G.run = {

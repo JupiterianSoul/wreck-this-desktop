@@ -43,34 +43,63 @@
       grade() { return 'S'; },
       rows(run) { return [['Destroyed', `${pct().toFixed(1)}%`], ['Time relaxing', WTP.fmtClock(run.t)]]; }
     },
-    chaos: {
-      name: 'Chaos', short: 'Chaos', music: 'survival', respawn: true, waves: true,
-      desc: 'A disaster every few seconds and waves of desktop annoyances. Survive and wreck.',
+    survival: {
+      name: 'Survival', short: 'Survival', music: 'survival', respawn: false, waves: true,
+      desc: 'Endless waves of desktop annoyances, no disasters. Each wave is bigger and tougher. How long can you last?',
       hud: { pct: true, time: true, score: true, hp: true },
-      setup(run) { run.disT = 4; run.wave = 0; run.waveT = 3; PL().maxHp = 8; PL().hp = 8; G().label('CHAOS MODE: THE DESKTOP FIGHTS BACK', 2400); G().startTimer(); },
+      setup(run) { waveSetup(run, 6); G().label('SURVIVE THE DESKTOP', 2200); },
+      tick(run, dt) { waveTick(run, dt); },
+      grade(run) { return gradeBy(run.wave, 15, 10, 6, 3); },
+      bestKey: () => 'survival', bestVal: (run) => run.wave, higher: true, fmt: (v) => `wave ${v}`,
+      rows(run) { return [['Wave reached', run.wave], ['Kills', run.kills || 0], ['Destroyed', `${pct().toFixed(1)}%`], ['Time', WTP.fmtTime(run.t)]]; }
+    },
+    chaos: {
+      name: 'Chaos', short: 'Chaos', music: 'survival', respawn: false, waves: true,
+      desc: 'Endless waves and a disaster every few seconds. Everything gets faster and meaner the longer you last.',
+      hud: { pct: true, time: true, score: true, hp: true },
+      setup(run) { waveSetup(run, 8); run.disT = 5; G().label('CHAOS: THE DESKTOP FIGHTS BACK', 2400); },
       tick(run, dt) {
         run.disT -= dt;
-        if (run.disT <= 0) { run.disT = rand(6, 10); WTP.disasters?.random?.(); }
-        const alive = EN().count();
-        if (run.spawnQ && run.spawnQ.length) { run.spawnT -= dt; if (run.spawnT <= 0) { EN().spawnEdge(run.spawnQ.shift(), { hpMul: 1 + run.wave * 0.08 }); run.spawnT = Math.max(0.35, 1.2 - run.wave * 0.06); } }
-        else if (alive === 0) { run.waveT -= dt; if (run.waveT <= 0) { startWave(run); run.waveT = 6; } }
+        if (run.disT <= 0) { run.disT = Math.max(2.5, rand(7, 10) - run.wave * 0.45); WTP.disasters?.random?.(run.wave); }
+        waveTick(run, dt);
       },
-      grade(run) { return gradeBy(pct() + run.wave * 4, 100, 75, 50, 25); },
-      bestKey: () => 'chaos', bestVal: (run) => Math.round(run.score), higher: true,
-      rows(run) { return [['Destroyed', `${pct().toFixed(1)}%`], ['Waves', run.wave], ['Kills', run.kills || 0], ['Time', WTP.fmtTime(run.t)]]; }
+      grade(run) { return gradeBy(run.wave * 2 + pct() / 10, 30, 20, 12, 6); },
+      bestKey: () => 'chaos', bestVal: (run) => run.wave, higher: true, fmt: (v) => `wave ${v}`,
+      rows(run) { return [['Wave reached', run.wave], ['Kills', run.kills || 0], ['Destroyed', `${pct().toFixed(1)}%`], ['Time', WTP.fmtTime(run.t)]]; }
+    },
+    hardcore: {
+      name: 'Hardcore Survival', short: 'Hardcore', music: 'survival', respawn: false, waves: true,
+      desc: 'Survival with limited ammo. Grab supply drops, enemy drops and the caches hidden inside your windows.',
+      hud: { pct: true, time: true, score: true, hp: true },
+      setup(run) { waveSetup(run, 6); WTP.hardcore.start(run); G().label('HARDCORE: EVERY BULLET COUNTS', 2400); },
+      tick(run, dt) { waveTick(run, dt); WTP.hardcore.tick(run, dt); },
+      grade(run) { return gradeBy(run.wave, 12, 8, 5, 2); },
+      bestKey: () => 'hardcore', bestVal: (run) => run.wave, higher: true, fmt: (v) => `wave ${v}`,
+      rows(run) { return [['Wave reached', run.wave], ['Kills', run.kills || 0], ['Supplies found', run.supplies || 0], ['Time', WTP.fmtTime(run.t)]]; }
     }
   };
+  function waveSetup(run, hp) { run.wave = 0; run.waveT = 3; run.kills = 0; PL().maxHp = hp; PL().hp = hp; G().startTimer(); }
+  function waveTick(run, dt) {
+    const alive = EN().count();
+    if (run.spawnQ && run.spawnQ.length) { run.spawnT -= dt; if (run.spawnT <= 0) { EN().spawnEdge(run.spawnQ.shift(), { hpMul: 1 + run.wave * 0.12 }); run.spawnT = Math.max(0.25, 1.1 - run.wave * 0.05); } }
+    else if (alive === 0) {
+      if (run.wave > 0 && !run.cleared) { run.cleared = true; G().announce(`WAVE ${run.wave} CLEARED`, 3); G().bonus(150 * run.wave, PL().x, PL().y - 20); if (run.wave % 2 === 0) EN().drop('heart', PL().x + 10, PL().y - 30); }
+      run.waveT -= dt;
+      if (run.waveT <= 0) { startWave(run); run.waveT = 4; run.cleared = false; }
+    }
+  }
   function startWave(run) {
     run.wave++;
     const pool = WTP.enemies.WAVE_TYPES || Object.keys(WTP.enemies.TYPES).filter((k) => !WTP.enemies.TYPES[k].boss);
     const q = [];
     const boss = run.wave % 5 === 0;
     if (boss) q.push(pick(WTP.enemies.BOSSES || Object.keys(WTP.enemies.TYPES).filter((k) => WTP.enemies.TYPES[k].boss)));
-    const n = 2 + Math.floor(run.wave * 1.3);
+    const n = 3 + Math.floor(run.wave * 1.5);
+    if (boss && run.wave >= 10) q.push(pick(WTP.enemies.BOSSES || ['tray']));
     while (q.length < n) q.push(pick(pool));
     run.spawnQ = q; run.spawnT = 0.5;
     G().announce(boss ? 'BOSS INCOMING' : `WAVE ${run.wave}`, boss ? 4 : 2);
     WTP.audio.play('alarm');
   }
-  WTP.modes = { MODES, pct, startWave, ORDER: ['free', 'time', 'zen', 'chaos'] };
+  WTP.modes = { MODES, pct, startWave, ORDER: ['free', 'time', 'zen', 'survival', 'chaos', 'hardcore'] };
 })();

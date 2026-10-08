@@ -234,6 +234,7 @@
   const STR = () => WTP.structs;
   function counted(i, n = 1) {
     W.destroyed += n;
+    if (WTP.hardcore && WTP.hardcore.on) WTP.hardcore.cellGone(i);
     if (rid[i]) STR()?.dirty?.(rid[i]);
     const t = tgt[i];
     if (t && W.targets[t]) { const T = W.targets[t]; T.left--; if (!T.done && T.left <= T.total * T.need) { T.done = true; G()?.targetDown?.(T); } }

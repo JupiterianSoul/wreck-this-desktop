@@ -299,6 +299,7 @@
     }
   };
   const EXT = {};
+  const ES = 1.5;
   const VARIANTS = { survey: SURVEYS.length, progress: 4, scroll: 3, clip: 2, ad: ADS.length, captcha: 3, cookie: 4, cursor: 4, chat: 4, bell: 9, spinner: 2, video: 3, ghost: 2, tracker: 1, paywall: 2, spam: 3, update: 1, crawler: 2, virus: 1, notif: 1, modal: 2, algo: 2 };
   const FRAMES = { survey: 6, progress: 8, scroll: 2, clip: 3, ad: 2, captcha: 3, cookie: 2, cursor: 2, chat: 3, bell: 3, spinner: 8, video: 4, ghost: 2, tracker: 2, paywall: 2, spam: 2, update: 4, crawler: 2, virus: 2, notif: 1, modal: 2, algo: 4 };
 
@@ -311,7 +312,7 @@
     const s0 = sprite(type, v, 0);
     const e = {
       type, T: D, x, y, vx: 0, vy: 0, hp: D.hp * hpm, maxHp: D.hp * hpm, t: rand(0, 2), cd: rand(1, 2.5), flash: 0, dead: false, freeze: 0, burn: 0, stun: 0, ground: false,
-      v, w: s0.w - 2, h: s0.h - 2, dir: x < PL().x ? 1 : -1, phase: 0, mode: null, spawnT: 0.5, alpha: 1, shieldT: 0, shielded: 0, inside: false, gen: v, ft: 0, fr: 0,
+      v, w: (s0.w - 2) * ES, h: (s0.h - 2) * ES, dir: x < PL().x ? 1 : -1, phase: 0, mode: null, spawnT: 0.5, alpha: 1, shieldT: 0, shielded: 0, inside: false, gen: v, ft: 0, fr: 0,
       damage(d, cause, fx) {
         if (this.dead || this.spawnT > 0.2) return false;
         if (this.type === 'ghost' && this.alpha < 0.55) return false;
@@ -674,7 +675,7 @@
       b.vy += b.g * dt;
       b.x += b.vx * dt; b.y += b.vy * dt;
       if (b.kind === 'bubble' && b.t > 0.9 && !b.split) { b.split = true; for (let q = -1; q <= 1; q += 2) bullets.push({ x: b.x, y: b.y, vx: b.vx * 0.8 + q * 40, vy: b.vy * 0.8 + q * 30, kind: 'dot', life: 1.5, g: 0, t: 0 }); }
-      if (!dead && Math.abs(pc.x - b.x) < 4 && Math.abs(pc.y - b.y) < 8) {
+      if (!dead && Math.abs(pc.x - b.x) < 5 && Math.abs(pc.y - b.y) < 11) {
         if (P.hurt(1, b.x) && b.kind === 'web') P.vx *= 0.2;
         dead = true;
       }
@@ -692,12 +693,13 @@
       p.life -= dt;
       const dx = pc.x - p.x, dy = pc.y - p.y, d = Math.hypot(dx, dy);
       if (d < 44 && p.life < (p.t === 'heart' ? 11.5 : 9.7)) { p.vx += (dx / (d || 1)) * 900 * dt; p.vy += (dy / (d || 1)) * 900 * dt; p.vx *= 0.92; p.vy *= 0.92; }
-      else { p.vy = Math.min(200, p.vy + 400 * dt); p.vx *= 0.98; }
+      else { p.vy = Math.min(p.para ? 22 : 200, p.vy + 400 * dt); p.vx *= 0.98; if (p.para) p.x += Math.sin(p.life * 1.5) * 4 * dt; }
       const nx = p.x + p.vx * dt, ny = p.y + p.vy * dt;
       if (Wd.solid(Math.floor(nx), Math.floor(p.y))) p.vx *= -0.4; else p.x = nx;
       if (Wd.solid(Math.floor(p.x), Math.floor(ny))) { p.vy *= -0.3; p.vx *= 0.8; } else p.y = ny;
-      if (d < 7) {
-        if (p.t === 'heart') { if (P.hp < P.maxHp) { P.hp++; A('heal'); FX().pop(p.x, p.y - 6, '+1 HP', { ramp: ['K', 'k', 'e'] }); } else G()?.bonus?.(200, p.x, p.y); }
+      if (d < (p.t === 'ammo' ? 10 : 7)) {
+        if (p.t === 'ammo') { WTP.hardcore?.pickAmmo?.(p); }
+        else if (p.t === 'heart') { if (P.hp < P.maxHp) { P.hp++; A('heal'); FX().pop(p.x, p.y - 6, '+1 HP', { ramp: ['K', 'k', 'e'] }); } else G()?.bonus?.(200, p.x, p.y); }
         else { A('coin'); G()?.scrap?.(2); }
         pickups.splice(k, 1); continue;
       }
@@ -735,6 +737,22 @@
       const sp = sprite(e.type, e.v, e.fr);
       const x = Math.round(e.x - sp.w / 2), y = Math.round(e.y - sp.h / 2);
       const img = e.flash > 0 ? whiteOf(sp) : e.freeze > 0 ? iceOf(sp) : sp.cv;
+      const warn = !e.T.tiny && e.cd > 0 && e.cd < 0.5 && e.spawnT <= 0 && e.stun <= 0;
+      if (warn) {
+        const k = 1 - e.cd / 0.5;
+        const pc = PL().center();
+        ctx.save();
+        ctx.globalAlpha = 0.25 + k * 0.55;
+        ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = 0.6; ctx.setLineDash([2, 1.5]);
+        ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(pc.x, pc.y); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(e.x, e.y, (Math.min(sp.w, sp.h) * ES) / 2 + 5 - k * 3, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      }
+      ctx.save();
+      ctx.translate(e.x, e.y); ctx.scale(ES, ES); ctx.translate(-e.x, -e.y);
+      ctx.shadowColor = e.T.boss ? 'rgba(255,40,40,.95)' : 'rgba(255,60,50,.8)';
+      ctx.shadowBlur = e.T.boss ? 22 : 14;
       const flip = (e.type === 'cursor' && e.vx < 0) || (e.type === 'paywall' && e.dir < 0) || (e.type === 'crawler' && (e.vx2 || 0) < 0) || (e.type === 'spam' && e.vx < 0);
       if (e.type === 'ghost') ctx.globalAlpha = e.alpha;
       if (e.type === 'crawler' && e.normal && e.normal[1] < 0) { ctx.save(); ctx.translate(x, y + sp.h); ctx.scale(flip ? -1 : 1, -1); ctx.drawImage(img, flip ? -sp.w : 0, 0); ctx.restore(); }
@@ -744,28 +762,39 @@
         ctx.drawImage(img, x + wob, y);
       }
       ctx.globalAlpha = 1;
+      ctx.restore();
+      if (warn && ((e.t * 12) | 0) & 1) WTP.font.draw(ctx, '!', Math.round(e.x), Math.round(e.y - (sp.h * ES) / 2 - 10), { align: 'center', color: 'e', outline: '0', scale: 2 });
       if (EXT[e.type] && EXT[e.type].draw) EXT[e.type].draw(ctx, e, sp);
       if (e.shielded > 0) { ctx.fillStyle = PAL.l; for (let q = 0; q < 12; q++) { const a = (q / 12) * Math.PI * 2 + e.t * 3; ctx.fillRect(Math.round(e.x + Math.cos(a) * (e.w / 2 + 3)), Math.round(e.y + Math.sin(a) * (e.h / 2 + 3)), 1, 1); } }
       if (e.T.healer && e.healing && !e.healing.dead && ((e.t * 10) | 0) & 1) FX().beam([e.x, e.y, e.healing.x, e.healing.y], { kind: 'tractor', life: 0.03, c1: P32.l, c2: P32.L });
       if (e.type === 'cursor' && e.mode === 'dash') { ctx.fillStyle = PAL.c; ctx.fillRect(x + 2, y + sp.h, 2, 1); }
       if (e.stun > 0 && !e.T.boss) { ctx.fillStyle = PAL.y; const a = e.t * 8; ctx.fillRect(Math.round(e.x + Math.cos(a) * 4), y - 3, 1, 1); ctx.fillRect(Math.round(e.x - Math.cos(a) * 4), y - 3, 1, 1); }
       if ((e.T.boss || e.hp < e.maxHp) && !e.T.tiny) {
-        const w = Math.min(44, Math.max(12, e.w)), bx = Math.round(e.x - w / 2), by = y - 4;
-        ctx.fillStyle = PAL['0']; ctx.fillRect(bx - 1, by - 1, w + 2, 3);
-        ctx.fillStyle = e.shielded > 0 ? PAL.l : PAL.e; ctx.fillRect(bx, by, Math.max(0, Math.round((w * e.hp) / e.maxHp)), 1);
+        const w = Math.min(60, Math.max(16, e.w)), bx = Math.round(e.x - w / 2), by = Math.round(e.y - (sp.h * ES) / 2 - 6);
+        ctx.fillStyle = PAL['0']; ctx.fillRect(bx - 1, by - 1, w + 2, 4);
+        ctx.fillStyle = e.shielded > 0 ? PAL.l : e.T.boss ? PAL.k : PAL.e; ctx.fillRect(bx, by, Math.max(0, Math.round((w * e.hp) / e.maxHp)), 2);
       }
     }
     for (const b of bullets) {
       if (b.kind === 'ring') { const n = Math.ceil(b.r * 3); ctx.fillStyle = b.life > 0.35 ? PAL.k : PAL.m; for (let q = 0; q < n; q++) { if (q & 1) continue; const a = (q / n) * Math.PI * 2; ctx.fillRect(Math.round(b.x + Math.cos(a) * b.r), Math.round(b.y + Math.sin(a) * b.r), 1, 1); } continue; }
       const sp = bulSprite(b.kind);
       if (!sp) continue;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,90,60,.55)'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(b.x - b.vx * 0.05, b.y - b.vy * 0.05); ctx.lineTo(b.x, b.y); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,70,50,.35)'; ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.beginPath(); ctx.arc(b.x, b.y, 2.6, 0, Math.PI * 2); ctx.fill();
+      ctx.translate(b.x, b.y); ctx.scale(1.5, 1.5); ctx.translate(-b.x, -b.y);
       if (b.kind === 'boo') ctx.globalAlpha = 0.75;
       if (b.kind === 'clipb') { const r = sp.rotated ? sp.rotated(b.t * 14, false) : null; if (r) ctx.drawImage(r.cv, Math.round(b.x - r.ox), Math.round(b.y - r.oy)); else ctx.drawImage(sp.cv, Math.round(b.x - sp.w / 2), Math.round(b.y - sp.h / 2)); }
       else ctx.drawImage(sp.cv, Math.round(b.x - sp.w / 2), Math.round(b.y - sp.h / 2));
       ctx.globalAlpha = 1;
+      ctx.restore();
     }
     for (const p of pickups) {
       if (p.life < 2 && ((p.life * 10) | 0) % 2) continue;
+      if (p.t === 'ammo' && p.para) { ctx.strokeStyle = PAL['6']; ctx.lineWidth = 0.3; ctx.beginPath(); ctx.moveTo(p.x - 7, p.y - 9); ctx.lineTo(p.x, p.y - 2); ctx.lineTo(p.x + 7, p.y - 9); ctx.stroke(); ctx.fillStyle = PAL['7']; ctx.beginPath(); ctx.arc(p.x, p.y - 9, 7.5, Math.PI, 0); ctx.fill(); ctx.fillStyle = PAL.e; ctx.fillRect(p.x - 1, p.y - 16.5, 2, 7.5); }
+      if (p.t === 'ammo') { const bob = Math.sin(p.life * 6); ctx.fillStyle = PAL['0']; ctx.fillRect(Math.round(p.x) - 4, Math.round(p.y + bob) - 3, 8, 6); ctx.fillStyle = PAL.a; ctx.fillRect(Math.round(p.x) - 3, Math.round(p.y + bob) - 2, 6, 4); ctx.fillStyle = PAL.y; ctx.fillRect(Math.round(p.x) - 3, Math.round(p.y + bob) - 2, 6, 1); ctx.fillStyle = PAL.w; ctx.fillRect(Math.round(p.x) - 1, Math.round(p.y + bob) - 1, 2, 3); continue; }
       const sp = p.t === 'heart' ? SP.ENEMY.heart : SP.ENEMY.scrap;
       const bob = Math.round(Math.sin(p.life * 6) * 1);
       ctx.drawImage(sp.cv, Math.round(p.x - sp.w / 2), Math.round(p.y - sp.h / 2) + bob);

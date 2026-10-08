@@ -13,6 +13,7 @@
   opt('missile', () => { noise(0.3, 1200, 3000, 0.3, 'bandpass', 1.2); osc('sawtooth', 300, 900, 0.3, 0.04); });
   opt('katana', () => { noise(0.12, 9000, 3000, 0.4, 'highpass', 1); osc('sine', 2400, 1200, 0.15, 0.05); });
   opt('drill', () => { osc('square', 160, 220, 0.25, 0.06, { lp: 1200, vib: 40, vibA: 30 }); });
+  opt('reload', () => { noise(0.04, 3000, 2000, 0.25, 'bandpass', 3); osc('square', 900, 1200, 0.04, 0.04, { delay: 0.06 }); noise(0.05, 2500, 1500, 0.2, 'bandpass', 3, { delay: 0.12 }); });
   opt('thump', () => { thump(140, 50, 0.15, 0.4); });
   add('creak', (k = 1) => { if (!throttle('creak', 160)) return; osc('sawtooth', vary(120), 70, 0.5, 0.06 * k, { lp: 600, vib: 7, vibA: 18 }); noise(0.4, 400, 120, 0.12 * k, 'bandpass', 4, { room: 1 }); });
   add('altf4', () => {
