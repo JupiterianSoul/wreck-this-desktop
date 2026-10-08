@@ -280,7 +280,8 @@
     const gdx = gun.x - bx, gdy = gun.y - by, gd = Math.hypot(gdx, gdy);
     if (gd > 0.01) for (let t = 0; t <= gd; t += 0.5) { const x = bx + (gdx * t) / gd, y = by + (gdy * t) / gd; if (Wd.solid(Math.floor(x), Math.floor(y))) { gun = { x, y }; break; } }
     const wheelOpen = WTP.ui?.wheelOpen?.();
-    const want = !ended && !wheelOpen && !PL.dead && I.wantFire();
+    let want = !ended && !wheelOpen && !PL.dead && !PL.ragdoll && I.wantFire();
+    if (want && PL.carry) { PL.throwCarry(aim.x, aim.y); I.pointerFire = false; want = false; }
     const alt = !ended && I.take('alt');
     if (!ended && !PL.dead && I.take('melee')) WP.melee({ x: bx, y: PL.y + PL.h / 2, ax: aim.x, ay: aim.y });
     WP.update(dt, want, alt, { x: gun.x, y: gun.y, hx: hand.x, hy: hand.y, ax: aim.x, ay: aim.y, bx, by });
@@ -396,8 +397,9 @@
     const cur = WP.current();
     const rx = PL.x, ry = PL.y;
     PL.x = prevP.x + (rx - prevP.x) * alpha; PL.y = prevP.y + (ry - prevP.y) * alpha;
-    PL.draw(ctx, dt, G.run.ended && G.run.won ? null : cur.sprite, aim, { swing: WP.swing() });
+    PL.draw(ctx, dt, G.run.ended && G.run.won ? null : cur.sprite, aim, { swing: WP.swing(), oneHand: cur.melee || cur.throw || cur.cat === 'side' });
     PL.x = rx; PL.y = ry;
+    if (PL.carry) { ctx.setTransform(zs, 0, 0, zs, sx + zx, sy + zy); DR.drawChunk(ctx, PL.carry, true); ctx.setTransform(S * zs, 0, 0, S * zs, sx + zx, sy + zy); }
     if (PL.muzzle && !G.run.ended) {
       if (cur.charge && WP.st.charge > 0) { const k = Math.min(1, WP.st.charge / cur.charge); ctx.fillStyle = k >= 1 ? PAL['7'] : PAL.C; const s2 = 1 + Math.round(k * 2); ctx.fillRect(Math.round(PL.muzzle.x) - (s2 >> 1), Math.round(PL.muzzle.y) - (s2 >> 1), s2, s2); }
       if (WP.st.reload > 0) WTP.font.draw(ctx, 'RELOAD', Math.round(PL.x + 3), Math.round(PL.y - 14), { align: 'center', color: 'y', outline: '0' });

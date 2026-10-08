@@ -142,7 +142,7 @@
     if (r >= 30) g?.chroma?.(Math.min(1, r / 60));
     const P = PL(), pc = P.center();
     const dx = pc.x - x, dy = pc.y - y, d = Math.hypot(dx, dy);
-    if (d < r * 2.4 && !o.noPush) { const f = (1 - d / (r * 2.4)) * (260 + r * 4); P.impulse((dx / (d || 1)) * f * 0.85, (dy / (d || 1)) * f - 50); }
+    if (d < r * 2.4 && !o.noPush) { const f = (1 - d / (r * 2.4)) * (260 + r * 4); if (f > 430 && !P.ragdoll) P.ragdollStart((dx / (d || 1)) * f * 0.85, (dy / (d || 1)) * f - 50); else P.impulse((dx / (d || 1)) * f * 0.85, (dy / (d || 1)) * f - 50); }
     for (const c of Wd.chunks) {
       const qx = c.x - x, qy = c.y - y, qd = Math.hypot(qx, qy) || 1;
       if (qd < r * 3) { const f = (1 - qd / (r * 3)) * 300; c.vx += (qx / qd) * f; c.vy += (qy / qd) * f - 60; c.va += rand(-3, 3); c.rest = 0; }

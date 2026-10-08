@@ -21,7 +21,7 @@
   for (const d of DEFS) { d.sprite = S(d.spr, { gx: 0, gy: 0 }); BY[d.id] = d; }
 
   const st = { cd: 0, fuel: 1, hook: null, pads: [], pound: false, claw: 0, gliding: false, jet: false, blinkFx: 0, flameT: 0 };
-  const owned = (id) => !!BY[id] && (BY[id].price === 0 || !!WTP.save.gadgets[id]);
+  const owned = (id) => !!BY[id];
   const curId = () => { const f = WTP.gadgets?.force; return f && BY[f] ? f : owned(WTP.save.gadget) ? WTP.save.gadget : 'boots'; };
   const cur = () => BY[curId()];
 

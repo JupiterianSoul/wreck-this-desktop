@@ -42,12 +42,59 @@
   P.inside = (x, y) => x >= Math.floor(P.x) && x <= Math.floor(P.x + P.w - 0.001) && y >= Math.floor(P.y) && y <= Math.floor(P.y + P.h - 0.001);
   P.center = () => ({ x: P.x + P.w / 2, y: P.y + P.h / 2 });
   P.spawn = (x, y) => {
-    Object.assign(P, { x, y, vx: 0, vy: 0, ground: false, wall: 0, jumps: 1, airDash: 1, coyote: 0, buffer: 0, dashT: 0, dashCd: 0, land: 0, hurtT: 0, iframes: 0, hp: P.maxHp, dead: false, victory: false, ghosts: [], recoil: 0, swing: 0, kickT: 0, idleT: 0, stuckT: 0, gravMul: 1, maxFall: 330, ctrl: 1, pose: null, squash: 0, stretch: 0, airT: 0 });
+    if (P.carry) { WTP.world.releaseChunk(P.carry, 0, 0); P.carry = null; }
+    WTP.rig?.reset?.();
+    Object.assign(P, { h: 14, crouch: false, rollT: 0, ragdoll: false, ragT: 0, on: 0, x, y, vx: 0, vy: 0, ground: false, wall: 0, jumps: 1, airDash: 1, coyote: 0, buffer: 0, dashT: 0, dashCd: 0, land: 0, hurtT: 0, iframes: 0, hp: P.maxHp, dead: false, victory: false, ghosts: [], recoil: 0, swing: 0, kickT: 0, idleT: 0, stuckT: 0, gravMul: 1, maxFall: 330, ctrl: 1, pose: null, squash: 0, stretch: 0, airT: 0 });
     P.setSkin(WTP.save.skin);
     GD()?.reset?.();
   };
   P.setSkin = (id) => { P.skin = id; P.frames = WTP.sprites.playerFrames(id); };
   P.impulse = (ix, iy) => { P.vx += ix; P.vy += iy; if (iy < -40) { P.ground = false; P.rocketJumpStart = P.rocketJumpStart ?? P.y; } };
+  function setCrouch(on) {
+    if (on && !P.crouch) { P.crouch = true; P.y += 5; P.h = 9; return true; }
+    if (!on && P.crouch) { if (collide(P.x, P.y - 5, P.w, 14)) return false; P.crouch = false; P.y -= 5; P.h = 14; return true; }
+    return true;
+  }
+  P.setCrouch = setCrouch;
+  P.ragdollStart = (vx, vy) => {
+    if (P.dead && P.ragdoll) return;
+    if (P.carry) { WTP.world.releaseChunk(P.carry, vx * 0.5, vy * 0.5); P.carry = null; }
+    setCrouch(false);
+    P.ragdoll = true; P.ragT = 0.85 + Math.min(0.6, Math.hypot(vx, vy) / 900); P.rollT = 0;
+    P.vx = vx; P.vy = vy; P.ground = false;
+    WTP.rig?.startRag?.(vx, vy);
+    WTP.audio.play('hurt');
+  };
+  P.throwCarry = (ax, ay) => {
+    const c = P.carry;
+    if (!c) return;
+    P.carry = null;
+    const sp = 430 - Math.min(250, c.n * 0.25);
+    c.x = P.x + P.w / 2 + ax * (c.rad + 3); c.y = P.y + 2 + ay * (c.rad + 3);
+    WTP.world.releaseChunk(c, ax * sp + P.vx * 0.5, ay * sp - 60);
+    P.recoil = 2; P.vx -= ax * 30;
+    WTP.audio.play('throw');
+    WTP.game?.stat?.('throws', 1);
+  };
+  function tryPickup() {
+    const Wd = W();
+    const cx = P.x + P.w / 2, cy = P.y + P.h / 2;
+    let best = null, bd = 12 * 12;
+    for (const c of Wd.chunks) { if (c.n > 900 || c.drive || c.fuse) continue; const d = (c.x - cx) ** 2 + (c.y - cy) ** 2; if (d < bd) { bd = d; best = c; } }
+    if (best) { Wd.chunks.splice(Wd.chunks.indexOf(best), 1); best.held = true; P.carry = best; WTP.audio.play('pickup'); return true; }
+    let bx = -1, by = -1, bd2 = 1e9;
+    const fy = P.y + P.h;
+    for (let y = Math.floor(fy - 9); y <= Math.floor(fy + 2); y++) for (let x = Math.floor(cx - 9); x <= Math.floor(cx + 9); x++) {
+      if (x < 0 || y < 0 || x >= Wd.w || y >= Wd.h) continue;
+      const m = Wd.mat[y * Wd.w + x];
+      if (m !== Wd.RUBBLE && m !== Wd.DEBRIS) continue;
+      const d = (x + 0.5 - cx) ** 2 * 1 + (y + 0.5 - fy) ** 2 * 1.5 + (Math.sign(x - cx) === P.face ? 0 : 6);
+      if (d < bd2) { bd2 = d; bx = x; by = y; }
+    }
+    if (bx >= 0) { const c = Wd.grabDisk(bx + 0.5, by + 0.5, 3.4); if (c) { P.carry = c; WTP.audio.play('pickup'); return true; } }
+    WTP.audio.play('deny');
+    return false;
+  }
   P.hurt = (dmg, fromX, o = {}) => {
     if (P.iframes > 0 || P.dead || P.dashT > 0 || P.victory) return false;
     const hp = WTP.game?.run?.hud?.hp;
@@ -60,6 +107,7 @@
     WTP.vibe(80);
     GD()?.interrupt?.();
     if (P.hp <= 0) { P.dead = true; WTP.audio.play('die'); WTP.game?.playerDied?.(); }
+    if (o.knock >= 150 || P.dead || Math.random() < 0.25) P.ragdollStart(P.vx * 1.3, P.vy - 60);
     return true;
   };
 
@@ -101,8 +149,18 @@
     const down = !ctl && In.downHeld();
     if (!ctl) {
       if (In.take('jump')) P.buffer = 0.13;
-      if (In.take('dash')) tryDash(mx);
+      const rollKey = In.take('roll');
+      const dashKey = In.take('dash');
+      if ((rollKey || (dashKey && P.crouch)) && P.ground && P.dashCd <= 0) {
+        setCrouch(true);
+        P.rollT = 0.36; P.rollDir = mx ? Math.sign(mx) : P.face; P.face = P.rollDir; P.iframes = Math.max(P.iframes, 0.36); P.dashCd = 0.5;
+        WTP.audio.play('dash'); puff(4);
+        return;
+      }
+      if (dashKey) tryDash(mx);
     }
+    if (!ctl && P.ground && down && !P.crouch) setCrouch(true);
+    else if (P.crouch && (!down || !P.ground)) setCrouch(false);
     const held = !ctl && In.jumpHeld();
     P.buffer = Math.max(0, P.buffer - dt);
     P.dashCd = Math.max(0, P.dashCd - dt);
@@ -116,6 +174,27 @@
     P.swing = Math.max(0, P.swing - dt);
     P.gravMul = 1; P.maxFall = 330; P.ctrl = 1; P.pose = null; P.noGrav = false;
     if (P.dead) { P.vy += 600 * dt; P.vx *= 0.95; move(dt); return; }
+    if (P.carry) { P.carry.x = P.x + P.w / 2; P.carry.y = P.y - P.carry.rad * 0.6; }
+    if (P.ragdoll) {
+      P.ragT -= dt;
+      P.vy += 640 * dt;
+      if (P.ground) P.vx *= Math.pow(0.02, dt);
+      if (P.vy > P.maxFall) P.vy = P.maxFall;
+      move(dt);
+      if (P.ragT <= 0 && (P.ground || P.ragT < -2) && Math.abs(P.vx) < 60) { P.ragdoll = false; P.land = 0.2; P.squash = 0.8; puff(5); WTP.audio.play('land', 200); }
+      return;
+    }
+    if (!ctl && In.take('pickup')) { if (P.carry) P.throwCarry(WTP.game.aim.x, WTP.game.aim.y); else tryPickup(); }
+    if (P.rollT > 0) {
+      P.rollT -= dt;
+      P.vx = P.rollDir * (P.ground ? 185 : 150);
+      P.vy += 680 * dt;
+      if (Math.random() < 0.5 && P.ground) WTP.fx.dust(P.x + P.w / 2, P.y + P.h - 1);
+      move(dt);
+      if (P.wall) P.rollT = 0;
+      if (P.rollT <= 0) { P.vx = P.rollDir * 70; if (!down) setCrouch(false); }
+      return;
+    }
 
     if (P.dashT > 0) {
       P.dashT -= dt;
@@ -127,7 +206,7 @@
     }
     const gctl = gd ? gd.update(dt, P, { mx, down, held, ctl }) : null;
     if (gctl && gctl.skip) { move(dt); afterMove(dt, P.ground, P.vy); return; }
-    const RUN = 84;
+    const RUN = P.crouch ? 36 : P.carry ? 70 : 84;
     const accel = (P.ground ? 1100 : 640) * P.ctrl;
     const target = mx * RUN;
     if (P.wallLock <= 0) {
