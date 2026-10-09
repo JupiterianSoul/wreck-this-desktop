@@ -1961,9 +1961,10 @@
   function reset() {
     shots.length = 0;
     for (const f of EXT.resets) f();
-    Object.assign(st, { cd: 0, spin: 0, charge: 0, mag: {}, reload: 0, reloadFor: null, held: null, ball: null, portals: [], stickies: [], mines: [], boomers: 0, waves: [], tornados: [], quakeT: 0, orb: [], whip: null, latch: null, cut: null, tank: 0, tankCols: [], blowing: 0, ink: 1, penLast: null, zones: [], glove: 0, kickCd: 0, thermals: [] });
+    Object.assign(st, { cd: 0, readyAt: {}, raise: 0, spin: 0, charge: 0, mag: {}, reload: 0, reloadFor: null, held: null, ball: null, portals: [], stickies: [], mines: [], boomers: 0, waves: [], tornados: [], quakeT: 0, orb: [], whip: null, latch: null, cut: null, tank: 0, tankCols: [], blowing: 0, ink: 1, penLast: null, zones: [], glove: 0, kickCd: 0, thermals: [] });
     WTP.audio.stopLoops();
   }
+  const RAISE_T = 0.06;
   function select(id) {
     if (!BY[id]) return false;
     if (st.cur !== id) {
@@ -1974,9 +1975,13 @@
       if (st.cut) { st.cut.held = false; W().chunks.push(st.cut); st.cut = null; }
       st.whip = null; st.latch = null;
       st.spin = 0; st.charge = 0;
+      // Each weapon keeps its own cooldown, so switching never delays the next weapon and never skips a cooldown
+      const now = performance.now() / 1000;
+      if (st.cur) st.readyAt[st.cur] = now + Math.max(0, st.cd);
+      st.cd = Math.max(0, (st.readyAt[id] || 0) - now);
+      st.raise = RAISE_T;
     }
     st.cur = id;
-    st.cd = Math.min(st.cd, 0.15);
     return true;
   }
 

@@ -44,7 +44,6 @@
     held.add(e.code);
     for (const a of actionsFor(e.code)) pending[a] = true;
     if (e.key && e.key.length === 1) { const kk = 'key:' + e.key.toLowerCase(); held.add(kk); for (const a of actionsFor(kk)) pending[a] = true; }
-    if (/^Digit[0-9]$/.test(e.code)) pending.slot = Number(e.code.slice(5));
     for (const a of actionsFor(e.code)) if (a === 'firelock') { I.fireLock = !I.fireLock; WTP.game?.label?.(I.fireLock ? 'FIRING (PRESS AGAIN TO STOP)' : 'FIRE STOPPED', 900); }
   });
   window.addEventListener('keyup', (e) => { held.delete(e.code); if (e.key && e.key.length === 1) held.delete('key:' + e.key.toLowerCase()); });
@@ -85,25 +84,20 @@
     }, { passive: false });
   };
 
-  const WH = { acc: 0, last: -1e9, armed: true, lastFire: -1e9, big: false, fired: 0 };
+  // A mouse notch is one step right away; small touchpad deltas add up to a step
+  const WH = { acc: 0, last: -1e9, fired: 0 };
+  const NOTCH = 50, PAD_STEP = 70;
   I.wheelState = WH;
   I.wheelStep = (dx, dy, mode, now) => {
     let d = Math.abs(dy) >= Math.abs(dx) ? dy : dx;
     if (mode === 1) d *= 40; else if (mode === 2) d *= 400;
     if (!d) return false;
-    const gap = now - WH.last;
+    if (now - WH.last > 250 || (WH.acc && Math.sign(WH.acc) !== Math.sign(d))) WH.acc = 0;
     WH.last = now;
-    const big = Math.abs(d) >= 50;
-    if (gap > 200) { WH.armed = true; WH.acc = 0; }
-    else if (!WH.armed && big && WH.big && gap > 70) { WH.armed = true; WH.acc = 0; }
-    WH.big = big;
-    if (!WH.armed) return false;
-    if (WH.acc && Math.sign(WH.acc) !== Math.sign(d)) WH.acc = 0;
-    WH.acc += d;
-    if (Math.abs(WH.acc) < 45 || now - WH.lastFire < 90) return false;
-    pending[WH.acc > 0 ? 'next' : 'prev'] = true;
+    if (Math.abs(d) >= NOTCH) WH.acc = 0;
+    else { WH.acc += d; if (Math.abs(WH.acc) < PAD_STEP) return false; d = WH.acc; WH.acc = 0; }
+    pending[d > 0 ? 'next' : 'prev'] = true;
     WH.fired++;
-    WH.acc = 0; WH.armed = false; WH.lastFire = now;
     return true;
   };
   function bindJoy(zone, joy, s, o = {}) {

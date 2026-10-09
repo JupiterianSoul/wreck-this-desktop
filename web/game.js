@@ -121,15 +121,18 @@
   G.loadout = () => loadout.filter(Boolean);
   G.slots = () => WTP.save.hotbar.map((id) => (id && WP.BY[id] ? id : null));
   G.available = () => WP.DEFS.map((d) => d.id);
+  let prevWeapon = null;
   G.selectWeapon = (id, quiet) => {
     if (!id || !WP.BY[id]) { if (!quiet) AU.play('deny'); return false; }
     if (WP.st.cur !== id) {
+      if (WP.st.cur) prevWeapon = WP.st.cur;
       WP.select(id);
       if (!quiet) { AU.play('select'); WTP.ui?.weaponName?.(WP.BY[id]); }
     }
     WTP.ui?.hudWeapons?.(G.slots(), id);
     return true;
   };
+  G.lastWeapon = () => { if (prevWeapon && prevWeapon !== WP.st.cur && G.selectWeapon(prevWeapon)) return true; AU.play('deny'); return false; };
   G.assignSlot = (slot, id) => {
     if (slot < 0 || slot >= WTP.HOTBAR_N) return false;
     const hb = WTP.save.hotbar;
@@ -345,11 +348,13 @@
       if (I.take('wheel')) WTP.ui?.wheel?.(true);
       if (I.take('next')) G.cycle(1);
       if (I.take('prev')) G.cycle(-1);
+      if (I.take('lastWeapon')) G.lastWeapon();
     }
     if (I.take('next_level')) WTP.ui?.nextLevel?.();
     prevP.x = PL.x; prevP.y = PL.y;
     for (const c of Wd.chunks) { c.px = c.x; c.py = c.y; c.pa = c.a; }
     updateAim(dt);
+    if (WP.st.raise > 0) WP.st.raise = Math.max(0, WP.st.raise - dt);
     const ended = run.ended;
     PL.update(dt, ended);
     { const bx0 = PL.x + PL.w / 2, by0 = PL.y + 7; if (!PL.gunPos || Math.hypot(PL.gunPos.x - bx0, PL.gunPos.y - by0) > 14) { PL.gunPos = { x: bx0 + aim.x * 4, y: by0 + aim.y * 4 }; PL.muzzle = { x: bx0 + aim.x * 9, y: by0 + aim.y * 9 }; } }

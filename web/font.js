@@ -53,16 +53,17 @@
     x: '...../...../#...#/.#.#./..#../.#.#./#...#',
     y: '...../...../#...#/#...#/#...#/#...#/.####/....#/.###.',
     z: '...../...../#####/...#./..#../.#.../#####',
+    // Digits: slashed 0, 6 and 9 with straight tails, 8 pinched at the waist, flat topped 5, all five wide
     0: '.###./#...#/#..##/#.#.#/##..#/#...#/.###.',
-    1: '.#./##./.#./.#./.#./.#./###',
+    1: '..#../.##../#.#../..#../..#../..#../#####',
     2: '.###./#...#/....#/...#./..#../.#.../#####',
     3: '####./....#/....#/.###./....#/....#/####.',
     4: '...#./..##./.#.#./#..#./#####/...#./...#.',
-    5: '#####/#..../####./....#/....#/#...#/.###.',
-    6: '.###./#..../#..../####./#...#/#...#/.###.',
+    5: '#####/#..../#..../####./....#/....#/####.',
+    6: '#..../#..../#..../####./#...#/#...#/.###.',
     7: '#####/....#/...#./..#../..#../..#../..#..',
-    8: '.###./#...#/#...#/.###./#...#/#...#/.###.',
-    9: '.###./#...#/#...#/.####/....#/....#/.###.',
+    8: '.###./#...#/.#.#./..#../.#.#./#...#/.###.',
+    9: '.###./#...#/#...#/.####/....#/....#/....#',
     '!': '#/#/#/#/#/./#',
     '?': '.###./#...#/....#/...#./..#../...../..#..',
     '.': '././././././#',
@@ -154,15 +155,15 @@
     Y: '##....##/##....##/.##..##./..####../...##.../...##.../...##.../...##.../...##...',
     Z: '#######/.....##/....##./...##../..##.../.##..../##...../##...../#######',
     0: '.#####./##...##/##..###/##.####/####.##/###..##/##...##/##...##/.#####.',
-    1: '..##../.###../####../..##../..##../..##../..##../..##../######',
+    1: '...##../..###../.####../...##../...##../...##../...##../...##../#######',
     2: '.#####./##...##/.....##/....##./...##../..##.../.##..../##...../#######',
     3: '######./.....##/.....##/..####./.....##/.....##/.....##/##...##/.#####.',
     4: '....##./...###./..####./.##.##./##..##./#######/....##./....##./....##.',
-    5: '#######/##...../##...../######./.....##/.....##/.....##/##...##/.#####.',
-    6: '.#####./##...../##...../######./##...##/##...##/##...##/##...##/.#####.',
+    5: '#######/##...../##...../######./.....##/.....##/.....##/.....##/######.',
+    6: '##...../##...../##...../######./##...##/##...##/##...##/##...##/.#####.',
     7: '#######/.....##/....##./...##../..##.../..##.../..##.../..##.../..##...',
-    8: '.#####./##...##/##...##/.#####./##...##/##...##/##...##/##...##/.#####.',
-    9: '.#####./##...##/##...##/##...##/.######/.....##/.....##/.....##/.#####.',
+    8: '.#####./##...##/##...##/.##.##./..###../.##.##./##...##/##...##/.#####.',
+    9: '.#####./##...##/##...##/##...##/.######/.....##/.....##/.....##/.....##',
     '!': '##/##/##/##/##/##/../##/##',
     '?': '.#####./##...##/.....##/....##./...##../...##../......./...##../...##..',
     '.': '../../../../../../../##/##',
@@ -267,13 +268,16 @@
     return t;
   }
 
-  function buildTTF(bold) {
-    const U = 100, EM = 1000;
-    const chars = [...glyphs.keys()].filter((c) => c.length === 1 && c.codePointAt(0) < 0xffff && c !== ' ').sort((a, b) => a.charCodeAt(0) - b.charCodeAt(0));
+  // o.only limits the font to some characters, o.mono gives them all the same advance (tabular digits)
+  function buildTTF(bold, o = {}) {
+    // o.big draws from the 7x9 two-pixel set (already bold), scaled to the same cap height
+    const src = o.big ? bigGlyphs : glyphs, R = o.big ? 9 : 7, U = o.big ? Math.round(700 / 9) : 100, EM = 1000;
+    if (o.big) bold = false;
+    const chars = [...src.keys()].filter((c) => c.length === 1 && c.codePointAt(0) < 0xffff && c !== ' ' && c !== ' ' && (!o.only || o.only.includes(c))).sort((a, b) => a.charCodeAt(0) - b.charCodeAt(0));
     const list = [{ name: '.notdef', rects: [[0, -0, 4, 7]], adv: 6 }];
     const charToGid = new Map();
     for (const ch of chars) {
-      const g = glyphs.get(ch);
+      const g = src.get(ch);
       const bits = g.rows.map((r) => {
         const a = [...r].map((c) => c === '#');
         if (bold) { const b = a.slice(); b.push(false); for (let i = 0; i < a.length; i++) if (a[i]) b[i + 1] = true; return b; }
@@ -296,7 +300,7 @@
         }
       }
       charToGid.set(ch, list.length);
-      list.push({ name: ch, rects, adv: g.w + 1 + (bold ? 1 : 0) });
+      list.push({ name: ch, rects, adv: (o.mono || g.w + 1) + (bold ? 1 : 0) });
     }
     const glyfParts = [];
     const loca = [0];
@@ -313,7 +317,7 @@
       const ends = [];
       let xMin = 1e9, yMin = 1e9, xMax = -1e9, yMax = -1e9;
       for (const [x0, r0, x1, r1] of gl.rects) {
-        const X0 = x0 * U, X1 = x1 * U, YT = (7 - r0) * U, YB = (7 - r1) * U;
+        const X0 = x0 * U, X1 = x1 * U, YT = (R - r0) * U, YB = (R - r1) * U;
         pts.push([X0, YB], [X0, YT], [X1, YT], [X1, YB]);
         ends.push(pts.length - 1);
         xMin = Math.min(xMin, X0); xMax = Math.max(xMax, X1); yMin = Math.min(yMin, YB); yMax = Math.max(yMax, YT);
@@ -439,12 +443,15 @@
     return font.buffer;
   }
 
+  // WreckPix carries only the digits: the HUD lists it first so numbers use it and letters fall through to Pixelify Sans
+  const DIGITS = '0123456789';
   let ready = false;
   async function install() {
     if (!('FontFace' in window) || !document.fonts) return false;
     try {
-      const reg = new FontFace('WreckPix', buildTTF(false), { weight: '400' });
-      const bold = new FontFace('WreckPix', buildTTF(true), { weight: '700' });
+      const d = { unicodeRange: 'U+0030-0039' };
+      const reg = new FontFace('WreckPix', buildTTF(false, { only: DIGITS, mono: 6 }), { weight: '400', ...d });
+      const bold = new FontFace('WreckPix', buildTTF(true, { only: DIGITS, mono: 8, big: true }), { weight: '700', ...d });
       await Promise.all([reg.load(), bold.load()]);
       document.fonts.add(reg); document.fonts.add(bold);
       ready = true;
@@ -454,5 +461,6 @@
       return false;
     }
   }
-  WTP.font = { draw, textCanvas, measure, install, glyphs, LINE, get ready() { return ready; } };
+  WTP.font = { draw, textCanvas, measure, install, buildTTF, glyphs, LINE, get ready() { return ready; } };
+  WTP.fontReady = install();
 })();

@@ -127,6 +127,9 @@
     let cock = 0;
     if (dCur?.throw && firing && WPs.cd > 0) cock = Math.max(0, Math.min(1, 1 - WPs.cd / 0.28));
     if (cock > 0) aimA -= face * cock * 2.1;
+    // Raise after a switch: the new weapon swings up from the hip (purely visual)
+    const raise = Math.max(0, Math.min(1, (WPs.raise || 0) / 0.06));
+    if (raise > 0) aimA += face * raise * 1.1;
     const rec = P.recoil || 0;
     if (rec > 0 && !dCur?.melee) aimA -= face * Math.min(0.35, rec * 0.045);
     let fhx, fhy, bhx, bhy;

@@ -85,7 +85,7 @@
   };
   const focusCanvas = () => document.getElementById('cv').focus({ preventScroll: true });
 
-  let idleT = 0, lastHp = '';
+  let lastHp = '';
   U.hudSetup = (run) => {
     const h = run.hud || {};
     $('hStats').style.display = h.minimal ? 'none' : '';
@@ -138,8 +138,6 @@
     $('hFire').hidden = !(I.firing() && (S().settings.toggleFire || I.fireLock)) || G.paused;
     const px = P.x * WTP.world.CP / devicePixelRatio, py = P.y * WTP.world.CP / devicePixelRatio;
     $('hStats').classList.toggle('dim', px > window.innerWidth - 280 && py < 280);
-    idleT += 0.1;
-    $('hHot').classList.toggle('idle', idleT > 3 && !(py > window.innerHeight - 160 && Math.abs(px - window.innerWidth / 2) < 360));
   };
   U.tick = () => { };
 
@@ -168,23 +166,21 @@
       b.addEventListener('dragstart', (e) => { if (b.dataset.w) { e.dataTransfer.setData('text/weapon', b.dataset.w); e.dataTransfer.setData('text/slot', b.dataset.slot); } });
     });
   }
+  // The hotbar is display only during play: hidden, flashed for a moment when the weapon changes. Editing lives in the wheel.
+  const HOT_SHOW_MS = 1200;
+  let hotCur = null, hotT = 0;
+  U.flashHotbar = () => { const hb = $('hHot'); hb.classList.add('show'); clearTimeout(hotT); hotT = setTimeout(() => hb.classList.remove('show'), HOT_SHOW_MS); };
   U.hudWeapons = (slots, curId) => {
-    idleT = 0;
+    if (curId !== hotCur) { if (hotCur !== null) U.flashHotbar(); hotCur = curId; }
     let html = '';
-    for (let i = 0; i < 10; i++) html += slotHtml(slots[i], i, curId, { drag: true });
-    if (curId && !slots.includes(curId)) html += `<button class="slot cur extra" data-w="${curId}"><span class="k">*</span><img alt="" src="${wImg(curId)}"></button>`;
+    for (let i = 0; i < 10; i++) html += slotHtml(slots[i], i, curId);
+    if (curId && !slots.includes(curId)) html += `<div class="slot cur extra"><span class="k">*</span><img alt="" src="${wImg(curId)}"></div>`;
     const hb = $('hHot');
-    hb.innerHTML = html;
-    hb.querySelectorAll('[data-w]').forEach((b) => b.addEventListener('click', () => { G.selectWeapon(b.dataset.w); focusCanvas(); }));
-    hb.querySelectorAll('[data-slot]').forEach((b) => {
-      b.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); U.wheel(true, +b.dataset.slot); });
-      if (!b.dataset.w) b.addEventListener('click', () => U.wheel(true, +b.dataset.slot));
-    });
-    bindDrop(hb);
+    if (hb.__h !== html) { hb.__h = html; hb.innerHTML = html; }
     if (U.wheelOpen()) renderWheelBar();
   };
   let nameT = 0;
-  U.weaponName = (d) => { idleT = 0; const n = $('hName'); n.innerHTML = `<b>${esc(d.name)}</b><span>${esc(d.does || d.tip || '')}</span>`; n.classList.add('on'); clearTimeout(nameT); nameT = setTimeout(() => n.classList.remove('on'), 2000); };
+  U.weaponName = (d) => { const n = $('hName'); n.innerHTML = `<b>${esc(d.name)}</b><span>${esc(d.does || d.tip || '')}</span>`; n.classList.add('on'); clearTimeout(nameT); nameT = setTimeout(() => n.classList.remove('on'), 2000); };
   U.label = (text, ms = 1200) => { const n = $('hName'); n.innerHTML = `<span>${esc(text)}</span>`; n.classList.add('on'); clearTimeout(nameT); nameT = setTimeout(() => n.classList.remove('on'), ms); };
   let annT = 0;
   U.announce = (text, tier = 2) => {
@@ -335,7 +331,7 @@
   }, true);
 
   let rebinding = null;
-  const ACTIONS = [['left', 'Move left'], ['right', 'Move right'], ['jump', 'Jump'], ['down', 'Crouch / drop'], ['dash', 'Dash'], ['roll', 'Roll'], ['melee', 'Kick'], ['gadget', 'Gadget'], ['pickup', 'Pick up / throw'], ['fire', 'Fire (hold)'], ['firelock', 'Fire on / off'], ['alt', 'Alt fire'], ['aimUp', 'Aim up'], ['aimDown', 'Aim down'], ['aimLeft', 'Aim left'], ['aimRight', 'Aim right'], ['wheel', 'Weapon wheel'], ['reset', 'Restart'], ['mute', 'Sound on / off'], ['fps', 'FPS counter'], ['next_level', 'Next workspace'], ['pause', 'Pause / menu']];
+  const ACTIONS = [['left', 'Move left'], ['right', 'Move right'], ['jump', 'Jump'], ['down', 'Crouch / drop'], ['dash', 'Dash'], ['roll', 'Roll'], ['melee', 'Kick'], ['gadget', 'Gadget'], ['pickup', 'Pick up / throw'], ['fire', 'Fire (hold)'], ['firelock', 'Fire on / off'], ['alt', 'Alt fire'], ['aimUp', 'Aim up'], ['aimDown', 'Aim down'], ['aimLeft', 'Aim left'], ['aimRight', 'Aim right'], ['wheel', 'Weapon wheel'], ['reset', 'Restart'], ['mute', 'Sound on / off'], ['fps', 'FPS counter'], ['next_level', 'Next workspace'], ['lastWeapon', 'Last weapon'], ['pause', 'Pause / menu']];
   const PRESETS = {
     mouse: { name: 'Mouse', desc: 'Aim with the mouse, hold left click to fire, right click for alt fire, wheel to switch weapons.', s: { toggleFire: false, autoAim: 0, autoFire: false, aimSmooth: 0, bigCross: false }, aim: [] },
     touchpad: { name: 'Touchpad', desc: 'Aim by moving the pointer, no click needed. Tap once to start firing, tap again to stop. Two finger tap is alt fire, two finger scroll switches weapons. Auto-aim locks onto enemies.', s: { toggleFire: true, autoAim: 2, autoFire: false, aimSmooth: 0.35, bigCross: true }, aim: [] },
