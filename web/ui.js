@@ -19,6 +19,7 @@
       <div class="row" id="hLeftW" hidden><span>enemies left</span><b id="hLeft">0</b></div>
       <div class="row"><span>life</span><div class="hp" id="hHp"></div></div>
       <div class="row" id="hAmmoW" hidden><span>ammo</span><b id="hAmmo">0</b></div>
+      <div class="row gcard" id="hGad"><span>gadgets</span><div class="gslots"><i class="gs" id="hGadM"><img alt=""><b></b></i><i class="gs" id="hGadT"><img alt=""><b></b><em></em></i></div></div>
       <div class="row shards" id="hShardsW" hidden><span>shards</span><b><i class="shard"></i><em id="hShards">0</em></b></div>
     </div>
     <div class="combo" id="hCombo"><div class="n" id="hComboN"></div><div class="m" id="hComboM"></div><div class="t" id="hComboT"></div></div>
@@ -130,6 +131,7 @@
     const ammo = WP.ammo();
     if (ammo) { const a = ammo[WP.st.cur]; $('hAmmo').textContent = a == null ? '-' : a; $('hAmmo').classList.toggle('warn', a != null && a <= 3); }
     $('hUA').hidden = !S().settings.unlockAll || !WTP.ach;
+    hudGadgets();
     if (WTP.shop) { $('hShardsW').hidden = false; $('hShards').textContent = fmtInt(WTP.shop.shards()); }
     const c = $('hCombo');
     const on = run.combo >= 5 && !run.ended && !run.hud?.minimal;
@@ -148,6 +150,21 @@
     $('hStats').classList.toggle('dim', px > window.innerWidth - 280 && py < 280);
   };
   U.tick = () => { };
+  // Gadget card: movement slot (with jetpack fuel) and tool slot (cooldown, charges, or off outside wave modes)
+  function hudGadgets() {
+    const GD = WTP.gadgets, h = GD.hudInfo();
+    const set = (el, id, k, cls, title) => {
+      const img = el.querySelector('img');
+      if (el.dataset.g !== id) { el.dataset.g = id; img.src = gImg(id); }
+      el.title = title;
+      el.querySelector('b').style.width = k == null ? '0' : `${Math.round(Math.max(0, Math.min(1, k)) * 100)}%`;
+      el.className = `gs ${cls}`;
+    };
+    set($('hGadM'), h.move.id, h.move.k, h.move.k != null && h.move.k < 0.25 ? 'low' : '', h.move.name);
+    const t = h.tool;
+    set($('hGadT'), t.id, t.active ?? (t.ready && t.charges == null ? null : t.k), t.off ? 'off' : t.active ? 'on' : t.ready ? 'ready' : 'cd', `${t.name} (${U.keyName(S().keys.gadget?.[0])})`);
+    $('hGadT').querySelector('em').textContent = t.charges != null ? t.charges : '';
+  }
 
   function slotHtml(id, i, cur, opts = {}) {
     const num = (i + 1) % 10;
@@ -282,8 +299,9 @@
       $('hGrid').innerHTML = list.map((d) => { const lk = locked(d.id); return `<button class="witem${lk ? ' locked' : ''}" data-w="${d.id}" draggable="${lk ? 'false' : 'true'}"><img alt="" src="${wImg(d.id, 3, lk)}"><span>${esc(secretName(d))}</span></button>`; }).join('');
     }
     $('hGrid').querySelectorAll('[data-w]').forEach((b) => { b.classList.toggle('cur', b.dataset.w === WP.st.cur); b.classList.toggle('hov', b.dataset.w === wheelHover); });
-    const GD = WTP.gadgets, gcur = GD.curId();
-    $('hGads').innerHTML = `<small>gadget (${esc(U.keyName(S().keys.gadget?.[0]))})</small>${GD.DEFS.map((g) => `<button class="slot gad${g.id === gcur ? ' cur' : ''}" data-g="${g.id}" title="${esc(g.name)}"><img alt="" src="${gImg(g.id)}"></button>`).join('')}`;
+    const GD = WTP.gadgets, mv = GD.moveId(), tl = GD.toolId();
+    const gbtn = (g, on) => `<button class="slot gad${on ? ' cur' : ''}${g.waves && !G.run?.mode?.waves ? ' off' : ''}" data-g="${g.id}" title="${esc(g.name)}"><img alt="" src="${gImg(g.id)}"></button>`;
+    $('hGads').innerHTML = `<small>move</small>${GD.MOVES.map((id) => gbtn(GD.BY[id], id === mv)).join('')}<small class="gsep">tool (${esc(U.keyName(S().keys.gadget?.[0]))}, ${esc(U.keyName(S().keys.gadgetCycle?.[0]))} cycles)</small>${GD.TOOLS.map((id) => gbtn(GD.BY[id], id === tl)).join('')}`;
     setInfo(wheelHover ? infoHtml(WP.BY[wheelHover]) : (WP.BY[WP.st.cur]?.cat === cats[wheelCat].id ? infoHtml(WP.BY[WP.st.cur]) : catInfoHtml(wheelCat)));
     renderWheelBar();
   }
@@ -300,8 +318,8 @@
     grid.addEventListener('dragstart', (e) => { const b = e.target.closest('[data-w]'); if (b) e.dataTransfer.setData('text/weapon', b.dataset.w); });
     grid.addEventListener('click', (e) => { const b = e.target.closest('[data-w]'); if (b) pickWeapon(b.dataset.w); });
     grid.addEventListener('contextmenu', (e) => { const b = e.target.closest('[data-w]'); if (!b) return; e.preventDefault(); const id = b.dataset.w; if (locked(id)) return; const hb = S().hotbar; const free = hb.findIndex((x) => !x); G.assignSlot(free >= 0 ? free : 9, id); AU.play('select'); renderWheelBar(); });
-    gads.addEventListener('mouseover', (e) => { const b = e.target.closest('[data-g]'); if (!b) return; const g = WTP.gadgets.BY[b.dataset.g]; setInfo(`<div class="wi-name">${esc(g.name)}</div><div class="wi-cat">gadget</div><div class="wi-body"><div class="wi-row"><b>Use</b><span>${esc(g.tip)}</span></div></div><div></div>`); });
-    gads.addEventListener('click', (e) => { const b = e.target.closest('[data-g]'); if (!b) return; S().gadget = b.dataset.g; WTP.persist(); WTP.gadgets.reset?.(); AU.play('select'); renderWheel(); });
+    gads.addEventListener('mouseover', (e) => { const b = e.target.closest('[data-g]'); if (!b) return; const g = WTP.gadgets.BY[b.dataset.g]; setInfo(`<div class="wi-name">${esc(g.name)}</div><div class="wi-cat">${g.slot === 'move' ? 'movement gadget, on the movement keys' : 'tool gadget, on the gadget key'}</div><div class="wi-body"><div class="wi-row"><b>Use</b><span>${esc(g.tip)}</span></div>${g.cd ? `<div class="wi-tip">Cooldown ${g.cd} s</div>` : ''}</div><div></div>`); });
+    gads.addEventListener('click', (e) => { const b = e.target.closest('[data-g]'); if (!b) return; WTP.gadgets.equip(b.dataset.g); AU.play('select'); renderWheel(); });
   })();
   function renderWheelBar() {
     const bar = $('hWBar');
@@ -340,7 +358,7 @@
   }, true);
 
   let rebinding = null;
-  const ACTIONS = [['left', 'Move left'], ['right', 'Move right'], ['jump', 'Jump'], ['down', 'Crouch / drop'], ['dash', 'Dash'], ['roll', 'Roll'], ['melee', 'Kick'], ['gadget', 'Gadget'], ['pickup', 'Pick up / throw'], ['fire', 'Fire (hold)'], ['firelock', 'Fire on / off'], ['alt', 'Alt fire'], ['aimUp', 'Aim up'], ['aimDown', 'Aim down'], ['aimLeft', 'Aim left'], ['aimRight', 'Aim right'], ['wheel', 'Weapon wheel'], ['reset', 'Restart'], ['mute', 'Sound on / off'], ['fps', 'FPS counter'], ['next_level', 'Next workspace'], ['lastWeapon', 'Last weapon'], ['prev', 'Previous weapon'], ['next', 'Next weapon'], ['pause', 'Pause / menu'],
+  const ACTIONS = [['left', 'Move left'], ['right', 'Move right'], ['jump', 'Jump'], ['down', 'Crouch / drop'], ['dash', 'Dash'], ['roll', 'Roll'], ['melee', 'Kick'], ['gadget', 'Tool gadget'], ['gadgetCycle', 'Cycle tool gadget'], ['pickup', 'Pick up / throw'], ['fire', 'Fire (hold)'], ['firelock', 'Fire on / off'], ['alt', 'Alt fire'], ['aimUp', 'Aim up'], ['aimDown', 'Aim down'], ['aimLeft', 'Aim left'], ['aimRight', 'Aim right'], ['wheel', 'Weapon wheel'], ['reset', 'Restart'], ['mute', 'Sound on / off'], ['fps', 'FPS counter'], ['next_level', 'Next workspace'], ['lastWeapon', 'Last weapon'], ['prev', 'Previous weapon'], ['next', 'Next weapon'], ['pause', 'Pause / menu'],
     ...Array.from({ length: 10 }, (_, k) => [`slot${k + 1}`, `Hotbar slot ${(k + 1) % 10}`])];
   const ACT_NAME = Object.fromEntries(ACTIONS);
   const PRESETS = {

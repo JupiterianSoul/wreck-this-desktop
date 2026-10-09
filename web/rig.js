@@ -161,6 +161,13 @@
       else if (!ground && (P.sliding || P.wall)) { const wd = P.wall || P.wallNear?.() || face; bhx = shX + wd * 2.6 * K; bhy = shY - 1.6 * K + Math.sin(R.swayT * 10) * 0.5 * K; }
       else if (ground && sp > 85 && opts.oneHand) { bhy = shY + (3.2 - Math.cos(R.phase) * 1.4) * K; }
     }
+    // Gadget poses (jetpack, glider, claws, pound, grapple, casts) override legs and the free hand
+    const gp = !P.dead && !P.victory && !holding ? WTP.gadgets?.rigPose?.(anim, { hipX, hipY, shX, shY, nx, hy, face }, K) : null;
+    if (gp) {
+      if (gp.legs) { legs.length = 0; for (const [fx, fy] of gp.legs) legs.push(ik(hipX, hipY, fx, fy, TH, SH, face > 0 ? -1 : 1)); }
+      if (gp.back) [bhx, bhy] = gp.back;
+      if (gp.front && !weaponSprite) [fhx, fhy] = gp.front;
+    }
     const armF = ik(shX, shY, fhx, fhy, UA, FA, face > 0 ? 1 : -1);
     const armB = ik(shX, shY, bhx, bhy, UA, FA, face > 0 ? 1 : -1);
     return { hipX, hipY, nx, ny, hx, hy, shX, shY, legs, armF, armB, aimA, face, anim };
@@ -561,7 +568,7 @@
     draw(ctx, p, layer, c) {
       const GD = WTP.gadgets;
       if (!GD) return;
-      const id = GD.curId(), st = GD.st;
+      const id = GD.moveId(), st = GD.st;
       const t = performance.now() / 1000;
       if (layer === 'back' && id === 'jetpack') {
         const bx = p.nx - p.face * 1.4, by = p.ny + 0.6;
@@ -573,8 +580,8 @@
         ctx.strokeStyle = c.out; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(p.nx - 7, y + 1); ctx.quadraticCurveTo(p.nx, y - 2.5, p.nx + 7, y + 1); ctx.stroke();
         ctx.strokeStyle = '#f2f2f2'; ctx.lineWidth = 0.6; ctx.stroke();
         ctx.lineWidth = 0.2; ctx.beginPath(); ctx.moveTo(p.armF.ex, p.armF.ey); ctx.lineTo(p.nx + 3, y); ctx.moveTo(p.armB.ex, p.armB.ey); ctx.lineTo(p.nx - 3, y); ctx.stroke();
-      } else if (layer === 'front' && (id === 'boots' || id === 'blast')) {
-        ctx.fillStyle = id === 'boots' ? (st.pound ? '#fff3b0' : '#6fcf5a') : (st.cd <= 0 ? '#e8484f' : '#5c5270');
+      } else if (layer === 'front' && id === 'boots') {
+        ctx.fillStyle = st.pound ? '#fff3b0' : '#6fcf5a';
         for (const l of p.legs) { ctx.beginPath(); ctx.arc(l.ex, l.ey - 0.2, 0.55, 0, Math.PI * 2); ctx.fill(); }
       } else if (layer === 'front' && id === 'claws') {
         ctx.strokeStyle = '#f2f2f2'; ctx.lineWidth = 0.25;

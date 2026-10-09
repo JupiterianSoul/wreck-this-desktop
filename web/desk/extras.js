@@ -8,7 +8,7 @@
 
   const dayKey = () => new Date().toISOString().slice(0, 10);
   const seedOf = (s) => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
-  const CAT_NAMES = { side: 'Sidearms', auto: 'Automatics', shot: 'Shotguns', boom: 'Explosives', melee: 'Melee', desk: 'Desktop', energy: 'Energy', chem: 'Chemical', gadget: 'Gizmos' };
+  const CAT_NAMES = { side: 'Sidearms', auto: 'Automatics', shot: 'Shotguns', boom: 'Explosives', melee: 'Melee', desk: 'Desktop', energy: 'Energy', chem: 'Chemical', gadget: 'Tools' };
   function daily() {
     const r = seedOf(dayKey()), pickN = (a) => a[r % a.length];
     const kind = r % 6;

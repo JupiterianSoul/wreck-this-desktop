@@ -124,10 +124,23 @@
 .hud .witem.locked { cursor: not-allowed; }
 .hud .witem.locked span { color: var(--fg2); }
 .hud .witem.locked::after { content: ''; position: absolute; right: -2px; top: -2px; width: 10px; height: 14px; background: var(--i-lock) center / 100% 100% no-repeat; }
-.hud .wgads { display: flex; gap: 4px; align-items: center; }
-.hud .wgads small { font-size: 12px; color: var(--fg2); text-transform: uppercase; letter-spacing: .08em; margin-right: 6px; white-space: nowrap; }
-.hud .wgads .slot { width: 48px; height: 42px; }
-.hud .wgads .slot img { max-width: 30px; max-height: 22px; }
+.hud .wgads { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+.hud .wgads small { font-size: 12px; color: var(--fg2); text-transform: uppercase; letter-spacing: .08em; margin-right: 4px; white-space: nowrap; }
+.hud .wgads small.gsep { margin-left: 8px; }
+.hud .wgads .slot { width: 40px; height: 38px; }
+.hud .wgads .slot img { max-width: 26px; max-height: 20px; }
+.hud .wgads .slot.off img { opacity: .35; }
+.hud .gcard .gslots { display: flex; gap: 6px; }
+.hud .gcard .gs { position: relative; width: 34px; height: 26px; display: grid; place-items: center; border: 4px solid transparent; border-image: var(--f-inset) 4 fill / 4px stretch; }
+.hud .gcard .gs img { max-width: 22px; max-height: 16px; image-rendering: pixelated; }
+.hud .gcard .gs b { position: absolute; left: 0; bottom: -4px; height: 3px; width: 0; background: var(--accent); }
+.hud .gcard .gs.low b { background: var(--bad); }
+.hud .gcard .gs.cd img { opacity: .45; }
+.hud .gcard .gs.cd b { background: var(--fg2); }
+.hud .gcard .gs.on b { background: var(--shard); }
+.hud .gcard .gs.off img { opacity: .25; filter: grayscale(1); }
+.hud .gcard .gs.ready { border-image-source: var(--f-insetHi); }
+.hud .gcard .gs em { position: absolute; right: -6px; top: -8px; font-style: normal; font-size: 12px; color: var(--accent); font-family: var(--font); }
 .hud .winfo { padding: 4px 8px; display: grid; grid-template-rows: auto auto 1fr auto; gap: 8px; overflow: hidden; }
 .hud .wi-name { font-size: 22px; font-weight: 700; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hud .wi-cat { font-size: 13px; color: var(--fg2); text-transform: uppercase; letter-spacing: .1em; margin-top: -6px; }

@@ -191,6 +191,16 @@
   S('melee', 'drill', () => osc('square', 160, 220, 0.25, 0.05, { lp: 1200, vib: 40, vibA: 30 }));
   S('melee', 'poundStart', () => { osc('sine', 700, 200, 0.18, 0.07); whoosh(0.15, 1500, 500, 0.12); });
   S('melee', 'pound', () => { sub(120, 30, 0.35, 0.66); body(0.3, 900, 60, 0.55, { room: 1 }); crackle(6, 0.2, 0.1, 1800); });
+  // Gadgets
+  S('move', 'jetStart', () => { noise(0.18, 900, 2600, 0.22, 'bandpass', 1.1, { attack: 0.02 }); sub(90, 140, 0.15, 0.25); });
+  S('move', 'clawGrab', () => { crack(0.3, 5200, 0.01); tick(0.25, 3400, 0.012, { delay: 0.03 }); });
+  S('ui', 'gadgetCycle', () => { blip(660, 0.04, 0.05); blip(990, 0.05, 0.05, 'p25', { delay: 0.045 }); });
+  S('melee', 'shock', () => { sub(140, 35, 0.4, 0.7); whoosh(0.3, 3000, 400, 0.3); body(0.25, 1200, 120, 0.35, { room: 1 }); crackle(5, 0.15, 0.1, 2500); });
+  S('throw', 'pullFire', () => { whoosh(0.1, 2000, 5000, 0.16); mech(0.12, 2800, 0.03); });
+  S('throw', 'pullYank', () => { whoosh(0.16, 4000, 900, 0.22); sub(200, 90, 0.12, 0.3); tick(0.2, 2400, 0.014); });
+  S('energy', 'shieldUp', () => { osc('sine', 300, 900, 0.3, 0.12, { vib: 9, vibA: 30 }); osc('triangle', 600, 1800, 0.25, 0.05, { delay: 0.04 }); noise(0.25, 4000, 2000, 0.06, 'bandpass', 3); });
+  S('energy', 'slowIn', () => { osc('sawtooth', 600, 70, 0.7, 0.1, { lp: 1800 }); sub(110, 45, 0.8, 0.35); noise(0.6, 2500, 300, 0.08, 'lowpass', 0.8, { room: 1 }); });
+  S('energy', 'slowOut', () => { osc('sawtooth', 80, 500, 0.35, 0.08, { lp: 2000 }); whoosh(0.3, 400, 2600, 0.12); });
   S('melee', 'slam', () => { sub(110, 30, 0.4, 0.6); body(0.4, 900, 80, 0.55, { room: 1 }); crackle(5, 0.25, 0.1, 1600); });
   S('melee', 'bowlHit', () => { sub(150, 60, 0.12, 0.38); body(0.08, 1200, 300, 0.24); });
   S('melee', 'bowlRoll', () => { noise(0.14, 260, 200, 0.16, 'lowpass', 2); sub(vary(60), 55, 0.12, 0.07); }, { gap: 120 });

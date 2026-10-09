@@ -15,7 +15,7 @@
     { id: 'chem', short: 'Chem', name: 'Chemical', icon: 'zen', col: 'l' },
     { id: 'boom', short: 'Boom', name: 'Explosives', icon: 'star', col: 'e' },
     { id: 'melee', short: 'Melee', name: 'Melee', icon: 'cross', col: 'u' },
-    { id: 'gadget', short: 'Gizmo', name: 'Gizmos', icon: 'gear', col: 'k' },
+    { id: 'gadget', short: 'Tools', name: 'Tools', icon: 'gear', col: 'k' },
     { id: 'disaster', short: 'Chaos', name: 'Disasters', icon: 'skull', col: 'y' }
   ];
   const D = [
@@ -62,10 +62,10 @@
     { id: 'wrecking', does: 'A ball on a chain that you swing with momentum', name: 'Wrecking Ball', cat: 'melee', price: 2600, hold: true, loop: 'chain', melee: true, st: [5, 3, 2, 4], tip: 'A ball on a chain. Hold fire to swing it toward your aim.' },
     { id: 'portal', does: 'Things that go in come out the other side', name: 'Portal Gun', cat: 'gadget', price: 2200, rate: 0.35, flash: 'energy', snd: 'portal', st: [1, 3, 5, 4], tip: 'Blue, then orange. Things that go in come out. ALT clears.', alt: 'Clear portals' },
     { id: 'gravity', does: 'Rip out a chunk and throw it', name: 'Gravity Gun', cat: 'gadget', price: 3200, hold: true, loop: 'grav', st: [4, 3, 3, 5], tip: 'Hold to rip out a chunk, let go to throw it.' },
-    { id: 'magnet', does: 'Strips letters off the page and flings them back', name: 'Magnet', cat: 'gadget', price: 1800, hold: true, loop: 'magnet', st: [2, 4, 3, 4], tip: 'Rips letters off the page. Let go to fling them back.' },
+    { id: 'magnet', does: 'Pulls loose text, icons and metal bits toward you, then flings them back', name: 'Magnet', cat: 'gadget', price: 1800, hold: true, loop: 'magnet', st: [2, 4, 3, 4], tip: 'Hold to rip letters out of windows and drag in everything loose. Let go to fling the lot back.' },
     { id: 'ballgun', does: 'Rubber balls that speed up every time they bounce', name: 'Bouncy Balls', cat: 'gadget', price: 900, rate: 0.16, flash: 'pink', recoil: 1, shake: 0.6, snd: 'ball', st: [2, 4, 4, 4], tip: 'Rubber balls that ricochet and chip away at everything.' },
     { id: 'boomerang', does: 'Carves on the way out and on the way back', name: 'Boomerang', cat: 'gadget', price: 700, rate: 0.3, throw: true, snd: 'boomerang', st: [3, 3, 3, 3], tip: 'Out and back again, carving both ways.' },
-    { id: 'blackhole', does: 'Swallows everything nearby, then pops', name: 'Black Hole', cat: 'gadget', price: 6000, rate: 2.4, throw: true, snd: 'warpThrow', st: [5, 1, 3, 5], tip: 'Swallows letters, debris and the occasional hero.' },
+    { id: 'blackhole', does: 'Swallows everything nearby, then pops', name: 'Black Hole', cat: 'gadget', price: 6000, rate: 2.4, throw: true, snd: 'warpThrow', st: [5, 1, 3, 5], tip: 'Swallows text, icons, rubble and the occasional window. Then it pops.' },
     { id: 'snowball', does: 'Freezes a patch for a follow up shot', name: 'Snowballs', cat: 'gadget', price: 300, rate: 0.22, throw: true, snd: 'snowThrow', st: [1, 4, 3, 2], tip: 'Freezes a little patch. Follow up with anything.' },
     { id: 'banana', does: 'Splits into five exploding bananas', name: 'Banana Bomb', cat: 'gadget', price: 450, rate: 1.2, throw: true, snd: 'banana', st: [4, 1, 3, 5], tip: 'Splits into five smaller bananas. All of them explode.' },
     { id: 'airstrike', does: 'Throw a flare, a bomb line follows', name: 'Airstrike', cat: 'disaster', price: 3800, rate: 1.8, throw: true, snd: 'flarePop', st: [5, 1, 5, 5], tip: 'Throw a flare. Bombs follow shortly after.' },
@@ -77,7 +77,7 @@
     { id: 'glove', does: 'Punches a whole chunk out of the page as a flying projectile', name: 'Spring Glove', cat: 'melee', price: 1300, rate: 0.5, melee: true, snd: 'springPunch', st: [4, 2, 1, 4], tip: 'Boing. The punched chunk flies off and explodes on impact.' },
     { id: 'saw', does: 'Blades embed in soft stuff and keep grinding, ricochet off metal', name: 'Saw Launcher', cat: 'side', price: 1400, rate: 0.42, flash: 'small', recoil: 2, shake: 2, snd: 'sawShot', st: [3, 3, 4, 4], tip: 'Spinning blades that bite into the page and keep chewing.' },
     { id: 'backspace', does: 'Deletes text letter by letter along a line, never touches anything else', name: 'Backspace', cat: 'energy', price: 700, rate: 0.5, flash: 'energy', recoil: 1, shake: 1, snd: 'backspace', st: [2, 3, 5, 2], tip: 'A text cursor that deletes every letter in its path. Typing in reverse.' },
-    { id: 'cutter', does: 'Cuts a clean rectangle out of the page, then pastes it wherever you throw it', name: 'Ctrl+X', cat: 'gadget', price: 1600, rate: 0.35, snd: 'cut', st: [3, 2, 3, 4], tip: 'Fire to cut a selection, fire again to paste it at speed. ALT pastes it gently.', alt: 'Paste in place' },
+    { id: 'cutter', does: 'Cuts a clean rectangle out of the screen, then pastes it wherever you throw it', name: 'Ctrl+X', cat: 'gadget', price: 1600, rate: 0.35, snd: 'cut', st: [3, 2, 3, 4], tip: 'Fire to cut a selection, fire again to paste it at speed. ALT pastes it gently.', alt: 'Paste in place' },
     { id: 'vacuum', does: 'Sucks up rubble and debris as ammo, then blasts it back out', name: 'Shop Vac', cat: 'gadget', price: 1200, hold: true, loop: 'vacuum', st: [3, 4, 3, 3], tip: 'Hold to clean up the mess, let go to fire the mess back. Recycling!', alt: 'Blow it out' },
     { id: 'pen', does: 'Draws solid ink you can stand on: build bridges, walls and stairs', name: 'Ink Pen', cat: 'gadget', price: 500, hold: true, loop: 'pen', st: [1, 4, 3, 3], tip: 'Hold to draw solid ink lines. Make your own platforms, then wreck them too.' },
     { id: 'bowling', does: 'A heavy ball that rolls and plows a long trench', name: 'Bowling Ball', cat: 'boom', price: 900, rate: 0.9, throw: true, snd: 'bowlThrow', st: [4, 1, 4, 3], tip: 'Roll it along a line of text. Strike!' },

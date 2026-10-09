@@ -39,7 +39,8 @@ Bindings are physical keys, so on AZERTY it is ZQSD. Everything can be rebound i
 | Aim and fire | mouse, left click |
 | Alt fire | right click or G |
 | Weapons | 1 to 0, mouse wheel, X for the last weapon, Tab for the wheel |
-| Kick / gadget / pick up and throw | F / A / E |
+| Kick / tool gadget / pick up and throw | F / A / E |
+| Cycle tool gadget | C (movement gadgets work on Space and Down) |
 | Mute / FPS | M / F3 |
 | Pause / panic | Esc / F12 |
 
@@ -86,6 +87,7 @@ node tests/winning.test.js
 node tests/progress.test.js
 node tests/switch.test.js
 node tests/keys.test.js
+node tests/gadgets.test.js
 tests/host.test.sh tiled3
 ```
 
