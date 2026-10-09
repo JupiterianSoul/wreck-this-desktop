@@ -1,0 +1,1 @@
+{"bar": {"layout": {"left": [{"id": "omarchy.menu"}, {"id": "user.workspaces"}, {"id": "user.spotify"}, {"id": "user.games"}, {"id": "io.github.twiking.omasettings"}], "center": [{"id": "omarchy.indicators"}, {"id": "tmn73.calendar"}, {"id": "omarchy.weather"}], "right": [{"id": "jankeesvw.notification-center"}, {"id": "omarchy.network"}, {"id": "omarchy.battery"}]}}}

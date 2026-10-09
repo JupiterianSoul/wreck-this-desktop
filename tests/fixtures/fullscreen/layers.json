@@ -1,0 +1,1 @@
+{"eDP-2": {"levels": {"0": [{"address": "0xb1", "x": 0, "y": 0, "w": 1600, "h": 1000, "namespace": "omarchy-background", "pid": 1}], "1": [], "2": [{"address": "0xb2", "x": 0, "y": 0, "w": 1600, "h": 26, "namespace": "omarchy-bar", "pid": 2}], "3": []}}}

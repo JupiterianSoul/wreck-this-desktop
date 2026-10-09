@@ -1,0 +1,1 @@
+[{"id": 0, "name": "eDP-2", "description": "Fixture panel", "width": 2560, "height": 1600, "refreshRate": 165.0, "x": 0, "y": 0, "activeWorkspace": {"id": 1, "name": "1"}, "specialWorkspace": {"id": 0, "name": ""}, "reserved": [0, 26, 0, 0], "scale": 1.6, "transform": 0, "focused": true, "dpmsStatus": true, "vrr": false, "disabled": false}]
