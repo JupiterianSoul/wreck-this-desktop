@@ -15,6 +15,7 @@
       <div class="row" id="hTimeW"><span id="hTimeL">time</span><b id="hTime">0:00</b></div>
       <div class="row" id="hScoreW"><span>score</span><b id="hScore">0</b></div>
       <div class="row" id="hWaveW" hidden><span>wave</span><b id="hWave">0</b></div>
+      <div class="row" id="hLeftW" hidden><span>enemies left</span><b id="hLeft">0</b></div>
       <div class="row"><span>life</span><div class="hp" id="hHp"></div></div>
       <div class="row" id="hAmmoW" hidden><span>ammo</span><b id="hAmmo">0</b></div>
       <div class="row shards" id="hShardsW" hidden><span>shards</span><b><i class="shard"></i><em id="hShards">0</em></b></div>
@@ -91,6 +92,7 @@
     $('hTimeL').textContent = h.countdown ? 'time left' : 'time';
     $('hScoreW').hidden = !h.score;
     $('hWaveW').hidden = !run.mode.waves;
+    $('hLeftW').hidden = !run.mode.waves;
     $('hAmmoW').hidden = !WP.ammo();
     const goal = run.goal || h.goal;
     $('hGoal').hidden = !goal;
@@ -102,11 +104,14 @@
     const pct = MD.pct();
     $('hPct').textContent = `${pct.toFixed(1)}%`;
     $('hBar').style.width = `${Math.min(100, pct)}%`;
-    const t = run.mode.hud?.countdown ? Math.max(0, (run.limit || 60) - run.t) : run.t;
+    const cd = !!run.hud?.countdown;
+    const t = cd ? Math.max(0, (run.limit || 60) - run.t) : run.t;
+    $('hTimeL').textContent = cd ? 'time left' : 'time';
     $('hTime').textContent = fmtClock(t);
-    $('hTime').classList.toggle('warn', !!run.mode.hud?.countdown && t <= 10);
+    $('hTime').classList.toggle('warn', cd && t <= 10);
     $('hScore').textContent = fmtInt(run.score);
     $('hWave').textContent = run.wave || 0;
+    if (run.mode.waves) { const n = MD.enemiesLeft(run); $('hLeft').textContent = n; $('hLeft').classList.toggle('warn', n > 0 && n <= 3); }
     const P = WTP.player;
     const key = run.mode.noDamage ? 'inv' : `${P.hp}/${P.maxHp}`;
     if (key !== lastHp) {
@@ -319,7 +324,12 @@
       if (e.code === 'Escape') { e.preventDefault(); G.pause(false); }
       return;
     }
-    if (!$('hRes').hidden) { e.stopImmediatePropagation(); }
+    if (!$('hRes').hidden) {
+      e.stopImmediatePropagation();
+      const bs = [...$('hResP').querySelectorAll('button')];
+      if (e.code === 'Enter') { e.preventDefault(); (bs.find((b) => b.classList.contains('focus')) || bs[0])?.click(); }
+      else if (/^Arrow/.test(e.code) || e.code === 'Tab') { e.preventDefault(); navIdx = (navIdx + (e.code === 'ArrowLeft' || e.code === 'ArrowUp' || e.shiftKey ? -1 : 1) + bs.length) % bs.length; bs.forEach((b, k) => b.classList.toggle('focus', k === navIdx)); }
+    }
   }, true);
 
   let rebinding = null;
@@ -486,6 +496,8 @@
     const o = $('hRes');
     const p = $('hResP');
     const run = r.run;
+    p.className = 'card mwin res-win';
+    navIdx = 0;
     p.innerHTML = `<h2>${esc(run.mode.name)}</h2><div class="grade ${run.grade}">${run.grade}</div>
       <div class="res">${r.rows.map(([k, v]) => `<span>${esc(k)}</span><b>${esc(String(v))}</b>`).join('')}${r.best ? `<span>Best</span><b>${r.best.isNew ? 'NEW ' : ''}${esc(run.mode.fmt ? run.mode.fmt(r.best.best) : fmtInt(r.best.best))}</b>` : ''}${r.shards ? `<span>Shards earned</span><b><i class="shard"></i>${fmtInt(r.shards)}</b>` : ''}</div>
       <div class="btns"><button class="b primary" data-a="again">Again on this desktop</button>${S().settings.nextLevel ? '<button class="b" data-a="next">Next workspace</button>' : ''}<button class="b" data-a="menu">Menu</button><button class="b danger" data-a="quit">Quit</button></div>`;
@@ -499,8 +511,31 @@
       else G.quit('results');
     }));
   };
-  U.showFinish = () => { };
-  U.closeOverlays = () => { $('hMenu').hidden = true; $('hRes').hidden = true; $('hWheel').hidden = true; hud.classList.remove('overlay'); };
+  // Win screen: its own layout, Continue first and focused so the run can go on where it stopped
+  const WIN_TITLES = { boss: ['YOU WIN', 'The wave 5 boss is down. The desktop is yours.'], clear: ['DESKTOP DESTROYED', 'Not a single pixel left standing.'] };
+  U.winScreen = (r) => {
+    const o = $('hRes'), p = $('hResP');
+    const run = r.run;
+    const [title, sub] = WIN_TITLES[run.winKind] || WIN_TITLES.clear;
+    const cont = run.mode.waves ? 'Continue (endless)' : 'Continue breaking';
+    const shards = run.shardsEarned;
+    p.className = 'card mwin res-win win-win';
+    p.innerHTML = `<div class="win-mode">${esc(run.mode.name)}</div><h1 class="win-title">${esc(title)}</h1><p class="win-sub">${esc(sub)}</p>
+      <div class="res">${r.rows.map(([k, v]) => `<span>${esc(k)}</span><b>${esc(String(v))}</b>`).join('')}${r.best ? `<span>Best</span><b>${r.best.isNew ? 'NEW ' : ''}${esc(run.mode.fmt ? run.mode.fmt(r.best.best) : fmtInt(r.best.best))}</b>` : ''}${shards ? `<span>Shards earned</span><b><i class="shard"></i>${fmtInt(shards)}</b>` : ''}</div>
+      <div class="btns win-btns"><button class="b primary focus" data-a="continue">${cont}</button><button class="b" data-a="again">Restart</button><button class="b" data-a="menu">Menu</button></div>`;
+    o.hidden = false;
+    hud.classList.add('overlay');
+    navIdx = 0;
+    p.querySelectorAll('[data-a]').forEach((b) => b.addEventListener('click', () => {
+      const a = b.dataset.a;
+      o.hidden = true; p.className = 'card mwin res-win';
+      if (a === 'continue') { hud.classList.remove('overlay'); G.continueRun(); }
+      else if (a === 'again') G.restart();
+      else { G.restart(); G.pause(true); }
+    }));
+    p.querySelector('[data-a="continue"]').focus({ preventScroll: true });
+  };
+  U.closeOverlays = () => { $('hResP').className = 'card mwin res-win'; $('hMenu').hidden = true; $('hRes').hidden = true; $('hWheel').hidden = true; hud.classList.remove('overlay'); };
   let navIdx = 0;
   U.padNav = () => {
     const open = [$('hMenu'), $('hRes')].find((o) => !o.hidden);

@@ -169,7 +169,6 @@
       Wd.back[i] = 0; Wd.dmg[i] = 0;
       Wd.touch(i); Wd.wakeAbove(i);
     }
-    Wd.destroyed += solidN * 0.4;
     G()?.scored?.(Math.round(solidN * 0.15), mx, my);
     let inertia = 0;
     for (let ly = 0; ly < bh; ly++) for (let lx = 0; lx < bw; lx++) if (kind[ly * bw + lx]) { const dx = x0 + lx + 0.5 - mx, dy = y0 + ly + 0.5 - my; inertia += dx * dx + dy * dy; }
@@ -256,6 +255,7 @@
     const l = iy * s.bw + ix;
     if (!s.kind[l]) return 0;
     const c = s.col[l];
+    Wd.markGone(s.src[l]);
     s.kind[l] = 0;
     s.n--;
     if (s.tex) s.texCtx.clearRect(ix * Wd.CP, iy * Wd.CP, Wd.CP, Wd.CP);
@@ -398,7 +398,7 @@
     const cs = Math.cos(s.a), sn = Math.sin(s.a);
     let placed = 0;
     if (shatter) {
-      Wd.destroyed += s.solidN * 0.6;
+      for (let l = 0; l < s.kind.length; l++) if (s.kind[l] === 1) Wd.markGone(s.src[l]);
       const seeds = [];
       const ns = Math.max(4, Math.min(22, Math.round(s.n / 900)));
       for (let k = 0; k < ns; k++) seeds.push([rand(0, s.bw), rand(0, s.bh)]);
@@ -432,10 +432,10 @@
         if (!s.kind[l]) continue;
         const dx = lx + 0.5 - s.ox, dy = ly + 0.5 - s.oy;
         const x = Math.floor(s.x + dx * cs - dy * sn), y = Math.floor(s.y + dx * sn + dy * cs);
-        if (x < 0 || y < 0 || x >= Wd.w || y >= Wd.gh) continue;
+        // Pixels with nowhere to land are lost, so they count as destroyed
+        if (x < 0 || y < 0 || x >= Wd.w || y >= Wd.gh) { Wd.markGone(s.src[l]); continue; }
         const i = y * Wd.w + x;
-        if (Wd.mat[i] !== 0 && Wd.mat[i] !== HOLE) continue;
-        if (G()?.inPlayer?.(x, y)) continue;
+        if ((Wd.mat[i] !== 0 && Wd.mat[i] !== HOLE) || G()?.inPlayer?.(x, y)) { Wd.markGone(s.src[l]); continue; }
         if (s.kind[l] === 1) placed++;
         Wd.under[i] = Wd.mat[i];
         Wd.mat[i] = SOLID; Wd.col[i] = s.col[l]; Wd.src[i] = s.src[l]; Wd.mtl[i] = s.mtl[l]; Wd.rid[i] = 0; Wd.kind[i] = 0; Wd.gid[i] = 0; Wd.flag[i] = Wd.F_PIN; Wd.back[i] = 0;

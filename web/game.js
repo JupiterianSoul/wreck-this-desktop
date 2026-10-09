@@ -77,7 +77,12 @@
     G.bonus(e.T.score, e.x, e.y - 10);
     WTP.hardcore?.onKill?.(e);
     G.stat('kills', 1);
-    if (e.T.boss) { run.bossKilled = true; G.announce('PROCESS TERMINATED!', 6); }
+    if (e.T.boss) {
+      run.bossKilled = true;
+      // Survival and Hardcore are won on the wave 5 boss, Chaos and continued runs only celebrate
+      if (!run.endless && run.wave >= 5 && (run.modeId === 'survival' || run.modeId === 'hardcore')) G.win('boss');
+      else { G.announce('PROCESS TERMINATED!', 6); G.bonus(500 * Math.max(1, Math.floor(run.wave / 5)), e.x, e.y - 24); }
+    }
     G.comboBump(8);
   };
   G.playerDied = () => { if (G.run && !G.run.ended) setTimeout(() => { if (G.run && G.run.mode.respawn !== false) { spawnHere(Math.round(PL.x + PL.w / 2)); prevP.x = PL.x; prevP.y = PL.y; PL.hp = PL.maxHp; } else G.end('dead'); }, 1400); };
@@ -240,8 +245,8 @@
     WTP.ui?.pauseMenu?.(on);
   };
   G.quit = (why) => { G.stopLoop(); WTP.merges?.beforeQuit?.(); WTD.quit(why || 'quit'); };
-  G.showFinish = (on) => WTP.ui?.showFinish?.(on);
 
+  G.win = (kind) => { const run = G.run; if (!run || run.ended) return; run.winKind = kind; G.end('win'); };
   G.end = (reason) => {
     const run = G.run;
     if (!run || run.ended) return;
@@ -253,12 +258,36 @@
     run.grade = run.mode.grade(run);
     const v = run.mode.bestVal ? run.mode.bestVal(run) : null;
     const best = v != null && run.mode.bestKey ? WTP.setBest(run.mode.bestKey(run), v, run.mode.higher) : null;
+    // A continued run banks only what it added since the last end
     const s = WTP.save.stats;
-    s.pixels += Wd.destroyed; s.time += run.t; s.runs++; s.bestCombo = Math.max(s.bestCombo, run.maxCombo);
+    s.pixels += Wd.destroyed - (run.bankPx || 0); s.time += run.t - (run.bankT || 0); if (!run.continues) s.runs++; s.bestCombo = Math.max(s.bestCombo, run.maxCombo);
+    run.bankPx = Wd.destroyed; run.bankT = run.t;
     WTP.persist(true);
     PL.victory = run.won;
     AU.jingle(run.won ? 'win' : 'lose');
-    setTimeout(() => { if (G.run === run) { AU.muffle(true); WTP.ui?.results?.({ run, pct, best, rows: run.mode.rows(run) }); } }, 900);
+    const ends = run.ends = (run.ends || 0) + 1;
+    setTimeout(() => {
+      if (G.run !== run || !run.ended || run.ends !== ends) return;
+      AU.muffle(true);
+      const r = { run, pct, best, rows: run.mode.rows(run) };
+      if (reason === 'win') WTP.ui?.winScreen?.(r); else WTP.ui?.results?.(r);
+    }, 900);
+  };
+  // Back into the same run after a win: clock, score and wreckage stay, the run becomes endless
+  G.continueRun = () => {
+    const run = G.run;
+    if (!run || !run.ended || run.reason !== 'win') return false;
+    run.ended = false; run.won = false; run.reason = null; run.grade = null; run.winKind = null;
+    run.endless = true; run.continues = (run.continues || 0) + 1;
+    if (run.hud?.countdown) run.hud = { ...run.hud, countdown: false };
+    PL.victory = false;
+    WTP.ui?.hudSetup?.(run);
+    AU.muffle(false);
+    I.enabled = true; I.clear(); I.fireLock = false; I.pointerFire = false;
+    last = performance.now(); acc = 0;
+    cv.focus({ preventScroll: true });
+    G.label(run.mode.waves ? 'ENDLESS: A BOSS EVERY 5 WAVES' : 'KEEP BREAKING', 1800);
+    return true;
   };
 
   function updateAim(dt) {
@@ -452,6 +481,7 @@
     ctx.drawImage(fxr.back, fxr.ox, fxr.oy);
     WTP.props.draw(ctx);
     EN.draw(ctx);
+    if (G.run.mode.waves && !G.run.ended) { const left = MD.enemiesLeft(G.run); EN.drawArrows(ctx, left > 0 && left <= 3 && !(G.run.spawnQ && G.run.spawnQ.length)); }
     WP.draw(ctx);
     WTP.gadgets.drawWorld(ctx);
     const cur = WP.current();
@@ -521,6 +551,7 @@
     tp: (x, y) => { PL.x = x; PL.y = y; PL.vx = 0; PL.vy = 0; prevP.x = x; prevP.y = y; },
     explode: (x, y, r) => WP.explode(x, y, r),
     end: (r) => G.end(r),
+    continueRun: () => G.continueRun(),
     step: (n = 1) => { for (let k = 0; k < n; k++) step(STEP); },
     weapons: () => WP.DEFS.map((d) => d.id),
     press: (a) => I.press(a)

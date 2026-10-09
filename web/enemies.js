@@ -5,6 +5,7 @@
   const W = () => WTP.world, FX = () => WTP.fx, G = () => WTP.game, PL = () => WTP.player;
   const A = (n, x) => WTP.audio.play(n, x);
   const list = [], bullets = [], pickups = [];
+  let hits = 0;
 
   const ADS = [
     ['YOU WON!', 'y', 'e', '0', 'gift', 'CLAIM', 'l'], ['HOT DEALS', 'o', 'R', '7', 'fire', 'SHOP', 'y'], ['1 WEIRD TRICK', '7', 'b', '0', 'star', 'LEARN', 'e'],
@@ -326,6 +327,7 @@
         if (dd <= 0) return false;
         this.hp -= dd;
         this.flash = 0.08;
+        hits++;
         if (dd >= 8) FX().pop(this.x + rand(-4, 4), this.y - this.h / 2 - 2, `${Math.round(dd)}`, { scale: 1, ramp: mul < 0.5 ? ['5', '4'] : ['7', 'Y', 'y'], life: 0.6, vy: -40 });
         if (this.hp <= 0) kill(this, cause);
         return true;
@@ -654,7 +656,7 @@
         }
         let g = 0; while (box(e.x, e.y, e) && g++ < 20) e.y -= 1;
       } else if (!noMove) { e.x += e.vx * dt; e.y += e.vy * dt; }
-      if (e.type !== 'video' && (e.y > Wd.h + 40 || e.x < -60 || e.x > Wd.w + 60)) { e.dead = true; continue; }
+      if (e.type !== 'video' ? (e.y > Wd.h + 40 || e.x < -60 || e.x > Wd.w + 60) : (e.y > Wd.h + 40 || e.y < -120 || e.x < -140 || e.x > Wd.w + 140)) { e.dead = true; continue; }
       const touchR = 3;
       if (!(e.type === 'ghost' && e.alpha < 0.6) && !(e.type === 'tracker' && e.inside) && Math.abs(pc.x - e.x) < e.w / 2 + touchR && Math.abs(pc.y - e.y) < e.h / 2 + 6) {
         if (P.dashT > 0 && !D.boss) e.damage(30, 'dash');
@@ -853,7 +855,77 @@
     else { x = side < 0.33 ? v.x + 8 : side < 0.66 ? v.x + v.w - 8 : v.x + rand(10, v.w - 10); y = side < 0.66 ? v.y + rand(20, v.h * 0.5) : v.y + 10; }
     const e = spawn(type, x, y, o);
     if (e && type === 'video') e.dir = x < P.x ? 1 : -1;
+    else if (e) placeFree(e, e.x, e.y, type !== 'tracker' && type !== 'daemon');
     return e;
+  }
+  // Clamp inside the screen and, unless the enemy burrows, step out of solid cells to the nearest open spot
+  function placeFree(e, x, y, needAir = true) {
+    const Wd = W(), mx = e.w / 2 + 4, my = e.h / 2 + 4;
+    const cx = (v) => Math.max(mx, Math.min(Wd.w - mx, v)), cy = (v) => Math.max(my, Math.min(Wd.gh - my, v));
+    x = cx(x); y = cy(y);
+    if (needAir && box(x, y, e)) {
+      let found = false;
+      for (let r = 4; r <= 160 && !found; r += 4) {
+        for (let k = 0; k < 16; k++) {
+          const a = -Math.PI / 2 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * (Math.PI / 8);
+          const nx = cx(x + Math.cos(a) * r), ny = cy(y + Math.sin(a) * r);
+          if (!box(nx, ny, e)) { x = nx; y = ny; found = true; break; }
+        }
+      }
+    }
+    e.x = x; e.y = y;
+    return e;
+  }
+  const alive = () => list.filter((e) => !e.dead && !e.T.tiny);
+  const offScreen = (e) => { const Wd = W(); return e.x < 0 || e.x > Wd.w || e.y < 0 || e.y > Wd.gh; };
+  const stuck = (e) => offScreen(e) || e.inside || (e.type === 'ghost' && e.alpha < 0.6) || (!e.T.fly && box(e.x, e.y, e));
+  // Stall watchdog, first stage: pull hidden or wedged enemies into the open near the player and mark them
+  function unstick() {
+    const P = PL(), pc = P.center();
+    let n = 0;
+    for (const e of alive()) {
+      e.marked = true;
+      if (!stuck(e)) continue;
+      const a = rand(0, Math.PI * 2), d = rand(60, 100);
+      e.inside = false; e.alpha = 1; e.vx = 0; e.vy = 0; e.hideT = 6;
+      placeFree(e, pc.x + Math.cos(a) * d, Math.min(pc.y - 20, pc.y + Math.sin(a) * d));
+      for (let k = 0; k < 14; k++) FX().spark(e.x + rand(-e.w / 2, e.w / 2), e.y + rand(-e.h / 2, e.h / 2), rand(-50, 50), rand(-50, 50), P32.e, 0.35);
+      n++;
+    }
+    if (n) A('popup');
+    return n;
+  }
+  // Second stage: whatever is still alive is removed for no score (bosses only get pulled again)
+  function timeout() {
+    let n = 0;
+    for (const e of alive()) {
+      if (e.T.boss) { e.marked = true; continue; }
+      e.dead = true; n++;
+      for (let k = 0; k < 10; k++) FX().spark(e.x + rand(-e.w / 2, e.w / 2), e.y + rand(-e.h / 2, e.h / 2), rand(-40, 40), rand(-60, 10), P32['5'], 0.4);
+      FX().pop(e.x, e.y - e.h / 2 - 4, 'TIMED OUT', { scale: 1, ramp: ['6', '5'], life: 0.9 });
+    }
+    return n;
+  }
+  // Arrows toward the last few enemies, or the ones the watchdog marked: at the screen edge when they are off screen, a bobbing marker above them otherwise
+  function drawArrows(ctx, all) {
+    const Wd = W(), t = performance.now() / 1000;
+    for (const e of alive()) {
+      if (!all && !e.marked) continue;
+      const off = offScreen(e) || (e.type === 'tracker' && e.inside);
+      let x = e.x, y = e.y - e.h / 2 - 9 + Math.sin(t * 6) * 1.5, ang = Math.PI / 2;
+      if (offScreen(e)) {
+        const cx = Wd.w / 2, cy = Wd.gh / 2, dx = e.x - cx, dy = e.y - cy;
+        const k = Math.min((Wd.w / 2 - 10) / Math.max(1e-3, Math.abs(dx)), (Wd.gh / 2 - 10) / Math.max(1e-3, Math.abs(dy)));
+        x = cx + dx * k; y = cy + dy * k; ang = Math.atan2(dy, dx);
+      }
+      ctx.save();
+      ctx.translate(Math.round(x), Math.round(y)); ctx.rotate(ang);
+      ctx.fillStyle = PAL['0'];
+      ctx.beginPath(); ctx.moveTo(5, 0); ctx.lineTo(-3, -5); ctx.lineTo(-3, 5); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = off || e.marked ? PAL.e : PAL.y;
+      ctx.beginPath(); ctx.moveTo(3.5, 0); ctx.lineTo(-2, -3.5); ctx.lineTo(-2, 3.5); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
   }
   function drop(t, x, y, n = 1) { for (let k = 0; k < n; k++) pickups.push({ t, x, y, vx: rand(-90, 90), vy: rand(-180, -60), life: t === 'heart' ? 12 : 10 }); }
   function reset() { list.length = 0; bullets.length = 0; pickups.length = 0; }
@@ -866,5 +938,5 @@
   };
   const HELP = { grid, rect, rows, text, textW, set, C };
   function register(type, D, X) { T[type] = { ...D, ext: true }; EXT[type] = X || {}; VARIANTS[type] = X && X.variants || 1; FRAMES[type] = X && X.frames || 1; if (!ORDER.includes(type)) ORDER.push(type); }
-  WTP.enemies = { register, EXT, HELP, shoot, fly, kill, TYPES: T, ORDER, ADS, list, bullets, pickups, spawn, spawnEdge, update, draw, at, damageCircle, rayHit, nearest, pull, push, reset, drop, bombDrop, sprite, portrait, count: () => list.filter((e) => !e.dead && !e.T.tiny).length };
+  WTP.enemies = { register, EXT, HELP, shoot, fly, kill, TYPES: T, ORDER, ADS, list, bullets, pickups, spawn, spawnEdge, update, draw, at, damageCircle, rayHit, nearest, pull, push, reset, drop, bombDrop, sprite, portrait, placeFree, unstick, timeout, drawArrows, hits: () => hits, count: () => alive().length };
 })();

@@ -288,3 +288,12 @@
 .hud ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--fg) 35%, var(--bg)); box-shadow: inset 0 0 0 2px var(--ink), inset -4px -4px 0 color-mix(in srgb, var(--fg) 20%, var(--bg)); }
 .hud .crate { grid-template-rows: auto auto 1fr auto; }
 .hud .ps .cprev { justify-self: center; height: 84px; image-rendering: pixelated; }
+
+.hud .win-win { width: min(640px, 92vw); text-align: center; gap: 10px; padding: 14px 18px 12px; border-image-source: var(--f-panel2); }
+.hud .win-win .win-mode { color: var(--fg2); font-size: 14px; text-transform: uppercase; letter-spacing: .14em; }
+.hud .win-win .win-title { margin: 0; font-size: 72px; line-height: 1; color: var(--warn); letter-spacing: .03em; text-shadow: 5px 5px 0 var(--ink), -2px -2px 0 var(--ink), 2px -2px 0 var(--ink), -2px 2px 0 var(--ink); animation: winIn .5s steps(5) both; }
+.hud .win-win .win-sub { margin: 0; color: var(--fg); font-size: 16px; }
+.hud .win-win .res { text-align: left; }
+.hud .win-win .win-btns { justify-content: center; margin-top: 4px; }
+.hud .win-win .win-btns .b { font-size: 17px; padding: 4px 16px; }
+@keyframes winIn { 0% { transform: scale(1.6); opacity: 0; } 60% { transform: scale(.94); opacity: 1; } 100% { transform: scale(1); } }

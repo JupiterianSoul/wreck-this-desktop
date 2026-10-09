@@ -147,7 +147,7 @@
     const fresh = run && !run.ended;
     oEnd(reason);
     if (!fresh) return;
-    bump('runs', 1);
+    if (!run.continues) bump('runs', 1);
     if (run.modeId === 'time') max('time', Math.floor(WTP.modes.pct()));
     check();
     WTP.persist();

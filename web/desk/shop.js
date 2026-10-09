@@ -284,7 +284,9 @@
     const parts = runShards(run);
     run.shardParts = parts;
     run.shardsEarned = parts.reduce((a, p) => a + p[1], 0);
-    earn(run.shardsEarned);
+    // A continued run is paid only the difference since its last end
+    earn(Math.max(0, run.shardsEarned - (run.shardsBanked || 0)));
+    run.shardsBanked = Math.max(run.shardsBanked || 0, run.shardsEarned);
     const U = WTP.ui;
     if (U && !U.__shopResults) {
       U.__shopResults = true;

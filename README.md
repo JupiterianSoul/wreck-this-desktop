@@ -82,6 +82,7 @@ node tests/melee.test.js
 node tests/idle.test.js
 node tests/skins.test.js
 node tests/spawn.test.js
+node tests/winning.test.js
 tests/host.test.sh tiled3
 ```
 

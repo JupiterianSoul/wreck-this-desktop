@@ -20,7 +20,7 @@
 
   let levelCv = null, levelCtx = null, img = null, pix = null;
   let mat, back, code, col, bcol, kind, gid, pgid, burn, flag, under, tgt, mtl, dmg, init = null, sandMark, visit, visitGen = 0;
-  let src, rid, ptex, wvis, ocol, obcol;
+  let src, rid, ptex, wvis, ocol, obcol, gone;
   let dirtyTiles = null, dirtyList = [], TW = 0, TH = 0, hiTiles = null, hiList = [];
   const qbuf = new Int32Array(1 << 19);
 
@@ -30,9 +30,9 @@
     mat = new Uint8Array(n); back = new Uint8Array(n); code = new Uint8Array(n); col = new Uint32Array(n); bcol = new Uint32Array(n);
     kind = new Uint8Array(n); gid = new Int32Array(n); pgid = new Uint16Array(n); burn = new Uint8Array(n); flag = new Uint8Array(n); under = new Uint8Array(n); tgt = new Uint16Array(n);
     mtl = new Uint8Array(n); dmg = new Uint8Array(n);
-    src = new Int32Array(n).fill(-1); rid = new Uint16Array(n); ptex = new Uint8Array(n); wvis = new Uint8Array(n); ocol = new Uint32Array(n); obcol = new Uint32Array(n);
+    src = new Int32Array(n).fill(-1); rid = new Uint16Array(n); ptex = new Uint8Array(n); wvis = new Uint8Array(n); ocol = new Uint32Array(n); obcol = new Uint32Array(n); gone = new Uint8Array(n);
     sandMark = new Uint32Array(n); visit = new Uint32Array(n);
-    Object.assign(W, { mat, back, code, col, bcol, kind, gid, pgid, burn, flag, tgt, mtl, dmg, src, rid, ptex, wvis, ocol, obcol, under });
+    Object.assign(W, { mat, back, code, col, bcol, kind, gid, pgid, burn, flag, tgt, mtl, dmg, src, rid, ptex, wvis, ocol, obcol, under, gone });
     levelCv = document.createElement('canvas');
     levelCv.width = w; levelCv.height = h;
     levelCtx = levelCv.getContext('2d');
@@ -82,11 +82,12 @@
     return p;
   }
   function finalize() {
+    // Each original front cell counts once, wherever its pixels end up (slabs, chunks, settled debris)
     let total = 0;
-    for (let i = 0; i < W.n; i++) if (mat[i] === SOLID || mat[i] === ICE) total++;
+    for (let i = 0; i < W.n; i++) { const own = (mat[i] === SOLID || mat[i] === ICE) && src[i] === i; gone[i] = own ? 0 : 1; if (own) total++; }
     W.total = Math.max(1, total);
     for (const p of W.props) if (p) { let c = 0; for (let y = p.y0; y <= p.y1; y++) for (let x = p.x0; x <= p.x1; x++) if (pgid[y * W.w + x] === p.id && mat[y * W.w + x] === SOLID) c++; p.n = c; p.left = c; }
-    init = { mat: mat.slice(), col: col.slice(), back: back.slice(), code: code.slice(), bcol: bcol.slice(), kind: kind.slice(), gid: gid.slice(), pgid: pgid.slice(), mtl: mtl.slice(), flag: flag.slice(), src: src.slice(), ptex: ptex.slice() };
+    init = { mat: mat.slice(), col: col.slice(), back: back.slice(), code: code.slice(), bcol: bcol.slice(), kind: kind.slice(), gid: gid.slice(), pgid: pgid.slice(), mtl: mtl.slice(), flag: flag.slice(), src: src.slice(), ptex: ptex.slice(), gone: gone.slice() };
     W.init = init;
   }
   function cellBox(r) {
@@ -101,7 +102,7 @@
   }
 
   function reset() {
-    mat.set(init.mat); col.set(init.col); back.set(init.back); code.set(init.code); bcol.set(init.bcol); kind.set(init.kind); gid.set(init.gid); pgid.set(init.pgid); mtl.set(init.mtl); flag.set(init.flag); src.set(init.src); ptex.set(init.ptex);
+    mat.set(init.mat); col.set(init.col); back.set(init.back); code.set(init.code); bcol.set(init.bcol); kind.set(init.kind); gid.set(init.gid); pgid.set(init.pgid); mtl.set(init.mtl); flag.set(init.flag); src.set(init.src); ptex.set(init.ptex); gone.set(init.gone);
     burn.fill(0); under.fill(0); tgt.fill(0); dmg.fill(0);
     W.chunks = []; W.burning = []; W.smoulder = []; W.iceList = []; W.sand = []; W.rubbleN = 0;
     W.destroyed = 0; W.targets = [];
@@ -123,10 +124,9 @@
       const i = y * W.w + x;
       if (G()?.inPlayer?.(x, y) && init.mat[i] === SOLID) continue;
       if (mat[i] === RUBBLE || mat[i] === DEBRIS) W.rubbleN = Math.max(0, W.rubbleN - 1);
-      const was = mat[i] === SOLID || mat[i] === ICE;
       mat[i] = init.mat[i]; col[i] = init.col[i]; back[i] = init.back[i]; code[i] = init.code[i]; bcol[i] = init.bcol[i]; kind[i] = init.kind[i]; gid[i] = init.gid[i]; mtl[i] = init.mtl[i]; flag[i] = init.flag[i]; src[i] = init.src[i]; ptex[i] = init.ptex[i];
       burn[i] = 0; dmg[i] = 0;
-      if (mat[i] === SOLID && !was) { W.destroyed = Math.max(0, W.destroyed - 1); n++; }
+      if (mat[i] === SOLID && src[i] === i && gone[i]) { gone[i] = 0; W.destroyed = Math.max(0, W.destroyed - 1); n++; }
       if (gid[i] && W.groups[gid[i]]) W.groups[gid[i]].dead = false;
       touch(i);
     }
@@ -232,8 +232,18 @@
   const FX = () => WTP.fx;
   const PR = () => WTP.props;
   const STR = () => WTP.structs;
-  function counted(i, n = 1) {
-    W.destroyed += n;
+  function markGone(s) { if (s >= 0 && !gone[s]) { gone[s] = 1; W.destroyed++; } }
+  // Crumble every front cell that is still standing and count anything left in moving pieces, so the screen really ends at 100%
+  function finishOff() {
+    const cx = W.w / 2, cy = W.gh / 2;
+    for (let i = 0; i < W.w * W.gh; i++) {
+      const m = mat[i];
+      if ((m === SOLID || m === ICE) && src[i] >= 0 && !gone[src[i]]) kill(i, i % W.w, (i / W.w) | 0, cx, cy, 0.6, 50);
+    }
+    for (let i = 0; i < W.n; i++) if (!gone[i]) markGone(i);
+  }
+  function counted(i) {
+    markGone(src[i]);
     if (WTP.hardcore && WTP.hardcore.on) WTP.hardcore.cellGone(i);
     if (rid[i]) STR()?.dirty?.(rid[i]);
     const t = tgt[i];
@@ -997,7 +1007,7 @@
   }
 
   Object.assign(W, {
-    buildDesk, finalize, reset, restoreArea, takeHi, markHi, markFx, markTile, paneColor, wallEdge, iceCol, counted, matDebris, wakeAbove, cellSrc, solid, hardAt, solidI, frontAt, carve, crumble, kill, detachGlyph, detachRegion, shatterGlass, shatterIce, freezeAt, updateIce, paintAt, corrode,
+    buildDesk, finalize, reset, restoreArea, takeHi, markHi, markFx, markTile, paneColor, wallEdge, iceCol, counted, markGone, finishOff, matDebris, wakeAbove, cellSrc, solid, hardAt, solidI, frontAt, carve, crumble, kill, detachGlyph, detachRegion, shatterGlass, shatterIce, freezeAt, updateIce, paintAt, corrode,
     ignite, igniteAt, igniteRing, updateBurn, placeRubble, updateSand, makeChunk, updateChunks, settle, grabDisk, grabRect, releaseChunk, eraseBack, nearestSolid,
     raycast, flush, touch, color, setTargetsFromWords, setTargetsFromRects, densityAround, letterRing, isSolidM, setCell, clearCell, refreshAll, addPropRegion, cellBox, forRect
   });
