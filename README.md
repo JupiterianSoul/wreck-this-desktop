@@ -6,6 +6,17 @@ Hit the key, a tiny stickman drops onto the desktop, and every window, line of t
 
 Built for my Omarchy / Hyprland setup.
 
+## Installing
+
+On Omarchy:
+
+```
+git clone https://github.com/JupiterianSoul/wreck-this-desktop.git ~/wreck-this-desktop
+~/wreck-this-desktop/install.sh
+```
+
+It installs the packages, binds SUPER SHIFT + K (play) and SUPER SHIFT ALT + K (restore), and adds the game to the app launcher. To update later, `git pull` in the folder.
+
 ## Running it
 
 ```

@@ -1,10 +1,16 @@
 #!/bin/sh
 here=$(dirname "$(readlink -f "$0")")
-unset __NV_PRIME_RENDER_OFFLOAD __VK_LAYER_NV_optimus
-export __GLX_VENDOR_LIBRARY_NAME=mesa
-[ -f /usr/share/glvnd/egl_vendor.d/50_mesa.json ] && export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
-[ -f /usr/share/vulkan/icd.d/radeon_icd.json ] && export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/radeon_icd.json
-export LIBVA_DRIVER_NAME=radeonsi
+# On hybrid laptops stay on the Mesa GPU; on an Nvidia-only machine leave the drivers alone
+vendors=$(cat /sys/class/drm/card*/device/vendor 2>/dev/null)
+if echo "$vendors" | grep -qE '0x1002|0x8086'; then
+  unset __NV_PRIME_RENDER_OFFLOAD __VK_LAYER_NV_optimus
+  export __GLX_VENDOR_LIBRARY_NAME=mesa
+  [ -f /usr/share/glvnd/egl_vendor.d/50_mesa.json ] && export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
+fi
+if echo "$vendors" | grep -q 0x1002; then
+  [ -f /usr/share/vulkan/icd.d/radeon_icd.json ] && export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/radeon_icd.json
+  export LIBVA_DRIVER_NAME=radeonsi
+fi
 export GSK_RENDERER="${GSK_RENDERER:-gl}"
 case "$1" in
   panic|restore|status|watchdog) exec python3 "$here/host/wtd.py" "$@" ;;
