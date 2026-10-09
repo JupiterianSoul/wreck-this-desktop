@@ -194,8 +194,17 @@
 .hud .seg button { font-size: 14px; color: var(--fg); background: none; border: none; padding: 2px 9px; cursor: pointer; }
 .hud .seg button:hover { color: var(--accent); }
 .hud .seg button.on { background: var(--accent); color: var(--acc-text); box-shadow: 0 0 0 2px var(--ink); }
-.hud .keys { display: grid; grid-template-columns: 1fr 190px 1fr 190px; gap: 6px 14px; align-items: center; }
-.hud .keys .kl { font-size: 14px; color: var(--fg); }
+.hud .keys { display: grid; grid-template-columns: minmax(130px, 210px) 1fr; gap: 6px 14px; align-items: center; }
+.hud .keys .kl { font-size: 14px; color: var(--fg); display: grid; }
+.hud .keys .kl small { font-size: 12px; color: var(--fg2); opacity: .8; }
+.hud .keys .kbs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.hud .keys .kchip { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; padding: 0 2px 0 6px; border: 6px solid transparent; border-image: var(--f-inset) 4 fill / 6px stretch; white-space: nowrap; }
+.hud .keys .kchip button { background: none; border: 0; padding: 0 4px; cursor: pointer; color: var(--fg2); font-size: 14px; line-height: 1; }
+.hud .keys .kchip button:hover { color: var(--bad); }
+.hud .keys .kadd { font-size: 14px; min-width: 34px; color: var(--fg); background: none; padding: 0 6px; cursor: pointer; border: 6px solid transparent; border-image: var(--f-btn) 4 fill / 6px stretch; }
+.hud .keys .kadd:hover { border-image-source: var(--f-btnHi); }
+.hud .keys .kadd.wait { border-image-source: var(--f-insetWarn); color: var(--warn); }
+.hud .keys .knone { font-size: 13px; color: var(--fg2); }
 .hud .keys .kb { font-size: 14px; color: var(--fg); background: none; padding: 0 6px; cursor: pointer; text-align: center; border: 6px solid transparent; border-image: var(--f-btn) 4 fill / 6px stretch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hud .keys .kb:hover { border-image-source: var(--f-btnHi); }
 .hud .keys .kb.wait { border-image-source: var(--f-insetWarn); color: var(--warn); }

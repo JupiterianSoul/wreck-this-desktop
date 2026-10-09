@@ -18,7 +18,10 @@
 
   const keymap = () => WTP.save.keys;
   const actionsFor = (code) => { const out = []; const m = keymap(); for (const a in m) if (m[a].includes(code)) out.push(a); return out; };
-  I.down = (a) => { const codes = keymap()[a] || []; for (const c of codes) if (held.has(c)) return true; return !!I.touchBtns[a] || gpDown(a); };
+  I.actionsFor = actionsFor;
+  // Left click on fire goes through the pointer path (toggle firing, touchpads), so it is not a held key for fire
+  I.down = (a) => { const codes = keymap()[a] || []; for (const c of codes) { if (a === 'fire' && c === 'Mouse0') continue; if (held.has(c)) return true; } return !!I.touchBtns[a] || gpDown(a); };
+  const pressCode = (code) => { held.add(code); for (const a of actionsFor(code)) pending[a] = true; };
   I.take = (a) => { const v = pending[a]; pending[a] = false; return !!v; };
   I.press = (a) => { pending[a] = true; };
   I.clear = () => { held.clear(); for (const k in pending) pending[k] = false; I.pointerFire = false; I.touchBtns = {}; };
@@ -30,9 +33,11 @@
   const touched = () => { I.lastInput = performance.now(); };
   window.addEventListener('pointerdown', touched, true);
   window.addEventListener('wheel', touched, { capture: true, passive: true });
+  // Rebinding: the next key, mouse button, wheel turn or gamepad button goes to the capture callback
+  const captured = (code) => { const fn = I.capture; I.capture = null; fn(code); };
   window.addEventListener('keydown', (e) => {
     touched();
-    if (I.capture) { e.preventDefault(); const fn = I.capture; I.capture = null; fn(e.code); return; }
+    if (I.capture) { e.preventDefault(); captured(e.code); return; }
     if (!I.enabled) return;
     if (WTP.game?.paused || (WTP.ui?.wheelOpen?.())) return;
     const tg = e.target;
@@ -41,13 +46,18 @@
     I.lastKey = performance.now();
     if (aimOf(e.code)) I.aim.src = 'keys';
     if (e.repeat) { held.add(e.code); return; }
-    held.add(e.code);
-    for (const a of actionsFor(e.code)) pending[a] = true;
+    pressCode(e.code);
     if (e.key && e.key.length === 1) { const kk = 'key:' + e.key.toLowerCase(); held.add(kk); for (const a of actionsFor(kk)) pending[a] = true; }
     for (const a of actionsFor(e.code)) if (a === 'firelock') { I.fireLock = !I.fireLock; WTP.game?.label?.(I.fireLock ? 'FIRING (PRESS AGAIN TO STOP)' : 'FIRE STOPPED', 900); }
   });
   window.addEventListener('keyup', (e) => { held.delete(e.code); if (e.key && e.key.length === 1) held.delete('key:' + e.key.toLowerCase()); });
   window.addEventListener('blur', () => { held.clear(); I.pointerFire = false; });
+  let eatClick = false;
+  window.addEventListener('mousedown', (e) => { if (!I.capture) return; e.preventDefault(); e.stopImmediatePropagation(); eatClick = true; captured('Mouse' + e.button); }, true);
+  for (const ev of ['click', 'auxclick', 'contextmenu']) window.addEventListener(ev, (e) => { if (eatClick) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+  window.addEventListener('mouseup', () => { if (eatClick) setTimeout(() => { eatClick = false; }, 80); }, true);
+  window.addEventListener('wheel', (e) => { if (!I.capture || !(e.deltaY || e.deltaX)) return; e.preventDefault(); e.stopImmediatePropagation(); captured((Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX) > 0 ? 'WheelDown' : 'WheelUp'); }, { capture: true, passive: false });
+  window.addEventListener('mouseup', (e) => { held.delete('Mouse' + e.button); if (e.button === 3 || e.button === 4) e.preventDefault(); });
 
   function keyAim() {
     let x = 0, y = 0;
@@ -65,18 +75,20 @@
       if (p.pointerType === 'touch') return;
       I.mouse.x = p.x; I.mouse.y = p.y; I.mouse.in = true; I.aim.src = 'mouse'; I.mouse.lastMove = performance.now();
       C.audioContext && C.audioContext();
-      if (toggleMode()) I.pointerFire = !I.pointerFire; else I.pointerFire = true;
+      if (I.enabled && !I.capture) pressCode('Mouse0');
+      if (actionsFor('Mouse0').includes('fire')) { if (toggleMode()) I.pointerFire = !I.pointerFire; else I.pointerFire = true; }
       cv.focus({ preventScroll: true });
     };
     const moveFire = (p) => { if (p.pointerType === 'touch') return; I.mouse.x = p.x; I.mouse.y = p.y; I.mouse.in = true; I.mouse.lastMove = performance.now(); };
-    const endFire = () => { if (!toggleMode()) I.pointerFire = false; };
+    const endFire = () => { held.delete('Mouse0'); if (!toggleMode()) I.pointerFire = false; };
     if (C.drag) detach = C.drag(cv, { start: startFire, move: moveFire, end: endFire });
     else {
       cv.addEventListener('pointerdown', (e) => { if (e.button === 0) { const r = cv.getBoundingClientRect(); startFire({ x: e.clientX - r.left, y: e.clientY - r.top, pointerType: e.pointerType }); } });
       window.addEventListener('pointerup', () => endFire());
     }
     cv.addEventListener('contextmenu', (e) => e.preventDefault());
-    cv.addEventListener('pointerdown', (e) => { if (e.button === 2) pending.alt = true; });
+    cv.addEventListener('mousedown', (e) => { if (e.button > 0 && I.enabled && !I.capture) { e.preventDefault(); pressCode('Mouse' + e.button); } });
+    cv.addEventListener('auxclick', (e) => e.preventDefault());
     cv.addEventListener('wheel', (e) => {
       e.preventDefault();
       if (e.ctrlKey) { I.zoomReq += e.deltaY; return; }
@@ -96,7 +108,7 @@
     WH.last = now;
     if (Math.abs(d) >= NOTCH) WH.acc = 0;
     else { WH.acc += d; if (Math.abs(WH.acc) < PAD_STEP) return false; d = WH.acc; WH.acc = 0; }
-    pending[d > 0 ? 'next' : 'prev'] = true;
+    for (const a of actionsFor(d > 0 ? 'WheelDown' : 'WheelUp')) pending[a] = true;
     WH.fired++;
     return true;
   };
@@ -164,12 +176,11 @@
       el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('pointerleave', up);
     }
   };
-  const GP = { jump: [0], dash: [1], melee: [2], gadget: [10], pickup: [11], alt: [6], fire: [7], prev: [4], next: [5], wheel: [3], reset: [8], pause: [9] };
+  // Gamepad buttons are bound like keys, as Pad0 to Pad16 in the same lists
   function gpDown(a) {
     const g = I.gp;
     if (!g) return false;
-    const b = GP[a];
-    if (b) for (const k of b) if (g.buttons[k] && (g.buttons[k].pressed || g.buttons[k].value > 0.5)) return true;
+    for (const c of keymap()[a] || []) { if (!WTP.isPad(c)) continue; const b = g.buttons[+c.slice(3)]; if (b && (b.pressed || b.value > 0.5)) return true; }
     return false;
   }
   I.pollPad = () => {
@@ -181,7 +192,8 @@
     if (!g) return;
     const prev = I.gpPrev;
     const now = g.buttons.map((b) => b.pressed || b.value > 0.5);
-    for (const a in GP) for (const k of GP[a]) if (now[k] && !prev[k]) pending[a] = true;
+    if (I.capture) { const k = now.findIndex((v, i) => v && !prev[i]); if (k >= 0) { I.gpPrev = now; captured('Pad' + k); return; } }
+    else for (let k = 0; k < now.length; k++) if (now[k] && !prev[k]) for (const a of actionsFor('Pad' + k)) pending[a] = true;
     if (now[12] && !prev[12]) pending.navUp = true;
     if (now[13] && !prev[13]) pending.navDown = true;
     if (now[14] && !prev[14]) pending.navLeft = true;

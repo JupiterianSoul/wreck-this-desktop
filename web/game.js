@@ -10,7 +10,7 @@
   const cam = { x: 0, y: 0 };
   let fullT = 0;
   let shakeT = 0, hitstopT = 0, timeScale = 1, slowT = 0, chromaT = 0, zoomT = 0, zoomX = 0, zoomY = 0;
-  let raf = 0, last = 0, acc = 0, hudT = 0, pendingSlot = null, lastRender = 0;
+  let raf = 0, last = 0, acc = 0, hudT = 0, lastRender = 0;
   let frameMs = 16, slowFrames = 0, fastFrames = 0, quality = 2, workMs = 4, workMax = 4, maxQ = 2, capFps = 0;
   const aim = { x: 1, y: 0, ang: 0 };
   let loadout = [];
@@ -20,10 +20,6 @@
     cv = document.getElementById('cv');
     ctx = cv.getContext('2d', { alpha: true, desynchronized: true });
     I.bindCanvas(cv);
-    window.addEventListener('keydown', (e) => {
-      if (!G.playing || e.repeat) return;
-      if (!G.paused && /^Digit[0-9]$/.test(e.code)) pendingSlot = Number(e.code.slice(5));
-    });
   };
   const viewW = () => Wd.w, viewH = () => Wd.gh;
   G.view = () => ({ x: 0, y: 0, w: viewW(), h: viewH() });
@@ -349,6 +345,7 @@
       if (I.take('next')) G.cycle(1);
       if (I.take('prev')) G.cycle(-1);
       if (I.take('lastWeapon')) G.lastWeapon();
+      for (let n = 1; n <= 10; n++) if (I.take('slot' + n)) G.slotKey(n % 10);
     }
     if (I.take('next_level')) WTP.ui?.nextLevel?.();
     prevP.x = PL.x; prevP.y = PL.y;
@@ -402,7 +399,6 @@
     I.pollPad();
     if (WTP.ui?.wheelOpen?.()) WTP.ui.padWheel?.();
     if (!G.paused && G.run) {
-      if (pendingSlot != null) { G.slotKey(pendingSlot); pendingSlot = null; }
       if (slowT > 0) { slowT -= dt; timeScale = slowT <= 0 ? 1 : Math.min(1, timeScale + dt * 0.25); }
       const wheelSlow = WTP.ui?.wheelOpen?.() ? 0.12 : 1;
       if (hitstopT > 0) hitstopT -= dt;

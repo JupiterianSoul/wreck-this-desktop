@@ -74,8 +74,16 @@
   const locked = (id) => !!WTP.ach && !WTP.ach.weaponOwned(id);
 
   const LAYOUT_FR = { KeyQ: 'A', KeyW: 'Z', KeyA: 'Q', KeyZ: 'W', KeyM: ',', Semicolon: 'M', Comma: ';', Period: ':', Slash: '!', Digit1: '1', Digit2: '2', Digit3: '3', Digit4: '4', Digit5: '5', Digit6: '6', Digit7: '7', Digit8: '8', Digit9: '9', Digit0: '0' };
+  const PAD_NAMES = ['Pad A', 'Pad B', 'Pad X', 'Pad Y', 'Pad LB', 'Pad RB', 'Pad LT', 'Pad RT', 'Pad Back', 'Pad Start', 'Pad LS', 'Pad RS', 'Pad Up', 'Pad Down', 'Pad Left', 'Pad Right', 'Pad Home'];
+  const MOUSE_NAMES = ['Left click', 'Middle click', 'Right click', 'Mouse back', 'Mouse fwd'];
   U.keyName = (code) => {
     if (!code) return '';
+    if (/^Mouse\d$/.test(code)) return MOUSE_NAMES[+code.slice(5)] || code;
+    if (code === 'WheelUp') return 'Wheel up';
+    if (code === 'WheelDown') return 'Wheel down';
+    if (WTP.isPad(code)) return PAD_NAMES[+code.slice(3)] || code;
+    if (code === 'BracketLeft') return '[';
+    if (code === 'BracketRight') return ']';
     if (code.startsWith('key:')) return code.slice(4).toUpperCase();
     const fr = String(WTD.session?.layout || '').startsWith('fr');
     if (fr && LAYOUT_FR[code]) return LAYOUT_FR[code];
@@ -313,7 +321,8 @@
       e.stopImmediatePropagation();
       const keys = S().keys;
       if (e.code === 'Escape' || (keys.wheel || []).includes(e.code)) { U.wheel(false); return; }
-      if (/^Digit[0-9]$/.test(e.code) && wheelHover && !locked(wheelHover)) { const n = Number(e.code.slice(5)); G.assignSlot(n === 0 ? 9 : n - 1, wheelHover); U.label(`${WP.BY[wheelHover].name.toUpperCase()} ON SLOT ${n}`, 900); AU.play('select'); renderWheelBar(); return; }
+      const slotA = I.actionsFor(e.code).find((a) => /^slot\d+$/.test(a));
+      if (slotA && wheelHover && !locked(wheelHover)) { const n = +slotA.slice(4); G.assignSlot(n - 1, wheelHover); U.label(`${WP.BY[wheelHover].name.toUpperCase()} ON SLOT ${n % 10}`, 900); AU.play('select'); renderWheelBar(); return; }
       if (['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(e.code)) { wheelCat = (wheelCat + (e.code === 'ArrowRight' || e.code === 'ArrowDown' ? 1 : -1) + CATS().length) % CATS().length; wheelHover = null; renderWheel(); AU.play('tick'); }
       return;
     }
@@ -331,7 +340,9 @@
   }, true);
 
   let rebinding = null;
-  const ACTIONS = [['left', 'Move left'], ['right', 'Move right'], ['jump', 'Jump'], ['down', 'Crouch / drop'], ['dash', 'Dash'], ['roll', 'Roll'], ['melee', 'Kick'], ['gadget', 'Gadget'], ['pickup', 'Pick up / throw'], ['fire', 'Fire (hold)'], ['firelock', 'Fire on / off'], ['alt', 'Alt fire'], ['aimUp', 'Aim up'], ['aimDown', 'Aim down'], ['aimLeft', 'Aim left'], ['aimRight', 'Aim right'], ['wheel', 'Weapon wheel'], ['reset', 'Restart'], ['mute', 'Sound on / off'], ['fps', 'FPS counter'], ['next_level', 'Next workspace'], ['lastWeapon', 'Last weapon'], ['pause', 'Pause / menu']];
+  const ACTIONS = [['left', 'Move left'], ['right', 'Move right'], ['jump', 'Jump'], ['down', 'Crouch / drop'], ['dash', 'Dash'], ['roll', 'Roll'], ['melee', 'Kick'], ['gadget', 'Gadget'], ['pickup', 'Pick up / throw'], ['fire', 'Fire (hold)'], ['firelock', 'Fire on / off'], ['alt', 'Alt fire'], ['aimUp', 'Aim up'], ['aimDown', 'Aim down'], ['aimLeft', 'Aim left'], ['aimRight', 'Aim right'], ['wheel', 'Weapon wheel'], ['reset', 'Restart'], ['mute', 'Sound on / off'], ['fps', 'FPS counter'], ['next_level', 'Next workspace'], ['lastWeapon', 'Last weapon'], ['prev', 'Previous weapon'], ['next', 'Next weapon'], ['pause', 'Pause / menu'],
+    ...Array.from({ length: 10 }, (_, k) => [`slot${k + 1}`, `Hotbar slot ${(k + 1) % 10}`])];
+  const ACT_NAME = Object.fromEntries(ACTIONS);
   const PRESETS = {
     mouse: { name: 'Mouse', desc: 'Aim with the mouse, hold left click to fire, right click for alt fire, wheel to switch weapons.', s: { toggleFire: false, autoAim: 0, autoFire: false, aimSmooth: 0, bigCross: false }, aim: [] },
     touchpad: { name: 'Touchpad', desc: 'Aim by moving the pointer, no click needed. Tap once to start firing, tap again to stop. Two finger tap is alt fire, two finger scroll switches weapons. Auto-aim locks onto enemies.', s: { toggleFire: true, autoAim: 2, autoFire: false, aimSmooth: 0.35, bigCross: true }, aim: [] },
@@ -346,7 +357,8 @@
     const keys = S().keys;
     const arrows = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
     for (const a of ['left', 'right', 'jump', 'down']) keys[a] = (keys[a] || []).filter((c) => !arrows.includes(c));
-    if (name === 'keyboard') { keys.aimUp = ['ArrowUp']; keys.aimDown = ['ArrowDown']; keys.aimLeft = ['ArrowLeft']; keys.aimRight = ['ArrowRight']; keys.fire = ['KeyK', 'Enter']; keys.alt = ['KeyL', 'KeyG']; }
+    const keepPad = (a) => (keys[a] || []).filter((c) => WTP.isPad(c) || /^Mouse/.test(c));
+    if (name === 'keyboard') { keys.aimUp = ['ArrowUp']; keys.aimDown = ['ArrowDown']; keys.aimLeft = ['ArrowLeft']; keys.aimRight = ['ArrowRight']; keys.fire = [...new Set(['KeyK', 'Enter', ...keepPad('fire')])]; keys.alt = [...new Set(['KeyL', 'KeyG', ...keepPad('alt')])]; }
     else {
       keys.aimUp = []; keys.aimDown = []; keys.aimLeft = []; keys.aimRight = [];
       keys.left = [...new Set([...keys.left, 'ArrowLeft'])]; keys.right = [...new Set([...keys.right, 'ArrowRight'])]; keys.jump = [...new Set([...keys.jump, 'ArrowUp'])]; keys.down = [...new Set([...keys.down, 'ArrowDown'])];
@@ -437,8 +449,8 @@
         ${row('Auto-fire at enemies', toggle('autoFire', st.autoFire))}
         ${row('Aim smoothing', slider('sSmooth', st.aimSmooth || 0, 0, 0.9, 0.05))}
         ${row('Big crosshair', toggle('bigCross', st.bigCross))}
-        <h3>Keys</h3><p class="muted">Click a key, then press the new one. Esc cancels. F12 always quits.</p>
-        <div class="keys">${ACTIONS.map(([a, l]) => `<div class="kl">${esc(l)}</div><button data-rb="${a}" class="kb${rebinding === a ? ' wait' : ''}">${rebinding === a ? 'press a key' : esc((keys[a] || []).map(U.keyName).join(' / ') || 'none')}</button>`).join('')}</div>
+        <h3>Keys</h3><p class="muted">Press + then a key, mouse button, wheel or gamepad button. One input can do several things. Esc cancels, F12 always quits.</p>
+        <div class="keys">${ACTIONS.map(([a]) => keyRow(a, keys)).join('')}</div>
         <div class="btns"><button class="b" data-a="defkeys">Reset keys</button></div>`;
     } else if (tab === 'ach' && WTP.ach) WTP.ach.renderTab(body);
     else if (tab === 'skins' && WTP.shop) WTP.shop.renderSkins(body);
@@ -478,17 +490,9 @@
     sl('sMaster', 'master'); sl('sSfx', 'sfx'); sl('sShake', 'shake'); sl('sFx', 'fxAmount'); sl('sSmooth', 'aimSmooth');
     p.querySelectorAll('[data-rb]').forEach((b) => b.addEventListener('click', () => {
       rebinding = b.dataset.rb; renderMenu();
-      I.capture = (code) => {
-        const a = rebinding; rebinding = null;
-        if (code !== 'Escape' && code !== 'F12') {
-          const keys = S().keys;
-          for (const k in keys) keys[k] = (keys[k] || []).filter((c) => c !== code);
-          keys[a] = [code, ...(keys[a] || []).filter((c) => c !== code)].slice(0, 2);
-          WTP.persist();
-        }
-        renderMenu();
-      };
+      I.capture = (code) => { const a = rebinding; rebinding = null; if (code !== 'Escape' && code !== 'F12') U.bindKey(a, code); renderMenu(); };
     }));
+    p.querySelectorAll('[data-unbind]').forEach((b) => b.addEventListener('click', () => { U.unbindKey(b.dataset.unbind, b.dataset.code); AU.play('tick'); renderMenu(); }));
     const adv = p.querySelector('details.adv');
     if (adv) adv.addEventListener('toggle', () => { advOpen = adv.open; });
     bindReset(p);
@@ -527,6 +531,24 @@
     U.openTab('settings');
     U.toast({ kind: 'ach', title: 'Progress reset', text: 'A fresh start. Settings and keys were kept.' });
   };
+  // Several keys per action (up to MAX_KEYS keyboard and mouse inputs, gamepad buttons on top); a key may be shared
+  const countsToCap = (c) => !WTP.isPad(c);
+  U.bindKey = (a, code) => {
+    const keys = S().keys, list = keys[a] || (keys[a] = []);
+    if (list.includes(code)) return false;
+    if (countsToCap(code) && list.filter(countsToCap).length >= WTP.MAX_KEYS) { U.label(`UP TO ${WTP.MAX_KEYS} KEYS PER ACTION, REMOVE ONE FIRST`, 1600); AU.play('deny'); return false; }
+    list.push(code);
+    WTP.persist();
+    return true;
+  };
+  U.unbindKey = (a, code) => { const keys = S().keys; keys[a] = (keys[a] || []).filter((c) => c !== code); WTP.persist(); };
+  function keyRow(a, keys) {
+    const list = keys[a] || [];
+    const also = [...new Set(list.flatMap((c) => I.actionsFor(c)).filter((o) => o !== a && ACT_NAME[o]))].map((o) => ACT_NAME[o]);
+    const chips = list.map((c) => `<span class="kchip">${esc(U.keyName(c))}<button data-unbind="${a}" data-code="${esc(c)}" title="Remove">×</button></span>`).join('');
+    const add = `<button class="kadd${rebinding === a ? ' wait' : ''}" data-rb="${a}" title="Add a key">${rebinding === a ? 'press…' : '+'}</button>`;
+    return `<div class="kl">${esc(ACT_NAME[a])}${also.length ? `<small>also: ${esc(also.join(', '))}</small>` : ''}</div><div class="kbs">${chips || '<span class="knone">none</span>'}${add}</div>`;
+  }
   U.results = (r) => {
     const o = $('hRes');
     const p = $('hResP');

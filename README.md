@@ -85,6 +85,7 @@ node tests/spawn.test.js
 node tests/winning.test.js
 node tests/progress.test.js
 node tests/switch.test.js
+node tests/keys.test.js
 tests/host.test.sh tiled3
 ```
 

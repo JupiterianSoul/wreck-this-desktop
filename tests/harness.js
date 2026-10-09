@@ -8,14 +8,14 @@ const ROOT = path.join(__dirname, '..');
 const WEB = path.join(ROOT, 'web');
 const MIME = { '.js': 'text/javascript', '.html': 'text/html', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.ttf': 'font/ttf' };
 
-function serve(sessDir) {
+function serve(sessDir, save = {}) {
   return new Promise((res) => {
     const srv = http.createServer((req, rsp) => {
       const u = new URL(req.url, 'http://x');
       let f;
       if (u.pathname.startsWith('/session/')) {
         const name = path.basename(u.pathname);
-        if (name === 'save.json') { rsp.writeHead(200, { 'content-type': 'application/json' }); rsp.end('{}'); return; }
+        if (name === 'save.json') { rsp.writeHead(200, { 'content-type': 'application/json' }); rsp.end(JSON.stringify(save)); return; }
         f = path.join(sessDir, name);
       } else f = path.join(WEB, u.pathname === '/' ? 'index.html' : u.pathname);
       fs.readFile(f, (err, buf) => {
@@ -33,11 +33,11 @@ class CDP {
   send(method, params = {}, sessionId) { const id = ++this.id; const msg = { id, method, params }; if (sessionId) msg.sessionId = sessionId; this.ws.send(JSON.stringify(msg)); return new Promise((res, rej) => this.cb.set(id, { res, rej })); }
 }
 
-async function launch({ fixture = 'tiled3', w = 1600, h = 1000, scale = 1.6, query = '' } = {}) {
+async function launch({ fixture = 'tiled3', w = 1600, h = 1000, scale = 1.6, query = '', save = {} } = {}) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'wtd-test-'));
   const sess = path.join(tmp, 'session');
   execFileSync('python3', [path.join(ROOT, 'tools', 'fixture_session.py'), fixture, sess]);
-  const srv = await serve(sess);
+  const srv = await serve(sess, save);
   const port = srv.address().port;
   const prof = path.join(tmp, 'profile');
   const chrome = spawn('chromium', ['--headless=new', '--remote-debugging-port=0', `--user-data-dir=${prof}`, '--mute-audio', '--no-first-run', '--no-default-browser-check', '--disable-gpu-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', `--window-size=${w},${h}`, `--force-device-scale-factor=${scale}`, '--autoplay-policy=no-user-gesture-required', 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] });

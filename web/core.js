@@ -63,13 +63,20 @@
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   const SAVE_KEY = 'wtd-save';
-  const SAVE_V = 4;
+  const SAVE_V = 5;
   const HOTBAR_N = 10;
   const DEFAULT_SETTINGS = { controls: 'mouse', autoAim: 0, autoFire: false, aimSmooth: 0, bigCross: false, master: 0.6, muted: false, quality: 'auto', killcam: true, mode: 'free', nextLevel: true, liveNotifs: false, wreckage: false, shakeReal: false, xray: false, gags: true, shake: 1, particles: 2, sfx: 0.75, colorblind: false, flashes: true, fps: false, adaptive: true, aimAssist: 1, haptics: true, toggleFire: false, radial: false, touchSize: 1, touchAlpha: 0.55, touchAim: 'auto', touchSwap: false };
+  // Bindings: keyboard codes, Mouse0-4, WheelUp / WheelDown and Pad0-16 (standard gamepad buttons) share one list per action.
+  // One input may drive several actions.
   const DEFAULT_KEYS = {
-    left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], jump: ['KeyW', 'Space', 'ArrowUp'], down: ['KeyS', 'ArrowDown'],
-    dash: ['ShiftLeft', 'ShiftRight'], roll: ['ControlLeft'], fire: ['Enter', 'KeyK'], alt: ['KeyG'], melee: ['KeyF'], gadget: ['KeyQ'], pickup: ['KeyE'], prev: [], next: [], wheel: ['Tab'], reset: ['KeyR'], pause: ['Escape'], mute: ['key:m'], fps: ['F3'], next_level: ['KeyN'], firelock: ['KeyV'], lastWeapon: ['KeyX'], aimUp: [], aimDown: [], aimLeft: [], aimRight: []
+    left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], jump: ['KeyW', 'Space', 'ArrowUp', 'Pad0'], down: ['KeyS', 'ArrowDown'],
+    dash: ['ShiftLeft', 'ShiftRight', 'Pad1'], roll: ['ControlLeft'], fire: ['Mouse0', 'Enter', 'KeyK', 'Pad7'], alt: ['Mouse2', 'KeyG', 'Pad6'], melee: ['KeyF', 'Pad2'], gadget: ['KeyQ', 'Pad10'], pickup: ['KeyE', 'Pad11'],
+    prev: ['WheelUp', 'BracketLeft', 'Pad4'], next: ['WheelDown', 'BracketRight', 'Pad5'], wheel: ['Tab', 'Pad3'], reset: ['KeyR', 'Pad8'], pause: ['Escape', 'Pad9'], mute: ['key:m'], fps: ['F3'], next_level: ['KeyN'], firelock: ['KeyV'], lastWeapon: ['KeyX'],
+    aimUp: [], aimDown: [], aimLeft: [], aimRight: [],
+    slot1: ['Digit1'], slot2: ['Digit2'], slot3: ['Digit3'], slot4: ['Digit4'], slot5: ['Digit5'], slot6: ['Digit6'], slot7: ['Digit7'], slot8: ['Digit8'], slot9: ['Digit9'], slot10: ['Digit0']
   };
+  const MAX_KEYS = 4;
+  const isPad = (c) => /^Pad\d+$/.test(c);
   const freshSave = () => ({
     v: SAVE_V, scrap: 0, owned: {}, skin: 'hero', skins: { hero: true }, hotbar: new Array(HOTBAR_N).fill(null), achievements: {}, bests: {}, campaign: {}, daily: {}, puzzles: {}, seenPages: {},
     upg: {}, gadgets: { boots: true }, gadget: 'boots', secrets: {},
@@ -88,7 +95,7 @@
     let s = null;
     try { s = C.store.get(SAVE_KEY, null); } catch (e) { s = null; }
     const base = freshSave();
-    if (!isObj(s) || !(s.v === 3 || s.v === SAVE_V)) {
+    if (!isObj(s) || !(s.v >= 3 && s.v <= SAVE_V)) {
       let old = null;
       try { old = C.store.get('wtp-career-v2', null); } catch (e) { old = null; }
       if (old && typeof old.pixels === 'number') {
@@ -110,7 +117,9 @@
     if (![0.8, 1, 1.25].includes(out.settings.touchSize)) out.settings.touchSize = 1;
     if (typeof out.settings.touchAlpha !== 'number' || !isFinite(out.settings.touchAlpha)) out.settings.touchAlpha = 0.55;
     const keys = JSON.parse(JSON.stringify(DEFAULT_KEYS));
-    if (isObj(s.keys)) for (const a in keys) if (Array.isArray(s.keys[a]) && s.keys[a].every((c) => typeof c === 'string')) keys[a] = s.keys[a].slice(0, 3);
+    if (isObj(s.keys)) for (const a in keys) if (Array.isArray(s.keys[a]) && s.keys[a].every((c) => typeof c === 'string')) keys[a] = [...new Set(s.keys[a])].slice(0, MAX_KEYS + 2);
+    // Before v5 the mouse, wheel and gamepad were hardcoded: give old saves those defaults
+    if (s.v < 5) for (const a in keys) for (const c of DEFAULT_KEYS[a]) if ((/^(Mouse|Wheel)/.test(c) || isPad(c)) && !keys[a].includes(c)) keys[a] = /^Mouse/.test(c) ? [c, ...keys[a]] : [...keys[a], c];
     if (s.v === 3) { for (const a of ['melee', 'gadget']) { const want = DEFAULT_KEYS[a][0]; const clash = Object.keys(keys).some((b) => b !== a && keys[b].includes(want)); keys[a] = clash ? [] : [want]; } if (!keys.wheel.includes('KeyB') && !Object.values(keys).some((l) => l.includes('KeyB'))) keys.wheel.push('KeyB'); }
     out.keys = keys;
     for (const k of ['owned', 'skins', 'achievements', 'bests', 'campaign', 'daily', 'puzzles', 'seenPages', 'upg', 'gadgets', 'secrets']) if (!isObj(out[k])) out[k] = {};
@@ -162,6 +171,6 @@
   Object.assign(WTP, {
     PAL, P32, PAL_LIST, pack, packHex, hexRGB, unR, unG, unB, shade, mix, css32, lum, nearest, clamp, hash, rng, strSeed,
     rand, randInt, pick, fmtInt, fmtTime, fmtClock, todayKey, $, el, esc, save, persist, resetProgress, getBest, setBest, freshSave, normHotbar, HOTBAR_N,
-    DEFAULT_KEYS, DEFAULT_SETTINGS, on, emit, sem, isTouchDevice, reducedMotion, vibe
+    DEFAULT_KEYS, MAX_KEYS, isPad, DEFAULT_SETTINGS, on, emit, sem, isTouchDevice, reducedMotion, vibe
   });
 })();
