@@ -220,7 +220,17 @@ def cmd_wreckage(args):
     return wreckage.main(args)
 
 
+def drop_preload():
+    # The layer-shell preload is only for this process; every grim and hyprctl call would pay ~40 ms loading GTK
+    keep = [x for x in os.environ.get("LD_PRELOAD", "").split(":") if x and "gtk4-layer-shell" not in x]
+    if keep:
+        os.environ["LD_PRELOAD"] = ":".join(keep)
+    else:
+        os.environ.pop("LD_PRELOAD", None)
+
+
 def main():
+    drop_preload()
     a = sys.argv[1:]
     cmd = a[0] if a else "run"
     fn = {"run": cmd_run, "watchdog": cmd_watchdog, "panic": cmd_panic, "restore": cmd_restore, "status": cmd_status, "wreckage": cmd_wreckage}.get(cmd)

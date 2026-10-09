@@ -80,7 +80,7 @@
     if (e.T.boss) { run.bossKilled = true; G.announce('PROCESS TERMINATED!', 6); }
     G.comboBump(8);
   };
-  G.playerDied = () => { if (G.run && !G.run.ended) setTimeout(() => { if (G.run && G.run.mode.respawn !== false) { PL.spawn(PL.x, -26); PL.hp = PL.maxHp; } else G.end('dead'); }, 1400); };
+  G.playerDied = () => { if (G.run && !G.run.ended) setTimeout(() => { if (G.run && G.run.mode.respawn !== false) { spawnHere(Math.round(PL.x + PL.w / 2)); prevP.x = PL.x; prevP.y = PL.y; PL.hp = PL.maxHp; } else G.end('dead'); }, 1400); };
 
   const TIERS = [[10, 'NICE!'], [25, 'GREAT!'], [50, 'WRECKED!'], [100, 'DEVASTATING!'], [200, 'CATASTROPHIC!'], [350, 'UNSTOPPABLE!'], [500, 'SEGMENTATION FAULT!'], [750, 'KERNEL PANIC!'], [1000, 'DESKTOP DESTROYER!'], [1500, 'BLUE SCREEN!'], [2500, 'rm -rf /']];
   G.comboBump = (n) => {
@@ -182,8 +182,7 @@
     };
     setLoadout(WTP.save.hotbar.slice());
     PL.maxHp = 6;
-    const sp = spawnPoint(opts);
-    PL.spawn(sp.x - 3, sp.y);
+    spawnHere(startX(opts));
     prevP.x = PL.x; prevP.y = PL.y;
     mode.setup(run);
     AU.muffle(false);
@@ -196,22 +195,38 @@
     raf = requestAnimationFrame(loop);
     cv.focus({ preventScroll: true });
   };
-  function spawnPoint(opts) {
+  // Start on a ledge near the middle of the screen, close to x, so the player is easy to find
+  function spawnPoint(cx) {
+    const mid = Wd.gh * 0.5, H = 22;
+    let best = null, bs = Infinity;
+    for (let d = 0; d < Wd.w / 2; d += 3) {
+      if (d * 0.5 > bs) break;
+      for (const x of d ? [cx + d, cx - d] : [cx]) {
+        const px = Math.round(x - PL.w / 2);
+        if (px < 8 || px + PL.w > Wd.w - 8) continue;
+        let run = 0;
+        for (let y = 0; y <= Wd.gh; y++) {
+          if (y < Wd.gh && !PL.collideAny(px, y, PL.w, 1)) { run++; continue; }
+          if (run >= H + 4) {
+            const score = Math.abs(y - mid) + d * 0.5;
+            // A short drop onto the ledge, or from mid height when the only ledge is far below
+            if (score < bs) { bs = score; best = { x: px, y: Math.max(y - run, Math.min(y - H - 24, mid - H / 2)) }; }
+          }
+          run = 0;
+        }
+      }
+    }
+    return best || { x: Math.round(cx - PL.w / 2), y: -26 };
+  }
+  function spawnHere(cx) {
+    const sp = spawnPoint(cx);
+    PL.spawn(sp.x, sp.y);
+    WTP.feel?.ring?.(sp.x + PL.w / 2, sp.y + 11, 22, { dur: 0.9 });
+  }
+  function startX(opts) {
     const regs = Wd.regions || [];
     const act = regs.find((r) => r.type === 'window' && r.address === opts.session.active) || regs.find((r) => r.type === 'window');
-    const cx = act ? Math.round((act.x0 + act.x1) / 2) : Math.round(Wd.w / 2);
-    const firstSolid = (x) => { for (let y = 0; y < Wd.gh; y++) for (let dx = -5; dx <= 5; dx++) if (Wd.solid(x + dx, y)) return y; return Wd.gh; };
-    let best = cx, bs = -1;
-    for (let d = 0; d < Wd.w / 2; d += 2) {
-      for (const x of [cx + d, cx - d]) {
-        if (x < 8 || x > Wd.w - 8) continue;
-        const y = firstSolid(x);
-        const score = Math.min(y, 40) * 4 - d * 0.35;
-        if (y >= 22 && score > bs) { bs = score; best = x; }
-      }
-      if (bs > 120) break;
-    }
-    return { x: best, y: -26 };
+    return act ? Math.round((act.x0 + act.x1) / 2) : Math.round(Wd.w / 2);
   }
   G.restart = () => { if (!G.run) return; WTP.ui?.closeOverlays?.(); G.prepare(G.opts); };
   G.stopLoop = () => { G.playing = false; cancelAnimationFrame(raf); AU.stopLoops(); };

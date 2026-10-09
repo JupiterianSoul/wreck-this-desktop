@@ -34,12 +34,14 @@
     fmt: (n) => String(Math.round(n)), best: () => ({ best: 0, isNew: false }), getBest: () => null
   };
 
-  const load = (src) => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('load ' + src)); document.body.appendChild(s); });
+  const load = (src) => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.async = false; s.onload = res; s.onerror = () => rej(new Error('load ' + src)); document.body.appendChild(s); });
   const SCRIPTS = ['core.js', 'font.js', 'sprites.js', 'audio.js', 'desk/sfx.js', 'desk/sfx-levels.js', 'world.js', 'fx.js', 'desk/budget.js', 'input.js', 'player.js', 'rig.js', 'gadgets.js', 'weapons.js', 'props.js', 'enemies.js', 'modes.js', 'progress.js', 'desk/segment.js', 'desk/render.js', 'desk/booms.js', 'desk/structures.js', 'desk/gags.js', 'desk/melee.js', 'desk/weapons-desk.js', 'desk/weapons-desk2.js', 'desk/alts.js', 'desk/vsprites.js', 'desk/pxsprite.js', 'desk/pxweapons.js', 'desk/pixctx.js', 'desk/feel.js', 'desk/enemies-desk.js', 'desk/disasters.js', 'desk/hardcore.js', 'desk/merges.js', 'desk/level.js', 'desk/pixui.js', 'game.js', 'desk/ach.js', 'desk/costumes.js', 'desk/shop.js', 'desk/extras.js', 'ui.js'];
 
   const shotImg = document.getElementById('shot');
   const shotReady = shotImg.complete && shotImg.naturalWidth ? Promise.resolve() : new Promise((r) => { shotImg.addEventListener('load', r, { once: true }); shotImg.addEventListener('error', r, { once: true }); });
-  const scripts = (async () => { for (const s of SCRIPTS) await load(s); })();
+  // Fetched in parallel, still run in order (async = false)
+  let tScripts = 0;
+  const scripts = Promise.all(SCRIPTS.map(load)).then(() => { tScripts = performance.now(); });
   await shotReady;
   const PW = shotImg.naturalWidth, PH = shotImg.naturalHeight;
   const sc = document.createElement('canvas');
@@ -64,7 +66,10 @@
   log(`segmented in ${Math.round(performance.now() - tSeg)} ms (worker ${seg.ms} ms): ${seg.regions.filter((r) => r.type === 'window').length} windows, ${seg.glyphs.length} glyphs, ${seg.widgets.length} widgets`);
   await scripts;
   WTD.seg = seg;
+  const tStart = performance.now();
   WTP.level.start(seg);
+  const ms = (t) => Math.round(t - WTD.t0);
+  log(`boot timeline: scripts ${ms(tScripts)} ms, segmented ${ms(tStart)} ms, playing ${ms(performance.now())} ms`);
   WTD.post({ t: 'want-wallpaper' });
   WTD.ready = true;
   if (!WTD.test && !WTD.probe) setTimeout(() => {

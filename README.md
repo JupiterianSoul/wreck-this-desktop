@@ -81,6 +81,7 @@ node tests/pxanim.test.js
 node tests/melee.test.js
 node tests/idle.test.js
 node tests/skins.test.js
+node tests/spawn.test.js
 tests/host.test.sh tiled3
 ```
 

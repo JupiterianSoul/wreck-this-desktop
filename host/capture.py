@@ -5,6 +5,7 @@ import socket
 import subprocess
 import time
 import tomllib
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from common import HOME, hypr, log, read_json
@@ -178,10 +179,7 @@ def capture(sess, suffix=""):
     mons = [m for m in (query("monitors") or []) if not m.get("disabled")]
     if not mons:
         raise RuntimeError("no monitors")
-    clients = query("clients") or []
-    layers = query("layers") or {}
     focused = next((m for m in mons if m.get("focused")), mons[0])
-    active = query("activewindow") or {}
     procs = []
     shots = {}
     for m in mons:
@@ -191,13 +189,22 @@ def capture(sess, suffix=""):
             grim(m, p)
         else:
             procs.append(subprocess.Popen(["grim", "-o", m["name"], "-t", "png", "-l", "0", str(p)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
-    for pr in procs:
-        try:
-            pr.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            pr.kill()
-    t_shot = time.time()
-    gaps = option("general:gaps_out", 8)
+    # Everything else is independent, so ask for it while grim works
+    with ThreadPoolExecutor(max_workers=12) as ex:
+        jobs = {k: ex.submit(f) for k, f in {
+            "clients": lambda: query("clients") or [], "layers": lambda: query("layers") or {}, "active": lambda: query("activewindow") or {},
+            "gaps": lambda: option("general:gaps_out", 8), "border": lambda: option("general:border_size", 2), "rounding": lambda: option("decoration:rounding", 0),
+            "theme": theme_colors, "font": font_name, "layout": keyboard_layout, "battery": battery_mode, "bar": bar_layout,
+        }.items()}
+        for pr in procs:
+            try:
+                pr.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                pr.kill()
+        t_shot = time.time()
+        got = {k: j.result() for k, j in jobs.items()}
+    clients, layers, active = got["clients"], got["layers"], got["active"]
+    gaps = got["gaps"]
     if isinstance(gaps, str):
         try:
             gaps = int(gaps.split()[0])
@@ -225,14 +232,14 @@ def capture(sess, suffix=""):
         "monitors": monitors,
         "focused": fm["name"],
         "active": active.get("address") if isinstance(active, dict) else None,
-        "border": option("general:border_size", 2),
-        "rounding": option("decoration:rounding", 0),
+        "border": got["border"],
+        "rounding": got["rounding"],
         "gaps": gaps,
-        "theme": theme_colors(),
-        "font": font_name(),
-        "layout": keyboard_layout(),
-        "battery": battery_mode(),
-        "bar": bar_layout(),
+        "theme": got["theme"],
+        "font": got["font"],
+        "layout": got["layout"],
+        "battery": got["battery"],
+        "bar": got["bar"],
         "timing": {"shot": round((t_shot - t0) * 1000), "total": round((time.time() - t0) * 1000)},
     }
     (sess / "session.json").write_text(json.dumps(data))

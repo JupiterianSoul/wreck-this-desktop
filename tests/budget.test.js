@@ -28,10 +28,10 @@ const { launch } = require('./harness.js');
     t('nuke: flash and slow motion allowed', nuke.flash > 0.2 && nuke.slow > 0, JSON.stringify(nuke));
     const fin = await h.ev(`(() => {
       WTP.game.restart(); __wtd.step(5);
-      const b0 = WTP.fx.beams.length;
+      const b0 = WTP.fx.beams.length, r0 = WTP.feel.rings.length;
       WTP.extras.finisher(60);
       const s = WTP.game.fxState();
-      return { bolts: WTP.fx.beams.filter((b) => b.kind === 'bolt').length - b0, flash: s.flash, chroma: s.chroma, slow: s.slow, rings: WTP.feel.rings.length };
+      return { bolts: WTP.fx.beams.filter((b) => b.kind === 'bolt').length - b0, flash: s.flash, chroma: s.chroma, slow: s.slow, rings: WTP.feel.rings.length - r0 };
     })()`);
     t('finisher: no lightning, flash or chroma', fin.bolts <= 0 && fin.flash === 0 && fin.chroma === 0, JSON.stringify(fin));
     t('finisher: slow motion and a ring', fin.slow > 0 && fin.rings === 1);
