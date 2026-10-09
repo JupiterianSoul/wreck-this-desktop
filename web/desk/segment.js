@@ -251,7 +251,7 @@
       if (k >= CP * CP - 1) dense[i] = 1;
     }
     const seen = new Uint8Array(n), q = new Int32Array(n);
-    const imgRects = [];
+    const imgRects = [], bigComps = [];
     for (let i0 = 0; i0 < n; i0++) {
       if (!dense[i0] || seen[i0]) continue;
       let qn = 0, h = 0, x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
@@ -262,12 +262,17 @@
         for (const j of [i - 1, i + 1, i - gw, i + gw]) if (j >= 0 && j < n && dense[j] && !seen[j] && rid[j] === rid[i0] && Math.abs((j % gw) - x) <= 1) { seen[j] = 1; q[qn++] = j; }
       }
       const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
-      if (qn >= 60 && bw >= 6 && bh >= 6 && qn / (bw * bh) > 0.45) {
-        const rg = regions[rid[i0]];
-        const area = (rg.x1 - rg.x0 + 1) * (rg.y1 - rg.y0 + 1);
-        if (bw * bh > area * 0.45) { rg.imagePane = true; (rg.paneRects = rg.paneRects || []).push({ x0, y0, x1, y1 }); }
-        else imgRects.push({ x0, y0, x1, y1, rid: rid[i0] });
-      }
+      if (qn >= 60 && bw >= 6 && bh >= 6 && qn / (bw * bh) > 0.45) bigComps.push({ x0, y0, x1, y1, rid: rid[i0], a: bw * bh });
+    }
+    // Big dense blocks that together fill most of the window (or any of a fullscreen one) are its background (a gradient, a video, a game):
+    // they stay the pane. Otherwise big and small images alike are solid front cells.
+    const cover = new Map();
+    for (const c of bigComps) { const rg = regions[c.rid], area = (rg.x1 - rg.x0 + 1) * (rg.y1 - rg.y0 + 1); if (c.a > area * 0.15) cover.set(c.rid, (cover.get(c.rid) || 0) + c.a / area); }
+    for (const c of bigComps) {
+      const rg = regions[c.rid], area = (rg.x1 - rg.x0 + 1) * (rg.y1 - rg.y0 + 1);
+      if (((cover.get(c.rid) || 0) > 0.6 || rg.fullscreen) && c.a > area * 0.15) { rg.imagePane = true; (rg.bgRects = rg.bgRects || []).push(c); }
+      else if (c.a > area * 0.45) (rg.paneRects = rg.paneRects || []).push(c);
+      else imgRects.push(c);
     }
     const isImg = new Uint8Array(n);
     for (const R of imgRects) for (let y = R.y0; y <= R.y1; y++) for (let x = R.x0; x <= R.x1; x++) {
@@ -410,9 +415,14 @@
       if (flag[i] & F_FRAME) { mat[i] = 1; kind[i] = K_BOX; mtl[i] = mats.frame; bcol[i] = col[i]; continue; }
       const tx = ((cx * CP) / TS) | 0, ty = ((cy * CP) / TS) | 0;
       const key = tileKey(tx, ty, r);
-      if (reg.paneRects && reg.paneRects.some((q) => cx >= q.x0 && cx <= q.x1 && cy >= q.y0 && cy <= q.y1)) { mtl[i] = M.IMAGE; ptex[i] = 1; bcol[i] = col[i]; continue; }
-      if (tileBusy[key] === 1 || isImg[i]) {
-        mat[i] = 1; kind[i] = K_IMG; mtl[i] = M.IMAGE; bcol[i] = col[i]; ptex[i] = 0;
+      // Images, big or small, are solid front cells; the pane behind them takes the window background colour,
+      // so a destroyed image never leaves a blurred copy of itself behind
+      if (reg.bgRects && reg.bgRects.some((q) => cx >= q.x0 && cx <= q.x1 && cy >= q.y0 && cy <= q.y1)) { const rb = regBg.get(r); mtl[i] = mats.pane; ptex[i] = 1; if (rb) bcol[i] = rb.c; continue; }
+      const big = reg.paneRects && reg.paneRects.some((q) => cx >= q.x0 && cx <= q.x1 && cy >= q.y0 && cy <= q.y1);
+      if (big || tileBusy[key] === 1 || isImg[i]) {
+        const rb = regBg.get(r);
+        mat[i] = 1; kind[i] = K_IMG; mtl[i] = M.IMAGE; ptex[i] = 0;
+        if (rb) bcol[i] = rb.c;
         continue;
       }
       mtl[i] = mats.pane;

@@ -88,6 +88,7 @@ node tests/progress.test.js
 node tests/switch.test.js
 node tests/keys.test.js
 node tests/gadgets.test.js
+node tests/layers.test.js
 tests/host.test.sh tiled3
 ```
 

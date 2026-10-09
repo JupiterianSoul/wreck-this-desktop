@@ -20,7 +20,7 @@
 
   let levelCv = null, levelCtx = null, img = null, pix = null;
   let mat, back, code, col, bcol, kind, gid, pgid, burn, flag, under, tgt, mtl, dmg, init = null, sandMark, visit, visitGen = 0;
-  let src, rid, ptex, wvis, ocol, obcol, gone;
+  let src, rid, ptex, wvis, ocol, obcol, gone, php;
   let dirtyTiles = null, dirtyList = [], TW = 0, TH = 0, hiTiles = null, hiList = [];
   const qbuf = new Int32Array(1 << 19);
 
@@ -30,9 +30,9 @@
     mat = new Uint8Array(n); back = new Uint8Array(n); code = new Uint8Array(n); col = new Uint32Array(n); bcol = new Uint32Array(n);
     kind = new Uint8Array(n); gid = new Int32Array(n); pgid = new Uint16Array(n); burn = new Uint8Array(n); flag = new Uint8Array(n); under = new Uint8Array(n); tgt = new Uint16Array(n);
     mtl = new Uint8Array(n); dmg = new Uint8Array(n);
-    src = new Int32Array(n).fill(-1); rid = new Uint16Array(n); ptex = new Uint8Array(n); wvis = new Uint8Array(n); ocol = new Uint32Array(n); obcol = new Uint32Array(n); gone = new Uint8Array(n);
+    src = new Int32Array(n).fill(-1); rid = new Uint16Array(n); ptex = new Uint8Array(n); wvis = new Uint8Array(n); ocol = new Uint32Array(n); obcol = new Uint32Array(n); gone = new Uint8Array(n); php = new Uint8Array(n);
     sandMark = new Uint32Array(n); visit = new Uint32Array(n);
-    Object.assign(W, { mat, back, code, col, bcol, kind, gid, pgid, burn, flag, tgt, mtl, dmg, src, rid, ptex, wvis, ocol, obcol, under, gone });
+    Object.assign(W, { mat, back, code, col, bcol, kind, gid, pgid, burn, flag, tgt, mtl, dmg, src, rid, ptex, wvis, ocol, obcol, under, gone, php });
     levelCv = document.createElement('canvas');
     levelCv.width = w; levelCv.height = h;
     levelCtx = levelCv.getContext('2d');
@@ -82,12 +82,18 @@
     return p;
   }
   function finalize() {
-    // Each original front cell counts once, wherever its pixels end up (slabs, chunks, settled debris)
-    let total = 0;
-    for (let i = 0; i < W.n; i++) { const own = (mat[i] === SOLID || mat[i] === ICE) && src[i] === i; gone[i] = own ? 0 : 1; if (own) total++; }
-    W.total = Math.max(1, total);
+    // Each original front cell counts once, wherever its pixels end up (slabs, chunks, settled debris).
+    // Each pane cell counts once too, when it is gone from where it was.
+    let total = 0, panes = 0;
+    for (let i = 0; i < W.n; i++) {
+      const own = (mat[i] === SOLID || mat[i] === ICE) && src[i] === i; gone[i] = own ? 0 : 1; if (own) total++;
+      if (back[i]) panes++;
+      php[i] = back[i] ? paneMax(i) : code[i] ? WALL_HP : 0;
+    }
+    W.frontTotal = total; W.paneTotal = panes; W.paneLost = 0;
+    W.total = Math.max(1, total + panes);
     for (const p of W.props) if (p) { let c = 0; for (let y = p.y0; y <= p.y1; y++) for (let x = p.x0; x <= p.x1; x++) if (pgid[y * W.w + x] === p.id && mat[y * W.w + x] === SOLID) c++; p.n = c; p.left = c; }
-    init = { mat: mat.slice(), col: col.slice(), back: back.slice(), code: code.slice(), bcol: bcol.slice(), kind: kind.slice(), gid: gid.slice(), pgid: pgid.slice(), mtl: mtl.slice(), flag: flag.slice(), src: src.slice(), ptex: ptex.slice(), gone: gone.slice() };
+    init = { mat: mat.slice(), col: col.slice(), back: back.slice(), code: code.slice(), bcol: bcol.slice(), kind: kind.slice(), gid: gid.slice(), pgid: pgid.slice(), mtl: mtl.slice(), flag: flag.slice(), src: src.slice(), ptex: ptex.slice(), gone: gone.slice(), php: php.slice() };
     W.init = init;
   }
   function cellBox(r) {
@@ -102,10 +108,10 @@
   }
 
   function reset() {
-    mat.set(init.mat); col.set(init.col); back.set(init.back); code.set(init.code); bcol.set(init.bcol); kind.set(init.kind); gid.set(init.gid); pgid.set(init.pgid); mtl.set(init.mtl); flag.set(init.flag); src.set(init.src); ptex.set(init.ptex); gone.set(init.gone);
+    mat.set(init.mat); col.set(init.col); back.set(init.back); code.set(init.code); bcol.set(init.bcol); kind.set(init.kind); gid.set(init.gid); pgid.set(init.pgid); mtl.set(init.mtl); flag.set(init.flag); src.set(init.src); ptex.set(init.ptex); gone.set(init.gone); php.set(init.php);
     burn.fill(0); under.fill(0); tgt.fill(0); dmg.fill(0);
     W.chunks = []; W.burning = []; W.smoulder = []; W.iceList = []; W.sand = []; W.rubbleN = 0;
-    W.destroyed = 0; W.targets = [];
+    W.destroyed = 0; W.paneLost = 0; lostAt = 0; W.targets = [];
     for (const g of W.groups) if (g) g.dead = false;
     for (const p of W.props) if (p) { p.dead = false; p.left = p.n; p.hits = 0; p.state = null; p.t = 0; }
     for (let i = 0; i < W.n; i++) pix[i] = color(i);
@@ -125,7 +131,7 @@
       if (G()?.inPlayer?.(x, y) && init.mat[i] === SOLID) continue;
       if (mat[i] === RUBBLE || mat[i] === DEBRIS) W.rubbleN = Math.max(0, W.rubbleN - 1);
       mat[i] = init.mat[i]; col[i] = init.col[i]; back[i] = init.back[i]; code[i] = init.code[i]; bcol[i] = init.bcol[i]; kind[i] = init.kind[i]; gid[i] = init.gid[i]; mtl[i] = init.mtl[i]; flag[i] = init.flag[i]; src[i] = init.src[i]; ptex[i] = init.ptex[i];
-      burn[i] = 0; dmg[i] = 0;
+      burn[i] = 0; dmg[i] = 0; php[i] = init.php[i];
       if (mat[i] === SOLID && src[i] === i && gone[i]) { gone[i] = 0; W.destroyed = Math.max(0, W.destroyed - 1); n++; }
       if (gid[i] && W.groups[gid[i]]) W.groups[gid[i]].dead = false;
       touch(i);
@@ -137,6 +143,42 @@
     const base = mix(c, P32.C, 0.62);
     const h = hash(x, y) & 15;
     return h === 0 ? P32['7'] : h < 3 ? shade(base, 1.12, 8) : base;
+  }
+  // Layer HP: the pane behind a window's content and the wallpaper under it both wear down hit by hit
+  const PANE_HP = { [M.GLASS]: 2, [M.PAPER]: 3, [M.IMAGE]: 3, [M.PLASTIC]: 4, [M.WOOD]: 5, [M.METAL]: 7 };
+  const WALL_HP = 5;
+  function paneMax(i) { const r = W.regions[rid[i]]; return PANE_HP[r?.mats?.pane ?? M.PAPER] || 3; }
+  function paneOff(i) {
+    if (!back[i]) return;
+    back[i] = 0; php[i] = code[i] ? WALL_HP : 0; ptex[i] = 0;
+    if (rid[i]) STR()?.dirty?.(rid[i]);
+  }
+  // Wear the layers of a cell whose front is gone; returns true when a layer went
+  function wearLayers(i, d) {
+    if (back[i]) {
+      php[i] = Math.max(0, php[i] - d);
+      if (!php[i]) { paneOff(i); return true; }
+      ptex[i] = 0;
+      return false;
+    }
+    if (code[i]) {
+      php[i] = Math.max(0, php[i] - Math.max(1, d >> 1));
+      if (!php[i]) { code[i] = 0; return true; }
+    }
+    return false;
+  }
+  // Panes lost so far: a throttled scan, since many tools clear panes directly
+  let lostAt = 0;
+  function lost(force) {
+    const now = performance.now();
+    if (force || now - lostAt > 200) {
+      lostAt = now;
+      let n = 0;
+      const ib = init.back;
+      for (let i = 0, N = W.w * W.gh; i < N; i++) if (ib[i] && !back[i]) n++;
+      W.paneLost = n;
+    }
+    return W.destroyed + W.paneLost;
   }
   function paneColor(i) {
     const x = i % W.w, y = (i / W.w) | 0;
@@ -241,6 +283,9 @@
       if ((m === SOLID || m === ICE) && src[i] >= 0 && !gone[src[i]]) kill(i, i % W.w, (i / W.w) | 0, cx, cy, 0.6, 50);
     }
     for (let i = 0; i < W.n; i++) if (!gone[i]) markGone(i);
+    for (let i = 0, N = W.w * W.gh; i < N; i++) if (back[i]) { paneOff(i); touch(i); }
+    lost(true);
+    WTP.deskRender?.invalidate?.();
   }
   function counted(i) {
     markGone(src[i]);
@@ -331,10 +376,16 @@
           } else if (m === ICE) { iceHit = i; }
           else if (W.occ && W.occ[i]) { n += STR().hitCell(i, cx, cy, force); continue; }
           else if (m === RUBBLE || m === DEBRIS) kill(i, x, y, cx, cy, o.clean ? 0 : chance, force);
+          // Every hit wears the pane, then the wallpaper, of cells whose front is gone
+          if (mat[i] !== SOLID && mat[i] !== ICE && (back[i] || code[i])) {
+            const d = Math.max(1, Math.round(pow * (1 - 0.5 * Math.sqrt(d2) / (r + 0.01))));
+            const was = php[i];
+            if (wearLayers(i, d) || php[i] !== was) { pix[i] = color(i); markTile(x, y); if (!back[i]) touchEdges(i); }
+          }
           if (backR > 0 && (back[i] || code[i]) && mat[i] !== SOLID) {
             const fz = 0.8 + (hash(y, x) & 7) / 20;
             let ch = false;
-            if (back[i] && d2 <= backR * backR * fz) { back[i] = 0; ch = true; if (rid[i]) STR()?.dirty?.(rid[i]); }
+            if (back[i] && d2 <= backR * backR * fz) { paneOff(i); ch = true; }
             if (!back[i] && code[i] && codeR > 0 && d2 <= codeR * codeR * fz) { code[i] = 0; ch = true; }
             if (ch) { pix[i] = color(i); markTile(x, y); touchEdges(i); }
           }
@@ -1007,7 +1058,7 @@
   }
 
   Object.assign(W, {
-    buildDesk, finalize, reset, restoreArea, takeHi, markHi, markFx, markTile, paneColor, wallEdge, iceCol, counted, markGone, finishOff, matDebris, wakeAbove, cellSrc, solid, hardAt, solidI, frontAt, carve, crumble, kill, detachGlyph, detachRegion, shatterGlass, shatterIce, freezeAt, updateIce, paintAt, corrode,
+    buildDesk, finalize, reset, restoreArea, takeHi, markHi, markFx, markTile, paneColor, wallEdge, iceCol, counted, markGone, finishOff, lost, paneMax, paneOff, wearLayers, WALL_HP, matDebris, wakeAbove, cellSrc, solid, hardAt, solidI, frontAt, carve, crumble, kill, detachGlyph, detachRegion, shatterGlass, shatterIce, freezeAt, updateIce, paintAt, corrode,
     ignite, igniteAt, igniteRing, updateBurn, placeRubble, updateSand, makeChunk, updateChunks, settle, grabDisk, grabRect, releaseChunk, eraseBack, nearestSolid,
     raycast, flush, touch, color, setTargetsFromWords, setTargetsFromRects, densityAround, letterRing, isSolidM, setCell, clearCell, refreshAll, addPropRegion, cellBox, forRect
   });

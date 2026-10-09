@@ -87,15 +87,26 @@
       } else { mode = 2; flat = Wd.col[i]; }
     } else if (m === 4 || m === 3) { mode = 2; flat = Wd.col[i]; }
     else if (Wd.back[i]) {
-      if (Wd.ptex[i] && Wd.bcol[i] === Wd.obcol[i] && !(Wd.flag[i] & 1)) {
+      // Pane: its own pixels while untouched, then the window colour, cracked, then scorched through to the wallpaper
+      const wear = Wd.php[i] / Wd.paneMax(i), h = WTP.hash(cx, cy);
+      if (wear >= 1 && Wd.ptex[i] && Wd.bcol[i] === Wd.obcol[i] && !(Wd.flag[i] & 1)) {
         const x = cx, w = Wd.w;
         const edge = (x > 0 && !Wd.back[i - 1]) || (x < w - 1 && !Wd.back[i + 1]) || (i >= w && !Wd.back[i - w]) || !Wd.back[i + w];
         if (edge) { mode = 2; flat = Wd.paneColor(i); } else { mode = 1; s = i; }
-      } else { mode = 2; flat = Wd.paneColor(i); }
+      } else if (wear <= 0.34 && (h & 3) === 0 && Wd.code[i]) { mode = 3; k = 0.5; }
+      else {
+        mode = 2; flat = Wd.paneColor(i);
+        if (wear <= 0.34) flat = WTP.shade(flat, (h & 1) ? 0.62 : 0.5);
+        else if (wear < 0.99) flat = WTP.shade(flat, (h & 7) === 0 ? 0.58 : (h & 7) === 1 ? 1.1 : 0.93);
+      }
     } else if (Wd.code[i]) {
+      // Wallpaper: cracks, then holes into the void
+      const wear = Wd.php[i] / Wd.WALL_HP, h = WTP.hash(cx, cy);
       mode = 3;
-      if (Wd.wallEdge(i)) k = 0.55;
-      else if (Wd.flag[i] & 1) k = (WTP.hash(cx, cy) & 3) ? 0.7 : 0.55;
+      if (wear <= 0.5 && (h & 3) === 0) mode = 0;
+      else if (Wd.wallEdge(i)) k = 0.55;
+      else if (Wd.flag[i] & 1) k = (h & 3) ? 0.7 : 0.55;
+      if (mode === 3 && wear < 0.99) k *= wear <= 0.5 ? 0.6 : (h & 7) === 0 ? 0.6 : 0.92;
     }
     if (mode === 0) {
       const v = R.xray ? 0 : 0xff000000;

@@ -2,7 +2,7 @@
   const WTP = window.WTP;
   const { rand, pick } = WTP;
   const G = () => WTP.game, Wd = () => WTP.world, EN = () => WTP.enemies, PL = () => WTP.player;
-  const pct = () => Math.min(100, (Wd().destroyed / Wd().total) * 100);
+  const pct = (force) => Math.min(100, (Wd().lost(force) / Wd().total) * 100);
   const gradeBy = (v, s, a, b, c, lower) => lower ? (v <= s ? 'S' : v <= a ? 'A' : v <= b ? 'B' : v <= c ? 'C' : 'D') : (v >= s ? 'S' : v >= a ? 'A' : v >= b ? 'B' : v >= c ? 'C' : 'D');
   const par = (goal) => Math.round(Math.max(30, Math.min(150, (Wd().total / 1800) * (goal / 50))));
   const deskKey = () => { const r = (Wd().regions || []).filter((x) => x.type === 'window').map((x) => x.cls).sort().join('+'); return r || 'empty'; };
@@ -84,7 +84,7 @@
   // The screen counts as gone once only a few stray cells are left: those crumble so the count really reaches 100%
   function clearTick(run, before) {
     if (run.clearWon || run.endless) return false;
-    const w = Wd(), left = w.total - w.destroyed;
+    const w = Wd(), left = w.total - w.lost();
     if (left > Math.max(24, w.total * 0.003)) return false;
     run.clearWon = true; run.clearT = run.t;
     w.finishOff();
