@@ -297,3 +297,9 @@
 .hud .win-win .win-btns { justify-content: center; margin-top: 4px; }
 .hud .win-win .win-btns .b { font-size: 17px; padding: 4px 16px; }
 @keyframes winIn { 0% { transform: scale(1.6); opacity: 0; } 60% { transform: scale(.94); opacity: 1; } 100% { transform: scale(1); } }
+
+.hud .ua-tag { justify-self: start; margin: -2px 0 2px; padding: 0 6px; font-size: 11px; letter-spacing: .12em; color: var(--acc-text); background: var(--warn); box-shadow: 2px 2px 0 var(--ink); }
+.hud .reset-arm { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.hud button.b.hold { position: relative; overflow: hidden; user-select: none; touch-action: none; }
+.hud button.b.hold i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: color-mix(in srgb, var(--bad) 55%, transparent); pointer-events: none; }
+.hud button.b.hold span { position: relative; }

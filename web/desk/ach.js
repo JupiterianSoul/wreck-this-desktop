@@ -106,14 +106,15 @@
   const ownedCount = () => WP.DEFS.filter((d) => weaponOwned(d.id)).length;
   const earnedCount = () => WP.DEFS.filter((d) => STARTERS.includes(d.id) || !!S().done[`w:${d.id}`]).length;
   const val = (k) => (k === 'owned' ? earnedCount() : stats()[k] || 0);
-  const bump = (k, n) => { const s = stats(); s[k] = (s[k] || 0) + n; };
-  const max = (k, v) => { const s = stats(); if (v > (s[k] || 0)) s[k] = v; };
+  // While unlock-all is on, nothing progresses: borrowed weapons must not earn real unlocks
+  const bump = (k, n) => { if (unlockAll()) return; const s = stats(); s[k] = (s[k] || 0) + n; };
+  const max = (k, v) => { if (unlockAll()) return; const s = stats(); if (v > (s[k] || 0)) s[k] = v; };
 
   const icon = (a) => a.weapon ? `<img alt="" src="${WTP.ui?.wImg?.(a.weapon, 3) || ''}">` : '<i class="trophy"></i>';
   let dirty = false;
   function unlock(a) {
     const A = S();
-    if (A.done[a.id]) return;
+    if (A.done[a.id] || unlockAll()) return;
     A.done[a.id] = Date.now();
     WTP.save.shards += a.reward;
     dirty = true;
@@ -124,6 +125,7 @@
     WTP.ui?.shardsChanged?.();
   }
   function check() {
+    if (unlockAll()) return;
     const A = S();
     for (const a of ACH) if (!A.done[a.id] && val(a.k) >= a.n) unlock(a);
     if (dirty) { dirty = false; WTP.persist(); }
@@ -134,7 +136,9 @@
   const oKilled = G.enemyKilled;
   G.enemyKilled = (e) => { oKilled(e); bump(`kw:${WP.st.cur}`, 1); if (e.T?.boss) bump('bosses', 1); };
   const oSel = G.selectWeapon;
+  let lastOwned = null;
   G.selectWeapon = (id, quiet) => {
+    if (id && WP.BY[id] && (STARTERS.includes(id) || S().done[`w:${id}`])) lastOwned = id;
     if (id && WP.BY[id] && !weaponOwned(id)) {
       if (!quiet) { AU.play('deny'); const g = WEAPON_GOAL[id]; G.label?.(g?.secret ? 'SECRET WEAPON' : `LOCKED: ${(g?.desc || '').toUpperCase()}`, 1400); }
       return false;
@@ -212,8 +216,33 @@
     body.querySelectorAll('[data-af]').forEach((b) => b.addEventListener('click', () => { filter = b.dataset.af; renderTab(body); }));
   }
   function changed() { check(); WTP.ui?.clearImgCache?.(); WTP.ui?.hudWeapons?.(G.slots(), WP.st.cur); }
+  // Unlock-all is reversible: turning it on snapshots achievements, unlocks and the hotbar, turning it off puts them back.
+  // Shards earned in between are kept.
+  const snapshot = () => ({ ach: JSON.parse(JSON.stringify(S())), hotbar: WTP.save.hotbar.slice() });
+  function setUnlockAll(on) {
+    const sv = WTP.save;
+    if (!!on === unlockAll()) return;
+    if (on) { sv.unlockSnap = snapshot(); sv.settings.unlockAll = true; }
+    else {
+      sv.settings.unlockAll = false;
+      const snap = sv.unlockSnap;
+      if (snap) { sv.ach = snap.ach; sv.hotbar = WTP.normHotbar(snap.hotbar); }
+      delete sv.unlockSnap;
+      sv.hotbar = sv.hotbar.map((id) => (id && weaponOwned(id) ? id : null));
+      if (!sv.hotbar.some(Boolean)) sv.hotbar = WTP.progress.defaultHotbar().slice();
+      if (WP.st.cur && !weaponOwned(WP.st.cur)) {
+        const back = [lastOwned, ...sv.hotbar, ...STARTERS].find((id) => id && WP.BY[id] && weaponOwned(id));
+        if (back) oSel(back, true);
+      }
+    }
+    WTP.persist(true);
+    WTP.ui?.clearImgCache?.();
+    WTP.ui?.hudWeapons?.(G.slots(), WP.st.cur);
+  }
+  // A save from before the snapshot existed: take it now so turning the switch off still restores something sane
+  if (unlockAll() && !WTP.save.unlockSnap) WTP.save.unlockSnap = snapshot();
 
-  WTP.ach = { ACH, BY, STARTERS, WEAPON_GOAL, weaponOwned, ownedCount, goalFor, renderTab, changed, check, stats, val, unlock };
+  WTP.ach = { ACH, BY, STARTERS, WEAPON_GOAL, weaponOwned, ownedCount, goalFor, renderTab, changed, check, stats, val, unlock, setUnlockAll };
   WTP.progress.isOwned = weaponOwned;
   WTP.progress.ownedCount = ownedCount;
   WTP.progress.defaultHotbar = () => ['pistol', 'smg', 'shotgun', 'grenade', 'hammer', 'altf4', null, null, null, null].map((id) => (id && WP.BY[id] ? id : null));

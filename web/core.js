@@ -130,6 +130,14 @@
     if (now) { C.store.set(SAVE_KEY, save); return; }
     saveTimer = setTimeout(() => C.store.set(SAVE_KEY, save), 400);
   };
+  // Wipe all progress in place (other modules hold the same object), keeping settings and keybinds
+  const resetProgress = () => {
+    const keep = { settings: save.settings, keys: save.keys, intro: save.intro };
+    for (const k of Object.keys(save)) delete save[k];
+    Object.assign(save, freshSave(), keep);
+    save.settings.unlockAll = false;
+    persist(true);
+  };
   const getBest = (key) => save.bests[key];
   const setBest = (key, val, higher = true) => {
     const cur = save.bests[key];
@@ -153,7 +161,7 @@
 
   Object.assign(WTP, {
     PAL, P32, PAL_LIST, pack, packHex, hexRGB, unR, unG, unB, shade, mix, css32, lum, nearest, clamp, hash, rng, strSeed,
-    rand, randInt, pick, fmtInt, fmtTime, fmtClock, todayKey, $, el, esc, save, persist, getBest, setBest, freshSave, normHotbar, HOTBAR_N,
+    rand, randInt, pick, fmtInt, fmtTime, fmtClock, todayKey, $, el, esc, save, persist, resetProgress, getBest, setBest, freshSave, normHotbar, HOTBAR_N,
     DEFAULT_KEYS, DEFAULT_SETTINGS, on, emit, sem, isTouchDevice, reducedMotion, vibe
   });
 })();

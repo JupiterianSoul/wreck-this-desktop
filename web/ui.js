@@ -10,6 +10,7 @@
   hud.hidden = false;
   hud.innerHTML = `
     <div class="card stats" id="hStats">
+      <div class="ua-tag" id="hUA" hidden title="Achievements and unlocks are paused">UNLOCK ALL</div>
       <div class="row"><span>wrecked</span><b id="hPct">0%</b></div>
       <div class="bar"><i id="hBar"></i><em id="hGoal" hidden></em></div>
       <div class="row" id="hTimeW"><span id="hTimeL">time</span><b id="hTime">0:00</b></div>
@@ -120,6 +121,7 @@
     }
     const ammo = WP.ammo();
     if (ammo) { const a = ammo[WP.st.cur]; $('hAmmo').textContent = a == null ? '-' : a; $('hAmmo').classList.toggle('warn', a != null && a <= 3); }
+    $('hUA').hidden = !S().settings.unlockAll || !WTP.ach;
     if (WTP.shop) { $('hShardsW').hidden = false; $('hShards').textContent = fmtInt(WTP.shop.shards()); }
     const c = $('hCombo');
     const on = run.combo >= 5 && !run.ended && !run.hud?.minimal;
@@ -427,7 +429,7 @@
         ${row('Real windows shake', toggle('shakeReal', st.shakeReal), 'Big blasts nudge real floating windows, put back on exit')}
         ${row('X-ray holes', toggle('xray', st.xray), 'Holes show your live desktop')}
         ${row('App gags', toggle('gags', st.gags))}
-        ${WTP.ach ? `<details class="adv"><summary>Advanced</summary>${row('Unlock every weapon', toggle('unlockAll', st.unlockAll), 'Skips the achievements')}</details>` : ''}`;
+        ${WTP.ach ? `<details class="adv"${advOpen ? ' open' : ''}><summary>Advanced</summary>${row('Unlock every weapon', toggle('unlockAll', st.unlockAll), 'Achievements pause while it is on. Turning it off puts your real unlocks and hotbar back')}${row('Reset progress', resetHtml(), 'Wipes achievements, weapon unlocks, Shards, skins, crates, the hotbar and best scores. Settings and keys stay')}</details>` : ''}`;
     } else if (tab === 'controls') {
       const keys = S().keys;
       body.innerHTML = `<h2>Controls</h2>
@@ -472,7 +474,8 @@
     p.querySelectorAll('[data-tg]').forEach((b) => b.addEventListener('click', () => {
       const k = b.dataset.tg;
       if (k === 'muted') U.toggleMute();
-      else { st[k] = !st[k]; WTP.persist(); WTP.merges?.changed?.(k); if (k === 'unlockAll') { U.clearImgCache(); WTP.ach?.changed?.(); } }
+      else if (k === 'unlockAll') { WTP.ach.setUnlockAll(!st.unlockAll); WTP.ach.changed(); }
+      else { st[k] = !st[k]; WTP.persist(); WTP.merges?.changed?.(k); }
       renderMenu();
     }));
     const sl = (id, k) => { const el = p.querySelector('#' + id); if (el) el.addEventListener('input', () => { st[k] = +el.value; el.nextElementSibling.textContent = Math.round(+el.value * 100) + '%'; WTP.persist(); AU.setVolumes?.(); G.applyFx?.(); }); };
@@ -490,8 +493,44 @@
         renderMenu();
       };
     }));
+    const adv = p.querySelector('details.adv');
+    if (adv) adv.addEventListener('toggle', () => { advOpen = adv.open; });
+    bindReset(p);
     p.querySelectorAll('.btns button, .mode, .tg, .seg button').forEach((b) => b.addEventListener('mouseenter', () => AU.play('tick')));
   }
+  // Reset progress asks twice: a first click arms it, then a button that has to be held down
+  let advOpen = false, resetArmed = false;
+  const HOLD_MS = 1500;
+  const resetHtml = () => resetArmed
+    ? `<div class="reset-arm"><button class="b danger hold" data-reset="hold"><i></i><span>Hold to wipe everything</span></button><button class="b" data-reset="cancel">Cancel</button></div>`
+    : '<button class="b danger" data-reset="arm">Reset progress</button>';
+  function bindReset(p) {
+    const arm = p.querySelector('[data-reset="arm"]'), cancel = p.querySelector('[data-reset="cancel"]'), hold = p.querySelector('[data-reset="hold"]');
+    if (arm) arm.addEventListener('click', () => { resetArmed = true; AU.play('deny'); renderMenu(); });
+    if (cancel) cancel.addEventListener('click', () => { resetArmed = false; renderMenu(); });
+    if (!hold) return;
+    let t0 = 0, raf = 0;
+    const fill = hold.querySelector('i');
+    const stop = () => { cancelAnimationFrame(raf); t0 = 0; fill.style.width = '0'; };
+    const tick = () => {
+      const k = Math.min(1, (performance.now() - t0) / HOLD_MS);
+      fill.style.width = `${Math.round(k * 100)}%`;
+      if (k >= 1) { stop(); resetArmed = false; U.resetProgress(); return; }
+      raf = requestAnimationFrame(tick);
+    };
+    hold.addEventListener('pointerdown', (e) => { e.preventDefault(); t0 = performance.now(); raf = requestAnimationFrame(tick); });
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) hold.addEventListener(ev, stop);
+  }
+  U.resetProgress = () => {
+    WTP.resetProgress();
+    WTP.save.hotbar = WTP.progress.defaultHotbar().slice();
+    WTP.persist(true);
+    U.clearImgCache();
+    G.restart();
+    G.pause(true);
+    U.openTab('settings');
+    U.toast({ kind: 'ach', title: 'Progress reset', text: 'A fresh start. Settings and keys were kept.' });
+  };
   U.results = (r) => {
     const o = $('hRes');
     const p = $('hResP');
