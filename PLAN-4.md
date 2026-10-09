@@ -152,9 +152,51 @@ The current opening is a 5.2 s CSS roulette with a click per item and one sound 
 - **Skip:** a click during the spin jumps to the reveal. "Open 5" opens a batch and shows the results in a grid.
 - All of it in the pixel UI, the theme colours and the effects budget.
 
+## T8. Whip and Wrecking Ball, remade from scratch
+Both are left over from earlier rounds. The whip ("Bullwhip", `web/weapons.js:76`) is a straight crack. The ball (`web/weapons.js:62`, physics in `updateBall` around `:989-1052`, alt in `web/desk/alts.js:213`) is a ball on a stiff line. Delete them and rebuild each as its own system, with new sprites (`web/desk/pxweapons.js:705`, `web/desk/vsprites.js:293`).
+
+**Whip**
+- A real rope: a 16-20 segment verlet chain with drawn segments that taper to a cracker at the tip.
+- Attacks are animated:
+  - a wind-up behind the stickman;
+  - the overhead lash that rolls along the rope;
+  - the tip crack, with a supersonic snap: a white pop ring, a sharp sound, and damage only at the tip;
+  - a sidearm sweep for crowds.
+- Combo: crack, crack, spin lash.
+- Hold: wrap the tip around a chunk, an enemy or a ledge, then pull it to you, or swing from it like a rope.
+- Hit-stop on the crack, and the rope reacts to the world (drapes, catches on corners).
+
+**Wrecking Ball**
+- A real chain of links (verlet), a heavy ball with a weight feel, and the stickman braced and leaning against the pull.
+- Attacks:
+  - **swing**: momentum from your movement and the aim;
+  - **spin**: hold to whirl it around you, faster and wider over time;
+  - **slam**: overhead, smashing straight down;
+  - **release** (the alt fire): the ball flies, and the chain trails behind it.
+- Impacts:
+  - damage scales with speed, so a slow ball nudges and a fast one demolishes;
+  - windows dent, then cave in;
+  - the ball can get stuck in a wall, and you yank it out;
+  - debris follows the swing direction.
+- Sound and shake per impact speed, kept inside the effects budget.
+
+Both get updated wheel descriptions and alt fires, and tests for their combos and states, like `tests/melee.test.js`.
+
+## T9. Progress: reset and an honest unlock-all
+- **Reset progress** button in Settings > Advanced, next to "Unlock every weapon" (`web/ui.js:420`). It wipes achievements, weapon unlocks, Shards, owned skins and crates, the hotbar and best scores, and keeps settings and keybinds. It asks twice: the second confirmation is a held button.
+- **Unlock-all is reversible.** Today the switch is checked live (`weaponOwned`, `web/desk/ach.js:104-105`), but while it is on:
+  - achievements keep progressing with weapons you have not earned, and those achievements unlock weapons for real (`done['w:…']`);
+  - the hotbar keeps the borrowed weapons.
+
+  New behaviour:
+  - Turning it **on** saves a snapshot of the achievement state, the weapon unlocks and the hotbar.
+  - Achievements and unlocks do not progress while it is on, and a small "UNLOCK ALL" tag on the HUD says so.
+  - Turning it **off** restores the snapshot. Locked weapons leave the hotbar and the wheel, and if you hold one you switch to your last owned weapon.
+  - Shards earned while it was on are kept, so a run is never worth nothing.
+
 ## Carried over
 - Launch: segmentation is now the slowest part (300-600 ms on the real desktop, `web/boot.js`). Profile it in the worker and cut it down.
 - FPS: measure with `F3` in a heavy Chaos wave on the real screen before considering a WebGL renderer.
 
 ## Order
-T1, T2, T3, T4, T5, T6, T7, one commit each, tests and screenshots off screen. T5 is the biggest. T6 and T7 can share a commit if the crate redesign and the opening are easier to build together.
+T1, T9, T2, T3, T4, T5, T6, T7, T8, one commit each, tests and screenshots off screen. T9 goes early because it is small and makes testing the rest easier (reset to a fresh save, unlock all without side effects). T5 is the biggest. T6 and T7 can share a commit if the crate redesign and the opening are easier to build together.
