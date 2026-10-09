@@ -90,6 +90,7 @@ node tests/keys.test.js
 node tests/gadgets.test.js
 node tests/layers.test.js
 node tests/crates.test.js
+node tests/flails.test.js
 tests/host.test.sh tiled3
 ```
 

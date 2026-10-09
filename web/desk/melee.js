@@ -160,12 +160,6 @@
       if (!s.done && s.t >= s.wind + s.strike * s.hitAt) { s.done = true; try { s.hit?.(); } catch (e) { console.warn(e); } }
       if (s.t > s.wind + s.strike + s.follow || s.id !== d.id) st.ms = null;
     }
-    const w = st.whip;
-    if (w && w.cracked && !w.starred) {
-      w.starred = true;
-      const tip = w.pts && w.pts.length ? w.pts[w.pts.length - 1] : null;
-      if (tip) { M.impact(tip.x, tip.y, 1, '#ffffff'); if (w.hitE && w.hitE.size) stop(0.04); }
-    }
     if ((d.id === 'chainsaw' || d.id === 'drill') && want) {
       st.revT = (st.revT || 0) + dt;
       if (st.revT === dt) A(d.id === 'chainsaw' ? 'chainsawRev' : 'drill');

@@ -210,13 +210,6 @@
     A('katana'); G()?.hitstop?.(0.06);
   });
   def('drill', 'Fire the drill bit as a tunnelling projectile', 1, (o) => { WP.addShot({ t: 'bit', x: o.x, y: o.y, vx: o.ax * 220, vy: o.ay * 220, life: 3 }); A('drill'); });
-  def('wrecking', 'Let go of the chain: the ball keeps flying', 1, (o) => {
-    const b = st.ball;
-    if (!b) { A('deny'); return; }
-    WP.lob({ x: b.x, y: b.y, ax: (b.vx || o.ax * 200) / 300, ay: (b.vy || -100) / 300 }, 'bowl', Math.max(200, Math.hypot(b.vx || 0, b.vy || 0)), { life: 6, spr: 'bowl', g: 620, dmg: 120, hits: 0, roll: 0 });
-    st.ball = null; A('throw');
-  });
-  def('whip', 'Crack: stuns everything near you', 1.5, () => { const P = PL(); for (const e of EN()?.list || []) if (Math.hypot(e.x - P.x, e.y - P.y) < 40) { e.stun = 2; e.damage(15, 'whip'); } K.mark({ kind: 'ring', x: P.x + 3, y: P.y + 7, r: 40, life: 0.4, color: '#ffe066' }); A('whipCrack'); G()?.shake?.(4); });
   def('glove', 'Uppercut: launches you and whatever is above', 1, (o) => { const P = PL(); const c = W().grabDisk(P.x + 3, P.y - 4, 6); if (c) W().releaseChunk(c, rand(-40, 40), -560); else W().carve(P.x + 3, P.y - 3, 5, { debris: 0.6, force: 160, pow: 3, cause: 'glove', pop: 1 }); P.vy = -260; A('punch'); G()?.shake?.(5); });
   def('stamp', 'APPROVED stamp: pastes letters back as solid platforms', 1, (o) => {
     const Wd = W(); const tp = WTP.levels.textPixels('APPROVED', '7'); const sc = 2;

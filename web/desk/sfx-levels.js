@@ -36,6 +36,7 @@ window.WTP.SFX_LEVELS = {
   "buzz": 17.8,
   "caps": 9.2,
   "captcha": 18.7,
+  "chainReel": 12.6,
   "chainsawRev": 15.7,
   "charge": 14.8,
   "clank": 5,

@@ -40,6 +40,7 @@
     if (ground && sp > 12) targetLean = Math.min(0.28, sp / 470) * Math.sign(P.vx) * face;
     if (P.dashT > 0) targetLean = 0.55;
     if (R.crouchK > 0.5) targetLean = 0.3;
+    targetLean += (WTP.weapons?.lean?.() || 0) * face;
     if (!ground && P.vy < -60) targetLean = -0.1;
     R.lean = lerp(R.lean, targetLean, Math.min(1, dt * 10));
     if (ground && sp > 6) R.phase += dt * sp * 0.27;

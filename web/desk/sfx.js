@@ -162,6 +162,7 @@
   S('throw', 'snap', () => { noise(0.06, 3000, 900, 0.28, 'bandpass', 1.5); osc('square', 900, 200, 0.12, 0.035, { lp: 2500 }); });
   S('throw', 'fuse', () => noise(0.4, 6000, 4000, 0.1, 'highpass', 0.6));
   S('throw', 'swoosh', () => whoosh(0.18, 400, 2600, 0.2));
+  S('throw', 'chainReel', () => { for (let i = 0; i < 6; i++) modal('metal', vary(1900), 0.02, { delay: i * 0.05, decay: 0.3 }); whoosh(0.3, 600, 1800, 0.1); });
 
   S('melee', 'slash', () => { whoosh(0.13, 2200, 8000, 0.32, { attack: 0.02 }); fm(vary(2600), 3640, 1.5, 0.2, 0.03, { delay: 0.04 }); });
   S('melee', 'katana', () => { whoosh(0.12, 3000, 9000, 0.3, { attack: 0.015 }); osc('sine', 2400, 1200, 0.15, 0.04); });

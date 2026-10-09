@@ -105,7 +105,7 @@
     Wd.rootPierce = !!(rk && rk.metal);
   }
 
-  const st = { whip: null, latch: null, cut: null, tank: 0, tankCols: [], blowing: 0, ink: 1, penLast: null, zones: [], glove: 0, kickCd: 0, thermals: [], cur: 'pistol', cd: 0, spin: 0, charge: 0, mag: {}, reload: 0, held: null, heldT: 0, ball: null, portals: [], portalNext: 0, stickies: [], mines: [], boomers: 0, dualSide: 0, katanaDir: 1, was: false, quakeT: 0, tornados: [], beam: null, orb: [], paintIdx: 0, ammo: null, nukeT: 0 };
+  const st = { cut: null, tank: 0, tankCols: [], blowing: 0, ink: 1, penLast: null, zones: [], glove: 0, kickCd: 0, thermals: [], cur: 'pistol', cd: 0, spin: 0, charge: 0, mag: {}, reload: 0, held: null, heldT: 0, ball: null, portals: [], portalNext: 0, stickies: [], mines: [], boomers: 0, dualSide: 0, katanaDir: 1, was: false, quakeT: 0, tornados: [], beam: null, orb: [], paintIdx: 0, ammo: null, nukeT: 0 };
   const shots = [];
   const owned = (id) => WTP.game?.allWeapons?.() || BY[id].price === 0 || !!WTP.save.owned[id];
 
@@ -279,11 +279,6 @@
       const tp = aimPoint(o);
       st.tornados.push({ x: tp.x, y: tp.y, dir: o.ax >= 0 ? 1 : -1, t: 0, life: 5.5 });
       G()?.event?.('TORNADO!', tp.x, tp.y - 30);
-    },
-    whip(o) {
-      const P = PL();
-      st.whip = { t: 0, dur: 0.34, ang: Math.atan2(o.ay, o.ax), dir: P.face, len: 40 * (1 + 0.12 * curLv), cracked: false, pts: [], hitE: new Set(), lv: curLv };
-      st.swing = 0.3; st.swingDir = P.face;
     },
     glove(o) {
       st.glove = 0.22;
@@ -561,7 +556,6 @@
       FX().beam([o.x + o.ax * 5, o.y + o.ay * 5, o.x + o.ax * 70, o.y + o.ay * 70], { kind: 'tractor', life: 0.03, c1: P32.e, c2: P32.c });
       EN()?.pull?.(o.x, o.y, 90, 400 * dt);
     },
-    wrecking(o, dt) { st.ballPull = true; },
     vacuum(o, dt) {
       const Wd = W();
       const base = Math.atan2(o.ay, o.ax);
@@ -816,80 +810,6 @@
     G()?.stat?.('kicks', 1);
     setPow(lv);
   }
-  function updateWhip(dt, o) {
-    const w = st.whip;
-    if (!w) return;
-    w.t += dt;
-    const k = Math.min(1, w.t / w.dur);
-    const hx = o.hx, hy = o.hy;
-    const ext = k < 0.5 ? Math.sin((k / 0.5) * Math.PI / 2) : 1 - (k - 0.5) * 1.3;
-    const L = w.len * Math.max(0.15, ext);
-    const N = 14;
-    const pts = [];
-    const wind = (1 - k) * 1.6 * w.dir;
-    for (let i = 0; i <= N; i++) {
-      const s2 = i / N;
-      const a = w.ang - wind * (1 - s2) * 0.6 + Math.sin((s2 * 2.2 - k * 3) * Math.PI) * 0.35 * (1 - k) * w.dir;
-      const prev = i ? pts[i - 1] : { x: hx, y: hy };
-      const seg = L / N;
-      pts.push(i ? { x: prev.x + Math.cos(a) * seg, y: prev.y + Math.sin(a) * seg } : { x: hx, y: hy });
-    }
-    w.pts = pts;
-    const tip = pts[N];
-    const Wd = W();
-    setPow(w.lv);
-    if (k > 0.18 && k < 0.75) {
-      for (let i = 4; i <= N; i += 2) {
-        const p = pts[i];
-        const ix = Math.floor(p.x), iy = Math.floor(p.y);
-        const e = EN()?.at?.(p.x, p.y, 2);
-        if (e && !w.hitE.has(e)) {
-          w.hitE.add(e);
-          e.damage(i >= N - 2 ? 42 : 20, 'whip');
-          if (!e.T.boss) { const pc = PL().center(); const dx = pc.x - e.x, dy = pc.y - e.y, d = Math.hypot(dx, dy) || 1; e.vx = (dx / d) * 280; e.vy = (dy / d) * 220 - 90; e.stun = 0.5; }
-          A('whipHit');
-        }
-        if (Wd.solid(ix, iy)) {
-          const isTip = i >= N - 2;
-          const ii = iy * Wd.w + ix;
-          if (isTip && Wd.kind[ii] === Wd.K_TEXT && Wd.gid[ii]) {
-            const pc = PL().center(); const dx = pc.x - p.x, dy = pc.y - p.y, d = Math.hypot(dx, dy) || 1;
-            Wd.detachGlyph(Wd.gid[ii], (dx / d) * 260, (dy / d) * 220 - 80);
-            G()?.stat?.('letters', 1);
-          } else Wd.carve(p.x, p.y, isTip ? 2.6 : 1.5, { pow: isTip ? 2.6 : 1.4, debris: 0.5, force: 110, cause: 'whip', pop: 0.8, noCrumble: !isTip });
-          if (isTip && !w.latched && !PL().ground && Math.sin(w.ang) < -0.25 && Wd.hardAt(ix, iy) && WTP.input.wantFire()) {
-            w.latched = true;
-            const pc = PL().center();
-            st.latch = { x: p.x, y: p.y, ax: ix, ay: iy, len: Math.max(10, Math.hypot(pc.x - p.x, pc.y - p.y)), t: 1.4 };
-            A('hookHit'); G()?.label?.('SWING!', 500);
-          }
-        }
-      }
-      for (const c of Wd.chunks) { const d = Math.hypot(c.x - tip.x, c.y - tip.y); if (d < c.rad + 3) { const pc = PL().center(); const dx = pc.x - c.x, dy = pc.y - c.y, dd = Math.hypot(dx, dy) || 1; c.vx = (dx / dd) * 300; c.vy = (dy / dd) * 260 - 120; c.rest = 0; } }
-    }
-    if (!w.cracked && k >= 0.48) {
-      w.cracked = true;
-      A('whipCrack');
-      FX().anim('ring', 10, tip.x, tip.y, 0.14);
-      for (let q = 0; q < 8; q++) FX().spark(tip.x, tip.y, rand(-90, 90), rand(-90, 90), Math.random() < 0.5 ? P32['7'] : P32.Y, 0.18);
-      Wd.carve(tip.x, tip.y, 3.2, { pow: 3, debris: 0.6, force: 160, cause: 'crack', letters: 3 });
-      EN()?.damageCircle?.(tip.x, tip.y, 6, 25, 'whip');
-      G()?.shake?.(2.5); G()?.hitstop?.(0.02);
-    }
-    if (w.t >= w.dur) st.whip = null;
-  }
-  function updateLatch(dt) {
-    const L = st.latch;
-    if (!L) return;
-    const P = PL(), Wd = W();
-    L.t -= dt;
-    if (L.t <= 0 || !WTP.input.wantFire() || !Wd.hardAt(L.ax, L.ay) || P.ground) { if (!Wd.hardAt(L.ax, L.ay)) A('snap'); st.latch = null; return; }
-    const pc = P.center();
-    const dx = pc.x - L.x, dy = pc.y - L.y, d = Math.hypot(dx, dy) || 1, nx = dx / d, ny = dy / d;
-    if (d > L.len) { const vr = P.vx * nx + P.vy * ny; if (vr > 0) { P.vx -= vr * nx; P.vy -= vr * ny; } P.vx -= nx * (d - L.len) * 14; P.vy -= ny * (d - L.len) * 14; }
-    L.len = Math.max(8, L.len - 20 * dt);
-    P.vx += P.face * 120 * dt;
-  }
   function updateZones(dt) {
     const Wd = W();
     for (let k = st.zones.length - 1; k >= 0; k--) {
@@ -950,7 +870,6 @@
     st.reload = Math.max(0, st.reload - dt);
     if (st.reload === 0 && st.reloadFor) { st.mag[st.reloadFor] = 6; st.reloadFor = null; }
     st.swing = Math.max(0, (st.swing || 0) - dt);
-    st.ballPull = false;
     st.eraserAt = null;
     st.penAt = null;
     if (d.id !== 'lens' || !want) st.lensAt = null;
@@ -986,7 +905,6 @@
     if (alt && ALT[d.id]) ALT[d.id](o);
     for (const f of EXT.updates) f(dt, o, d, want);
     wasFiring = want;
-    if (d.id === 'wrecking' || st.ball) updateBall(dt, o, d.id === 'wrecking');
     if (d.id !== 'gravity' && st.held) RELEASE.gravity(o);
     if (d.id !== 'cutter' && st.cut) { const c = st.cut; st.cut = null; W().releaseChunk(c, 0, 0); c.thrown = false; }
     if (st.cut) { const c = st.cut; const tx = o.x + o.ax * (c.rad + 8), ty = o.y + o.ay * (c.rad + 8); c.vx = (tx - c.x) * 16; c.vy = (ty - c.y) * 16; c.x += c.vx * dt; c.y += c.vy * dt; c.a *= 0.9; if (Math.random() < 0.2) FX().spark(c.x + rand(-c.rad, c.rad), c.y + rand(-c.rad, c.rad), 0, -10, P32.C, 0.2); }
@@ -998,8 +916,6 @@
       if (Math.random() < 0.3) A('junkShot');
       if (st.blowing <= 0) st.tankCols = [];
     }
-    updateWhip(dt, o);
-    updateLatch(dt);
     setPow(0);
     updateShots(dt);
     st.rootNow = null;
@@ -1022,46 +938,6 @@
     st.rootNow = null;
     setPow(0);
     if (BU) BU.src = null;
-  }
-  function updateBall(dt, o, active) {
-    const P = PL();
-    if (!st.ball) st.ball = { x: o.hx + 10, y: o.hy, vx: 0, vy: 0, len: 26, r: 4.5 };
-    const b = st.ball;
-    if (!active) { st.ball = null; return; }
-    const hx = o.hx, hy = o.hy;
-    b.vy += 520 * dt;
-    if (st.ballPull) {
-      const tx = hx + o.ax * b.len, ty = hy + o.ay * b.len;
-      b.vx += (tx - b.x) * 40 * dt; b.vy += (ty - b.y) * 40 * dt;
-      const tang = { x: -o.ay, y: o.ax };
-      b.vx += tang.x * 300 * dt * P.face; b.vy += tang.y * 300 * dt * P.face;
-    }
-    b.vx *= 0.995; b.vy *= 0.995;
-    b.x += b.vx * dt; b.y += b.vy * dt;
-    const dx = b.x - hx, dy = b.y - hy, d = Math.hypot(dx, dy) || 1;
-    if (d > b.len) {
-      const nx = dx / d, ny = dy / d;
-      b.x = hx + nx * b.len; b.y = hy + ny * b.len;
-      const vr = b.vx * nx + b.vy * ny;
-      if (vr > 0) { b.vx -= vr * nx; b.vy -= vr * ny; }
-    }
-    const sp = Math.hypot(b.vx, b.vy);
-    const Wd = W();
-    if (Wd.solid(Math.floor(b.x), Math.floor(b.y))) {
-      if (sp > 90) {
-        const n = Wd.carve(b.x, b.y, b.r + Math.min(4, sp / 120), { debris: 0.5, force: sp * 0.5, cause: 'wrecking', letters: 4 });
-        if (n) { G()?.shake?.(Math.min(8, sp / 60)); if (sp > 200) { A('wreckHit', sp); G()?.hitstop?.(Math.min(0.08, sp / 5000), true); WTP.melee?.impact?.(b.x, b.y, Math.min(2.5, sp / 200), '#c8ced8'); } }
-        b.vx *= 0.72; b.vy *= 0.72;
-      } else if (st.ballPull && (b.grind = (b.grind || 0) - dt) <= 0) {
-        b.grind = 0.12;
-        const n = Wd.carve(b.x, b.y, b.r + 1, { debris: 0.5, force: 90, cause: 'wrecking', pow: 2.4, letters: 2 });
-        if (n) { G()?.shake?.(2); A('hammer'); }
-        b.vx *= -0.3; b.vy *= -0.3;
-      } else { b.vx *= -0.3; b.vy *= -0.3; b.y -= 1; }
-    }
-    EN()?.damageCircle?.(b.x, b.y, b.r + 3, sp * 0.08 * dt * 10, 'wrecking');
-    if (sp > 160 && Math.random() < 0.4) FX().trail(b.x, b.y, P32['4'], 0.2);
-    if (sp > 230 && st.ballPull && (b.wT = (b.wT || 0) - dt) <= 0) { b.wT = 0.35; A('swoosh'); }
   }
   function updateWaves(dt) {
     if (!st.waves) return;
@@ -1837,23 +1713,6 @@
       ctx.drawImage(r.cv, Math.round(s.x - r.ox), Math.round(s.y - r.oy));
       if (s.t === 'mine' && s.arm <= 0 && ((performance.now() / 250) | 0) % 2) { ctx.fillStyle = WTP.PAL.e; ctx.fillRect(Math.round(s.x), Math.round(s.y) - 4, 1, 1); }
     }
-    if (st.whip && st.whip.pts.length) {
-      const pts = st.whip.pts, N = pts.length - 1;
-      for (let i = 0; i < N; i++) {
-        const a = pts[i], b = pts[i + 1];
-        const th = i < N * 0.35 ? 1 : 0;
-        const c = i === N - 1 ? PAL.y : (i & 1 ? PAL.W : PAL.w);
-        const len = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y)));
-        for (let k = 0; k <= len; k++) { const x = Math.round(a.x + (b.x - a.x) * (k / len)), y = Math.round(a.y + (b.y - a.y) * (k / len)); ctx.fillStyle = PAL['0']; if (th) ctx.fillRect(x - 1, y - 1, 3, 3); ctx.fillStyle = c; ctx.fillRect(x, y, 1 + th, 1 + th); }
-      }
-      const tip = pts[N];
-      if (st.whip.cracked && st.whip.t < st.whip.dur * 0.62) { ctx.fillStyle = PAL['7']; ctx.fillRect(Math.round(tip.x) - 2, Math.round(tip.y), 5, 1); ctx.fillRect(Math.round(tip.x), Math.round(tip.y) - 2, 1, 5); }
-    }
-    if (st.latch) {
-      const g0 = PL().gunPos || PL().center();
-      const L = st.latch, n = Math.ceil(Math.hypot(L.x - g0.x, L.y - g0.y));
-      for (let k = 0; k <= n; k += 1) { ctx.fillStyle = k & 1 ? PAL.W : PAL.w; ctx.fillRect(Math.round(g0.x + (L.x - g0.x) * (k / n)), Math.round(g0.y + (L.y - g0.y) * (k / n)), 1, 1); }
-    }
     if (st.glove > 0) {
       const P = PL(), g0 = P.gunPos || P.center(), a = Math.atan2(G()?.aim?.y || 0, G()?.aim?.x || P.face);
       const ext = Math.sin((1 - st.glove / 0.22) * Math.PI) * 14;
@@ -1880,16 +1739,6 @@
         ctx.fillStyle = Math.abs(k) > 4 || ((k + ((p.t * 20) | 0)) & 3) === 0 ? c2 : c1;
         ctx.fillRect(x - Math.round(p.nx * w), y - Math.round(p.ny * w), 2, 2);
       }
-    }
-    if (st.ball) {
-      const g0 = PL().gunPos || PL().center();
-      const b = st.ball;
-      const n = 8;
-      for (let k = 1; k < n; k++) { const t = k / n; ctx.fillStyle = k & 1 ? WTP.PAL['4'] : WTP.PAL['3']; ctx.fillRect(Math.round(g0.x + (b.x - g0.x) * t), Math.round(g0.y + (b.y - g0.y) * t), 1, 1); }
-      ctx.fillStyle = WTP.PAL['0'];
-      ctx.beginPath(); ctx.arc(Math.round(b.x), Math.round(b.y), b.r + 1, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = WTP.PAL['3']; ctx.beginPath(); ctx.arc(Math.round(b.x), Math.round(b.y), b.r, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = WTP.PAL['5']; ctx.fillRect(Math.round(b.x - 2), Math.round(b.y - 2), 2, 2);
     }
     for (const T of st.tornados) {
       const H = 78;
@@ -1961,7 +1810,7 @@
   function reset() {
     shots.length = 0;
     for (const f of EXT.resets) f();
-    Object.assign(st, { cd: 0, readyAt: {}, raise: 0, spin: 0, charge: 0, mag: {}, reload: 0, reloadFor: null, held: null, ball: null, portals: [], stickies: [], mines: [], boomers: 0, waves: [], tornados: [], quakeT: 0, orb: [], whip: null, latch: null, cut: null, tank: 0, tankCols: [], blowing: 0, ink: 1, penLast: null, zones: [], glove: 0, kickCd: 0, thermals: [] });
+    Object.assign(st, { cd: 0, readyAt: {}, raise: 0, spin: 0, charge: 0, mag: {}, reload: 0, reloadFor: null, held: null, portals: [], stickies: [], mines: [], boomers: 0, waves: [], tornados: [], quakeT: 0, orb: [], cut: null, tank: 0, tankCols: [], blowing: 0, ink: 1, penLast: null, zones: [], glove: 0, kickCd: 0, thermals: [] });
     WTP.audio.stopLoops();
   }
   const RAISE_T = 0.06;
@@ -1973,7 +1822,6 @@
       WTP.audio.loop('spin', false); WTP.audio.loop('brrt', false); st.brrt = false;
       if (st.held) { st.held.held = false; W().chunks.push(st.held); st.held = null; }
       if (st.cut) { st.cut.held = false; W().chunks.push(st.cut); st.cut = null; }
-      st.whip = null; st.latch = null;
       st.spin = 0; st.charge = 0;
       // Each weapon keeps its own cooldown, so switching never delays the next weapon and never skips a cooldown
       const now = performance.now() / 1000;
@@ -2031,7 +1879,6 @@
       if (d.id === 'hammer' && st.swing > 0) return -(st.swing / 0.22) * 1.8 * st.swingDir * PL().face + 0.6 * PL().face;
       if (d.id === 'katana' && st.swing > 0) return st.swingDir * (1 - st.swing / 0.18) * 1.6 - st.swingDir * 0.8;
       if (d.throw && st.swing > 0) return -st.swing * 6 * PL().face;
-      if (d.id === 'whip' && st.whip) { const k = st.whip.t / st.whip.dur; return (k < 0.3 ? -k * 4 : -1.2 + (k - 0.3) * 2.5) * st.whip.dir; }
       if (d.id === 'glove' && st.glove > 0) return 0;
       if (d.id === 'stamp' && st.swing > 0) return -(st.swing / 0.25) * 1.6 * PL().face + 0.4 * PL().face;
       return 0;
