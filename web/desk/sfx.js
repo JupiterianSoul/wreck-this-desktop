@@ -301,6 +301,19 @@
   S('ui', 'zoomIn', () => { osc('sine', 300, 1200, 0.25, 0.06); osc('triangle', 600, 2400, 0.2, 0.03, { delay: 0.05 }); });
   S('ui', 'zoomOut', () => { osc('sine', 1200, 260, 0.28, 0.06); whoosh(0.25, 2000, 300, 0.1); });
 
+  // Crates
+  S('ui', 'crateShake', () => { for (let k = 0; k < 7; k++) tick(0.22 + k * 0.03, rr(900, 1500), 0.02, { delay: k * 0.2 + rr(0, 0.04) }); });
+  S('ui', 'latchPop', () => { crack(0.4, 4200, 0.012); osc('square', 900, 500, 0.05, 0.05, { delay: 0.01 }); });
+  S('reward', 'lidCrack', () => { noise(0.35, 300, 1200, 0.12, 'bandpass', 3, { attack: 0.05 }); osc('sine', 600, 1500, 0.5, 0.05, { delay: 0.1, vib: 6, vibA: 20 }); });
+  // k goes 0 to 1 as the strip slows: ticks get louder and lower
+  S('ui', 'crateTick', (k = 0.5) => { tick(0.3 + k * 0.7, 3200 - k * 1900, 0.012); osc('square', 1400 - k * 700, 1400 - k * 700, 0.018, 0.02 + k * 0.03); }, { gap: 18, max: 6 });
+  S('reward', 'crateHold', () => { sub(70, 40, 0.8, 0.4); noise(0.8, 200, 3000, 0.08, 'bandpass', 1, { attack: 0.6 }); });
+  S('reward', 'crateSting', (r = 0) => {
+    const base = [523, 587, 659, 698, 784][r] || 523;
+    arp([base, base * 1.25, base * 1.5, ...(r >= 2 ? [base * 2] : [])], 0.07, 0.25 + r * 0.06, 0.07, r >= 3 ? 'triangle' : 'p25');
+    if (r >= 3) { sub(160, 50, 0.6, 0.4, { delay: 0.05 }); noise(0.5, 6000, 2000, 0.06, 'highpass', 0.5, { delay: 0.1 }); }
+    if (r >= 4) arp([base * 2, base * 2.5, base * 3, base * 4], 0.05, 0.3, 0.05, 'triangle', { delay: 0.3 });
+  });
   S('reward', 'coin', () => { blip(1046, 0.05, 0.045); blip(1568, 0.14, 0.045, 'p25', { delay: 0.05 }); });
   S('reward', 'pickup', () => { blip(880, 0.06, 0.05); blip(1320, 0.1, 0.05, 'p25', { delay: 0.06 }); });
   S('reward', 'heal', () => arp([523, 659, 784], 0.06, 0.12, 0.06, 'triangle'));

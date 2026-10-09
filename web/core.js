@@ -78,7 +78,7 @@
   const MAX_KEYS = 4;
   const isPad = (c) => /^Pad\d+$/.test(c);
   const freshSave = () => ({
-    v: SAVE_V, scrap: 0, owned: {}, skin: 'hero', skins: { hero: true }, hotbar: new Array(HOTBAR_N).fill(null), achievements: {}, bests: {}, campaign: {}, daily: {}, puzzles: {}, seenPages: {},
+    v: SAVE_V, scrap: 0, owned: {}, wskins: { owned: {}, eq: {} }, pskin: { own: {}, eq: {} }, hotbar: new Array(HOTBAR_N).fill(null), achievements: {}, bests: {}, campaign: {}, daily: {}, puzzles: {}, seenPages: {},
     upg: {}, gadgetMove: 'boots', gadgetTool: 'grapple', secrets: {},
     stats: { pixels: 0, time: 0, shots: 0, explosions: 0, letters: 0, chunks: 0, burned: 0, iced: 0, glass: 0, kills: 0, deaths: 0, jumps: 0, dashes: 0, walljumps: 0, runs: 0, wins: 0, bestCombo: 0, painted: 0, portals: 0, throws: 0, bees: 0, nukes: 0, slowmos: 0, zenTime: 0, dailies: 0, scrapEarned: 0, weaponUse: {}, distance: 0, bestWave: 0, eaten: 0, kicks: 0, gadgetUse: 0, secrets: 0, buttons: 0, props: 0, cracks: 0 },
     settings: { ...DEFAULT_SETTINGS }, keys: JSON.parse(JSON.stringify(DEFAULT_KEYS)), intro: false
@@ -122,7 +122,7 @@
     if (s.v < 5) for (const a in keys) for (const c of DEFAULT_KEYS[a]) if ((/^(Mouse|Wheel)/.test(c) || isPad(c)) && !keys[a].includes(c)) keys[a] = /^Mouse/.test(c) ? [c, ...keys[a]] : [...keys[a], c];
     if (s.v === 3) { for (const a of ['melee', 'gadget']) { const want = DEFAULT_KEYS[a][0]; const clash = Object.keys(keys).some((b) => b !== a && keys[b].includes(want)); keys[a] = clash ? [] : [want]; } if (!keys.wheel.includes('KeyB') && !Object.values(keys).some((l) => l.includes('KeyB'))) keys.wheel.push('KeyB'); }
     out.keys = keys;
-    for (const k of ['owned', 'skins', 'achievements', 'bests', 'campaign', 'daily', 'puzzles', 'seenPages', 'upg', 'secrets']) if (!isObj(out[k])) out[k] = {};
+    for (const k of ['owned', 'achievements', 'bests', 'campaign', 'daily', 'puzzles', 'seenPages', 'upg', 'secrets']) if (!isObj(out[k])) out[k] = {};
     for (const k in out.upg) { const n = out.upg[k]; out.upg[k] = typeof n === 'number' && isFinite(n) ? Math.max(0, Math.min(3, n | 0)) : 0; }
     // Gadgets moved from one free-for-all pick to a movement slot and a tool slot
     const MOVE = ['boots', 'jetpack', 'glider', 'claws'];
@@ -132,8 +132,13 @@
     if (typeof out.gadgetTool !== 'string') out.gadgetTool = 'grapple';
     out.hotbar = normHotbar(s.hotbar);
     if (typeof out.scrap !== 'number' || !isFinite(out.scrap)) out.scrap = 0;
-    out.skins.hero = true;
-    if (typeof out.skin !== 'string') out.skin = 'hero';
+    // Weapon skins used to share save.skins with the old stickman skin fields: they now live in wskins
+    const ws = isObj(s.wskins) ? s.wskins : isObj(s.skins) ? { owned: s.skins.owned, eq: s.skins.eq } : {};
+    out.wskins = { owned: isObj(ws.owned) ? ws.owned : {}, eq: isObj(ws.eq) ? ws.eq : {} };
+    delete out.skins; delete out.skin;
+    if (!isObj(out.pskin)) out.pskin = {};
+    if (!isObj(out.pskin.own)) out.pskin.own = {};
+    if (!isObj(out.pskin.eq)) out.pskin.eq = {};
     return out;
   }
   const save = loadSave();

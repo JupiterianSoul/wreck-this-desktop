@@ -346,7 +346,7 @@
     }
     if (!$('hMenu').hidden && rebinding == null) {
       e.stopImmediatePropagation();
-      if (e.code === 'Escape') { e.preventDefault(); G.pause(false); }
+      if (e.code === 'Escape') { e.preventDefault(); if (WTP.crates?.isOpen?.()) WTP.crates.close(); else G.pause(false); }
       return;
     }
     if (!$('hRes').hidden) {
@@ -396,7 +396,7 @@
     const o = $('hMenu');
     o.hidden = !on;
     hud.classList.toggle('overlay', on);
-    if (!on) { rebinding = null; focusCanvas(); return; }
+    if (!on) { rebinding = null; WTP.crates?.close?.(); focusCanvas(); return; }
     tab = 'play';
     renderMenu();
   };

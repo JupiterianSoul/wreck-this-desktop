@@ -57,29 +57,40 @@
   fin('omarchy', 'Omarchy', 'epic', (r, g, b) => { const th = WTP.deskTheme || {}; const st = [hexRGB(th.dark_background || '#0b0b0c'), hexRGB(th.background || '#121213'), hexRGB(th.accent || '#d8d8d8'), hexRGB(th.bright_foreground || th.foreground || '#eaeaea')]; return ramp(st, lumOf(r, g, b) * 1.2); });
   const FRAMES = 6;
 
+  // Weapon crates drop finishes; stickman crates each cover one category of the wardrobe.
+  // Stickman crate prices are set so collecting a category costs about what buying it outright used to (duplicates refund 40%).
   const CRATES = [
-    { id: 'wreck', name: 'Wreck Crate', price: 100, col: '#c8372d', w: [70, 22, 6, 1.6, 0.4], fins: ['olive', 'desert', 'crimson', 'camo', 'tiger', 'chrome', 'toxic', 'gold', 'holo'] },
-    { id: 'desktop', name: 'Desktop Crate', price: 150, col: '#4cc6ec', w: [62, 26, 8, 3, 1], fins: ['slate', 'arctic', 'carbon', 'ocean', 'neon', 'candy', 'galaxy', 'rainbow'] },
-    { id: 'glitch', name: 'Glitch Crate', price: 250, col: '#ff3ad1', w: [45, 32, 14, 6.5, 2.5], fins: ['crimson', 'slate', 'carbon', 'neon', 'toxic', 'lava', 'galaxy', 'glitch', 'holo'] },
-    { id: 'omarchy', name: 'Omarchy Crate', price: 350, col: '#7fd07a', w: [40, 34, 16, 7, 3], fins: ['woodgrain', 'blueprint', 'pixelcamo', 'zebra', 'sakura', 'circuit', 'marble', 'omarchy', 'damascus', 'sunset', 'terminal', 'void'] },
-    { id: 'golden', name: 'Golden Crate', price: 500, col: '#e3b94b', w: [0, 50, 30, 14, 6], fins: ['camo', 'ocean', 'chrome', 'candy', 'gold', 'lava', 'galaxy', 'damascus', 'holo', 'rainbow', 'glitch', 'void'] }
+    { id: 'costume', kind: 'player', slots: ['costume'], name: 'Costume Crate', price: 600, col: '#e05a8a', emblem: 'costume', w: [0, 50, 35, 15, 0] },
+    { id: 'hat', kind: 'player', slots: ['hat'], name: 'Hat Crate', price: 140, col: '#d0a040', emblem: 'hat', w: [55, 28, 12, 5, 0] },
+    { id: 'face', kind: 'player', slots: ['face'], name: 'Face Crate', price: 160, col: '#5ac8e0', emblem: 'face', w: [55, 28, 12, 5, 0] },
+    { id: 'trail', kind: 'player', slots: ['trail'], name: 'Trail Crate', price: 200, col: '#ff7a3a', emblem: 'trail', w: [50, 28, 14, 5, 3] },
+    { id: 'colour', kind: 'player', slots: ['body', 'scarf'], name: 'Colour Crate', price: 150, col: '#9b6bff', emblem: 'colour', w: [55, 25, 12, 5, 3] },
+    { id: 'wreck', kind: 'weapon', name: 'Wreck Crate', price: 100, col: '#c8372d', emblem: 'gun', w: [70, 22, 6, 1.6, 0.4], fins: ['olive', 'desert', 'crimson', 'camo', 'tiger', 'chrome', 'toxic', 'gold', 'holo'] },
+    { id: 'desktop', kind: 'weapon', name: 'Desktop Crate', price: 150, col: '#4cc6ec', emblem: 'window', w: [62, 26, 8, 3, 1], fins: ['slate', 'arctic', 'carbon', 'ocean', 'neon', 'candy', 'galaxy', 'rainbow'] },
+    { id: 'glitch', kind: 'weapon', name: 'Glitch Crate', price: 250, col: '#ff3ad1', emblem: 'glitch', w: [45, 32, 14, 6.5, 2.5], fins: ['crimson', 'slate', 'carbon', 'neon', 'toxic', 'lava', 'galaxy', 'glitch', 'holo'] },
+    { id: 'omarchy', kind: 'weapon', name: 'Omarchy Crate', price: 350, col: '#7fd07a', emblem: 'omarchy', w: [40, 34, 16, 7, 3], fins: ['woodgrain', 'blueprint', 'pixelcamo', 'zebra', 'sakura', 'circuit', 'marble', 'omarchy', 'damascus', 'sunset', 'terminal', 'void'] },
+    { id: 'golden', kind: 'weapon', name: 'Golden Crate', price: 500, col: '#e3b94b', emblem: 'star', w: [0, 50, 30, 14, 6], fins: ['camo', 'ocean', 'chrome', 'candy', 'gold', 'lava', 'galaxy', 'damascus', 'holo', 'rainbow', 'glitch', 'void'] }
   ];
 
+  // Wardrobe items: [id, name, rarity (null: free default), extra]. Halo and Crown are achievement rewards, not in any crate.
+  const costumeRar = (p) => (p <= 1800 ? 'rare' : p <= 2500 ? 'epic' : 'legendary');
   const PLAYER = {
-    costume: [['none', 'Default', 0], ...(WTP.costumes ? WTP.costumes.list().map((d) => [d.id, d.name, d.price, d.sw]) : [])],
-    body: [['theme', 'Theme', 0, null], ['snow', 'Snow', 0, '#f4f4f4'], ['cyan', 'Cyan', 300, '#5ad4f0'], ['pink', 'Pink', 300, '#ff7ab8'], ['lime', 'Lime', 300, '#a6e05a'], ['ember', 'Ember', 400, '#ff7a3a'], ['shadow', 'Shadow', 500, '#55586a'], ['violet', 'Violet', 500, '#a78bfa'], ['gold', 'Gold', 800, '#f0c850']],
-    scarf: [['theme', 'Theme', 0, null], ['none', 'No scarf', 0, 'rgba(0,0,0,0)'], ['red', 'Red', 300, '#d83a32'], ['blue', 'Blue', 300, '#3e70d9'], ['green', 'Green', 300, '#3fae5a'], ['purple', 'Purple', 400, '#9b5de5'], ['white', 'White', 400, '#f2f2f2'], ['black', 'Black', 400, '#16181d'], ['rainbow', 'Rainbow', 800, 'rainbow']],
-    hat: [['none', 'None', 0], ['cap', 'Cap', 500], ['beanie', 'Beanie', 500], ['party', 'Party Hat', 600], ['beret', 'Beret', 600], ['headphones', 'Headphones', 700], ['bunny', 'Bunny Ears', 700], ['propeller', 'Propeller Cap', 800], ['santa', 'Santa Hat', 800], ['tophat', 'Top Hat', 900], ['horns', 'Horns', 900], ['cowboy', 'Cowboy Hat', 900], ['pixel', 'Pixel Fedora', 1000], ['viking', 'Viking Helmet', 1100], ['halo', 'Halo', 1200, 'g:wave:hardcore:8'], ['crown', 'Crown', 1500, 'g:bosses:5']],
-    face: [['none', 'None', 0], ['mustache', 'Mustache', 500], ['clown', 'Clown Nose', 500], ['shades', 'Sunglasses', 500], ['nerd', 'Nerd Glasses', 600], ['patch', 'Eye Patch', 600], ['threed', '3D Glasses', 700], ['monocle', 'Monocle', 900], ['gasmask', 'Gas Mask', 1200], ['deal', 'Pixel Shades', 1500]],
-    trail: [['none', 'None', 0], ['smoke', 'Smoke', 500, ['#9aa0aa', '#c3c8cf']], ['sparks', 'Sparks', 600, ['#ffd34a', '#ff8a2e']], ['snow', 'Snowflakes', 600, null], ['bubbles', 'Bubbles', 600, null], ['hearts', 'Hearts', 700, null], ['pixels', 'Pixels', 800, ['#4cc6ec', '#ff6aa8', '#a6e05a']], ['code', 'Source Code', 900, null], ['confetti', 'Confetti', 900, null], ['fire', 'Fire', 1000, null], ['glitch', 'Glitch', 1300, null], ['rainbow', 'Rainbow', 1500, null]]
+    costume: [['none', 'Default', null], ...(WTP.costumes ? WTP.costumes.list().map((d) => [d.id, d.name, costumeRar(d.price), d.sw]) : [])],
+    body: [['theme', 'Theme', null, null], ['snow', 'Snow', null, '#f4f4f4'], ['cyan', 'Cyan', 'common', '#5ad4f0'], ['pink', 'Pink', 'common', '#ff7ab8'], ['lime', 'Lime', 'common', '#a6e05a'], ['ember', 'Ember', 'rare', '#ff7a3a'], ['shadow', 'Shadow', 'epic', '#55586a'], ['violet', 'Violet', 'epic', '#a78bfa'], ['gold', 'Gold', 'legendary', '#f0c850']],
+    scarf: [['theme', 'Theme', null, null], ['none', 'No scarf', null, 'rgba(0,0,0,0)'], ['red', 'Red', 'common', '#d83a32'], ['blue', 'Blue', 'common', '#3e70d9'], ['green', 'Green', 'common', '#3fae5a'], ['purple', 'Purple', 'rare', '#9b5de5'], ['white', 'White', 'rare', '#f2f2f2'], ['black', 'Black', 'rare', '#16181d'], ['rainbow', 'Rainbow', 'mythic', 'rainbow']],
+    hat: [['none', 'None', null], ['cap', 'Cap', 'common'], ['beanie', 'Beanie', 'common'], ['party', 'Party Hat', 'rare'], ['beret', 'Beret', 'rare'], ['headphones', 'Headphones', 'rare'], ['bunny', 'Bunny Ears', 'rare'], ['propeller', 'Propeller Cap', 'epic'], ['santa', 'Santa Hat', 'epic'], ['tophat', 'Top Hat', 'epic'], ['horns', 'Horns', 'epic'], ['cowboy', 'Cowboy Hat', 'epic'], ['pixel', 'Pixel Fedora', 'legendary'], ['viking', 'Viking Helmet', 'legendary'], ['halo', 'Halo', 'legendary', 'g:wave:hardcore:8'], ['crown', 'Crown', 'legendary', 'g:bosses:5']],
+    face: [['none', 'None', null], ['mustache', 'Mustache', 'common'], ['clown', 'Clown Nose', 'common'], ['shades', 'Sunglasses', 'common'], ['nerd', 'Nerd Glasses', 'rare'], ['patch', 'Eye Patch', 'rare'], ['threed', '3D Glasses', 'rare'], ['monocle', 'Monocle', 'epic'], ['gasmask', 'Gas Mask', 'legendary'], ['deal', 'Pixel Shades', 'legendary']],
+    trail: [['none', 'None', null], ['smoke', 'Smoke', 'common', ['#9aa0aa', '#c3c8cf']], ['sparks', 'Sparks', 'common', ['#ffd34a', '#ff8a2e']], ['snow', 'Snowflakes', 'common', null], ['bubbles', 'Bubbles', 'common', null], ['hearts', 'Hearts', 'rare', null], ['pixels', 'Pixels', 'rare', ['#4cc6ec', '#ff6aa8', '#a6e05a']], ['code', 'Source Code', 'epic', null], ['confetti', 'Confetti', 'epic', null], ['fire', 'Fire', 'epic', null], ['glitch', 'Glitch', 'mythic', null], ['rainbow', 'Rainbow', 'mythic', null]]
   };
+  const SLOT_NAME = { costume: 'Costume', body: 'Body colour', scarf: 'Scarf', hat: 'Hat', face: 'Glasses and masks', trail: 'Trail' };
+  const ANIMATED = new Set(['scarf:rainbow', 'trail:glitch', 'trail:rainbow']);
 
   const SV = () => {
     const s = WTP.save;
     if (typeof s.shards !== 'number') s.shards = 0;
-    if (!s.skins || typeof s.skins !== 'object') s.skins = {};
-    s.skins.owned = s.skins.owned || {};
-    s.skins.eq = s.skins.eq || {};
+    if (!s.wskins || typeof s.wskins !== 'object') s.wskins = {};
+    s.wskins.owned = s.wskins.owned || {};
+    s.wskins.eq = s.wskins.eq || {};
     if (!s.pskin || typeof s.pskin !== 'object') s.pskin = {};
     s.pskin.own = s.pskin.own || {};
     s.pskin.eq = s.pskin.eq || {};
@@ -89,7 +100,7 @@
   const spend = (n) => { const s = SV(); if (s.shards < n) return false; s.shards -= n; WTP.persist(); return true; };
   const earn = (n) => { if (n <= 0) return; SV().shards += Math.round(n); WTP.persist(); };
 
-  const skinOf = (id) => SV().skins.eq[id] || '';
+  const skinOf = (id) => SV().wskins.eq[id] || '';
   const frameNow = () => Math.floor(performance.now() / 140) % FRAMES;
   const skinFor = (id) => { const f = F[skinOf(id)]; return f ? { key: f.id, fn: f.fn, frame: f.anim ? frameNow() : 0 } : null; };
   const skinCanvas = (id, f) => {
@@ -114,8 +125,11 @@
 
   const pItem = (slot, id) => PLAYER[slot].find((x) => x[0] === id);
   const pEq = (slot) => SV().pskin.eq[slot] || PLAYER[slot][0][0];
-  const pOwned = (slot, id) => { const it = pItem(slot, id); return !!it && (it[2] === 0 || !!SV().pskin.own[`${slot}:${id}`]); };
-  const pReq = (slot, id) => { const it = pItem(slot, id); return it && slot === 'hat' ? it[3] : null; };
+  const pReq = (slot, id) => { const it = pItem(slot, id); return it && slot === 'hat' && typeof it[3] === 'string' ? it[3] : null; };
+  // Things bought before crates replaced the shop stay owned (save.pskin.own)
+  const pOwned = (slot, id) => { const it = pItem(slot, id); if (!it) return false; const req = pReq(slot, id); if (req) return !!WTP.save.ach?.done?.[req] || !!SV().pskin.own[`${slot}:${id}`]; return !it[2] || !!SV().pskin.own[`${slot}:${id}`]; };
+  const crateFor = (slot) => CRATES.find((c) => c.kind === 'player' && c.slots.includes(slot));
+  const pPool = (cr) => cr.slots.flatMap((slot) => PLAYER[slot].filter((it) => it[2] && !pReq(slot, it[0])).map((it) => ({ slot, id: it[0], rar: it[2] })));
   const bodyColor = () => pItem('body', pEq('body'))?.[3] || null;
   const scarfColor = () => { const v = pItem('scarf', pEq('scarf'))?.[3]; if (v === 'rainbow') { const c = hsl(performance.now() / 8, 0.85, 0.55); return `rgb(${c.map(Math.round).join(',')})`; } return v || null; };
 
@@ -152,10 +166,22 @@
     WTP.feel.parts.push({ x: P.x + P.w / 2 + (Math.random() - 0.5) * 3, y: P.y + P.h * (0.4 + Math.random() * 0.5), vx: -P.vx * 0.05, vy: big ? -10 : 0, t: 0, dur: big ? 0.6 : 0.4, c: col, r: big ? 1 : 0.5, grow: big ? 2 : 0, a: big ? 0.35 : 1, g: id === 'sparks' ? 60 : 0 });
   });
 
-  function rollCrate(cr) {
+  const rollRarity = (cr) => {
     const tot = cr.w.reduce((a, b) => a + b, 0);
     let r = Math.random() * tot, ri = 0;
     for (; ri < cr.w.length - 1; ri++) { if (r < cr.w[ri]) break; r -= cr.w[ri]; }
+    return ri;
+  };
+  // A drop: { w, fin } from a weapon crate, { slot, id } from a stickman crate; rar is its rarity index
+  function rollCrate(cr) {
+    const ri = rollRarity(cr);
+    if (cr.kind === 'player') {
+      const all = pPool(cr);
+      let pool = all.filter((x) => RI[x.rar] === ri);
+      for (let d = 1; !pool.length && d < 5; d++) pool = all.filter((x) => Math.abs(RI[x.rar] - ri) === d);
+      const it = pool[(Math.random() * pool.length) | 0];
+      return { slot: it.slot, id: it.id, rar: RI[it.rar] };
+    }
     let pool = cr.fins.filter((f) => RI[F[f].rar] === ri);
     for (let d = 1; !pool.length && d < 5; d++) pool = cr.fins.filter((f) => Math.abs(RI[F[f].rar] - ri) === d);
     const fin = pool[(Math.random() * pool.length) | 0];
@@ -163,103 +189,63 @@
     const owned = ws.filter((d) => WTP.ach?.weaponOwned?.(d.id) ?? true);
     const pickFrom = Math.random() < 0.75 && owned.length ? owned : ws;
     const w = pickFrom[(Math.random() * pickFrom.length) | 0].id;
-    return { w, fin };
+    return { w, fin, rar: RI[F[fin].rar] };
   }
   function grant(r) {
     const s = SV();
-    const k = `${r.w}|${r.fin}`;
-    const dup = !!s.skins.owned[k];
-    s.skins.owned[k] = (s.skins.owned[k] || 0) + 1;
+    let dup;
+    if (r.slot) { const k = `${r.slot}:${r.id}`; dup = pOwned(r.slot, r.id); s.pskin.own[k] = 1; }
+    else { const k = `${r.w}|${r.fin}`; dup = !!s.wskins.owned[k]; s.wskins.owned[k] = (s.wskins.owned[k] || 0) + 1; }
     let refund = 0;
     if (dup) { const cr = CRATES.find((c) => c.id === r.crate); refund = Math.round((cr?.price || 100) * 0.4); s.shards += refund; }
     WTP.persist();
     return { dup, refund };
   }
 
-  let openState = null;
-  function renderCrates(body) {
-    const s = SV();
-    body.innerHTML = `<h2>Crates</h2>
-      <div class="ach-head"><span><i class="shard"></i><b>${fmt(s.shards)}</b> shards</span><span>Duplicates refund 40%</span></div>
-      <div class="crates">${CRATES.map((c) => `<div class="crate" style="--cc:${c.col};--cimg:url(${WTP.pixui?.crate?.(c.col) || ''})"><div class="cbox"><i></i></div><b>${esc(c.name)}</b><div class="codds">${RAR.map((r, i) => c.w[i] ? `<span style="color:${r.col}">${r.name} ${(c.w[i] / c.w.reduce((a, b) => a + b, 0) * 100).toFixed(c.w[i] < 2 ? 1 : 0)}%</span>` : '').join('')}</div><button class="b" data-crate="${c.id}"${s.shards < c.price ? ' disabled' : ''}><i class="shard"></i>${c.price}</button></div>`).join('')}</div>
-      <div class="roulette" id="shopRoll" hidden></div>`;
-    body.querySelectorAll('[data-crate]').forEach((b) => b.addEventListener('click', () => openCrate(body, b.dataset.crate)));
-  }
-  function openCrate(body, cid) {
-    if (openState) return;
-    const cr = CRATES.find((c) => c.id === cid);
-    if (!cr || !spend(cr.price)) { AU.play('deny'); return; }
-    const win = rollCrate(cr); win.crate = cid;
-    const N = 46, WIN = 40;
-    const items = Array.from({ length: N }, (_, i) => (i === WIN ? win : rollCrate(cr)));
-    const box = body.querySelector('#shopRoll');
-    box.hidden = false;
-    box.innerHTML = `<div class="rtrack">${items.map((it) => { const f = F[it.fin], r = RAR[RI[f.rar]]; return `<div class="ritem" style="--rc:${r.col}"><img alt="" src="${skinIcon(it.w, it.fin, [92, 44])}"><span>${esc(WP.BY[it.w].name)}</span><em>${esc(f.name)}</em></div>`; }).join('')}</div><i class="rmark"></i>`;
-    const track = box.querySelector('.rtrack');
-    const IW = 132, bw = box.clientWidth || 900;
-    const target = WIN * IW - bw / 2 + IW / 2 + (Math.random() - 0.5) * (IW * 0.7);
-    const dur = 5200, t0 = performance.now();
-    openState = { t0 };
-    let lastTick = -1;
-    const ease = (t) => 1 - Math.pow(1 - t, 4);
-    const step = () => {
-      const k = Math.min(1, (performance.now() - t0) / dur), x = target * ease(k);
-      track.style.transform = `translateX(${-x}px)`;
-      const idx = Math.floor((x + bw / 2) / IW);
-      if (idx !== lastTick) { lastTick = idx; AU.play('click'); }
-      if (k < 1) requestAnimationFrame(step);
-      else {
-        const g = grant(win);
-        const f = F[win.fin], r = RAR[RI[f.rar]];
-        AU.play(RI[f.rar] >= 3 ? 'unlock' : 'achieve');
-        box.insertAdjacentHTML('beforeend', `<div class="reveal" style="--rc:${r.col}"><img alt="" src="${skinIcon(win.w, win.fin, [200, 90])}"><b>${esc(WP.BY[win.w].name)} | ${esc(f.name)}</b><span>${r.name}${f.anim ? ', animated' : ''}${g.dup ? `, duplicate: +${g.refund} shards` : ''}</span><div><button class="b" data-eq>Equip</button><button class="b" data-again>Open another</button><button class="b" data-close>Close</button></div></div>`);
-        box.querySelector('[data-eq]').addEventListener('click', () => { SV().skins.eq[win.w] = win.fin; WTP.persist(); WTP.ui?.clearImgCache?.(); WTP.ui?.hudWeapons?.(G.slots(), WP.st.cur); AU.play('select'); box.querySelector('[data-eq]').textContent = 'Equipped'; });
-        box.querySelector('[data-again]').addEventListener('click', () => { openState = null; renderCrates(body); openCrate(body, cid); });
-        box.querySelector('[data-close]').addEventListener('click', () => { openState = null; renderCrates(body); });
-        openState = { done: true };
-        setTimeout(() => { if (openState?.done) openState = null; }, 0);
-      }
-    };
-    requestAnimationFrame(step);
-  }
+  const renderCrates = (body) => WTP.crates?.render?.(body);
 
-  let skinFilter = 'weapons';
+  // The Skins tab is a wardrobe: everything you own, equipped here; locked things show as silhouettes with the crate they come from
+  let skinFilter = 'player';
+  const rarTag = (rar) => (rar ? `<em class="rtag" style="--rc:${RAR[RI[rar]].col}">${RAR[RI[rar]].name}</em>` : '');
+  function itemArt(slot, id, it, own) {
+    if (slot === 'costume' && id !== 'none') return `<img class="cprev${own ? '' : ' sil'}" alt="" src="${WTP.costumes?.preview?.(id, 3) || ''}">`;
+    if (slot === 'body' || slot === 'scarf') return `<i class="sw${own ? '' : ' sil'}" style="background:${it[3] === 'rainbow' ? 'linear-gradient(90deg,#f55,#fd5,#5f5,#5df,#a5f)' : it[3] || 'var(--accent)'}"></i>`;
+    const src = WTP.crates?.stickIcon?.({ [slot]: id }, 2);
+    return src ? `<img class="pprev${own ? '' : ' sil'}" alt="" src="${src}">` : '';
+  }
   function renderSkins(body) {
     const s = SV();
-    const tabs = `<div class="ach-filter">${[['weapons', 'Weapon skins'], ['player', 'Stickman']].map(([k, l]) => `<button class="b${skinFilter === k ? ' on' : ''}" data-sf="${k}">${l}</button>`).join('')}</div>`;
+    const tabs = `<div class="ach-filter">${[['player', 'Stickman'], ['weapons', 'Weapon skins']].map(([k, l]) => `<button class="b${skinFilter === k ? ' on' : ''}" data-sf="${k}">${l}</button>`).join('')}</div>`;
     let inner = '';
     if (skinFilter === 'weapons') {
       const by = {};
-      for (const k of Object.keys(s.skins.owned)) { const [w, f] = k.split('|'); if (WP.BY[w] && F[f]) (by[w] = by[w] || []).push(f); }
+      for (const k of Object.keys(s.wskins.owned)) { const [w, f] = k.split('|'); if (WP.BY[w] && F[f]) (by[w] = by[w] || []).push(f); }
       const ids = Object.keys(by).sort((a, b) => WP.BY[a].idx - WP.BY[b].idx);
-      inner = ids.length ? `<div class="skin-grid">${ids.map((w) => `<div class="skw"><b>${esc(WP.BY[w].name)}</b><div class="skrow"><button class="sk${!s.skins.eq[w] ? ' on' : ''}" data-w="${w}" data-f=""><img alt="" src="${skinIcon(w, '')}"><span>Default</span></button>${by[w].sort((a, b) => RI[F[b].rar] - RI[F[a].rar]).map((f) => `<button class="sk${s.skins.eq[w] === f ? ' on' : ''}" data-w="${w}" data-f="${f}" style="--rc:${RAR[RI[F[f].rar]].col}"><img alt="" src="${skinIcon(w, f)}"><span>${esc(F[f].name)}</span></button>`).join('')}</div></div>`).join('')}</div>` : '<p class="muted">No skins yet. Open crates to get some.</p>';
+      inner = ids.length ? `<div class="skin-grid">${ids.map((w) => `<div class="skw"><b>${esc(WP.BY[w].name)}</b><div class="skrow"><button class="sk${!s.wskins.eq[w] ? ' on' : ''}" data-w="${w}" data-f=""><img alt="" src="${skinIcon(w, '')}"><span>Default</span></button>${by[w].sort((a, b) => RI[F[b].rar] - RI[F[a].rar]).map((f) => `<button class="sk${s.wskins.eq[w] === f ? ' on' : ''}" data-w="${w}" data-f="${f}" style="--rc:${RAR[RI[F[f].rar]].col}"><img alt="" src="${skinIcon(w, f)}"><span>${esc(F[f].name)}</span></button>`).join('')}</div></div>`).join('')}</div>` : '<p class="muted">No weapon skins yet. Weapon crates drop them.</p>';
     } else {
-      const lbl = { costume: 'Costume', body: 'Body colour', scarf: 'Scarf', hat: 'Hat', face: 'Glasses and masks', trail: 'Trail' };
-      inner = Object.keys(PLAYER).map((slot) => `<h3>${lbl[slot]}</h3><div class="pskins">${PLAYER[slot].map((it) => {
-        const [id, nm, price] = it;
-        const own = pOwned(slot, id), eq = pEq(slot) === id, req = pReq(slot, id), reqOk = !req || !!WTP.save.ach?.done?.[req];
-        const sw = slot === 'costume' && id !== 'none' ? `<img class="cprev" alt="" src="${WTP.costumes?.preview?.(id, 3) || ''}">` : slot === 'body' || slot === 'scarf' ? `<i class="sw" style="background:${it[3] === 'rainbow' ? 'linear-gradient(90deg,#f55,#fd5,#5f5,#5df,#a5f)' : it[3] || 'var(--accent)'}"></i>` : '';
-        const tag = eq ? 'Equipped' : own ? 'Equip' : !reqOk ? `Needs: ${esc(WTP.ach?.BY?.[req]?.name || 'achievement')}` : `<i class="shard"></i>${price}`;
-        return `<button class="ps${eq ? ' on' : ''}${!own && !reqOk ? ' needs' : ''}" data-slot="${slot}" data-id="${id}">${sw}<b>${esc(nm)}</b><span>${tag}</span></button>`;
-      }).join('')}</div>`).join('');
+      inner = Object.keys(PLAYER).map((slot) => {
+        const list = PLAYER[slot], own = list.filter((it) => pOwned(slot, it[0])).length;
+        return `<h3>${SLOT_NAME[slot]} <small>${own} / ${list.length}</small></h3><div class="pskins">${list.map((it) => {
+          const [id, nm, rar] = it;
+          const ok = pOwned(slot, id), eq = pEq(slot) === id, req = pReq(slot, id);
+          const tag = eq ? 'Equipped' : ok ? 'Equip' : req ? `Needs: ${esc(WTP.ach?.BY?.[req]?.name || 'achievement')}` : `From the ${esc(crateFor(slot)?.name || 'crates')}`;
+          return `<button class="ps${eq ? ' on' : ''}${ok ? '' : ' locked'}" data-slot="${slot}" data-id="${id}"${ok ? '' : ' aria-disabled="true"'}>${itemArt(slot, id, it, ok)}<b>${ok || !rar ? esc(nm) : '???'}</b>${rarTag(rar)}<span>${tag}</span></button>`;
+        }).join('')}</div>`;
+      }).join('');
     }
-    body.innerHTML = `<h2>Skins</h2><div class="ach-head"><span><i class="shard"></i><b>${fmt(s.shards)}</b> shards</span></div>${tabs}${inner}`;
+    body.innerHTML = `<h2>Wardrobe</h2><div class="ach-head"><span><i class="shard"></i><b>${fmt(s.shards)}</b> shards</span><span>Open crates in the Crates tab to fill it</span></div>${tabs}${inner}`;
     body.querySelectorAll('[data-sf]').forEach((b) => b.addEventListener('click', () => { skinFilter = b.dataset.sf; renderSkins(body); }));
-    body.querySelectorAll('.sk').forEach((b) => b.addEventListener('click', () => { const w = b.dataset.w, f = b.dataset.f; if (f) s.skins.eq[w] = f; else delete s.skins.eq[w]; WTP.persist(); WTP.ui?.clearImgCache?.(); WTP.ui?.hudWeapons?.(G.slots(), WP.st.cur); AU.play('select'); renderSkins(body); }));
+    body.querySelectorAll('.sk').forEach((b) => b.addEventListener('click', () => { const w = b.dataset.w, f = b.dataset.f; if (f) s.wskins.eq[w] = f; else delete s.wskins.eq[w]; WTP.persist(); WTP.ui?.clearImgCache?.(); WTP.ui?.hudWeapons?.(G.slots(), WP.st.cur); AU.play('select'); renderSkins(body); }));
     body.querySelectorAll('.ps').forEach((b) => b.addEventListener('click', () => {
-      const slot = b.dataset.slot, id = b.dataset.id, it = pItem(slot, id);
-      if (!pOwned(slot, id)) {
-        const req = pReq(slot, id);
-        if (req && !WTP.save.ach?.done?.[req]) { AU.play('deny'); return; }
-        if (!spend(it[2])) { AU.play('deny'); return; }
-        s.pskin.own[`${slot}:${id}`] = 1;
-        AU.play('coin');
-      } else AU.play('select');
+      const slot = b.dataset.slot, id = b.dataset.id;
+      if (!pOwned(slot, id)) { AU.play('deny'); return; }
+      AU.play('select');
       s.pskin.eq[slot] = id;
       WTP.persist();
       renderSkins(body);
     }));
   }
+  const equipDrop = (r) => { const s = SV(); if (r.slot) s.pskin.eq[r.slot] = r.id; else { s.wskins.eq[r.w] = r.fin; WTP.ui?.clearImgCache?.(); WTP.ui?.hudWeapons?.(G.slots(), WP.st.cur); } WTP.persist(); };
 
   const dayKey = () => new Date().toISOString().slice(0, 10);
   function runShards(run) {
@@ -295,5 +281,5 @@
     }
   };
 
-  WTP.shop = { pEq, F, RAR, CRATES, PLAYER, shards, earn, spend, skinOf, skinFor, skinCanvas, skinIcon, renderCrates, renderSkins, drawHat, bodyColor, scarfColor, rollCrate, grant, runShards };
+  WTP.shop = { pEq, pOwned, pItem, pPool, F, RAR, RI, CRATES, PLAYER, SLOT_NAME, ANIMATED, shards, earn, spend, skinOf, skinFor, skinCanvas, skinIcon, renderCrates, renderSkins, drawHat, bodyColor, scarfColor, rollCrate, grant, equipDrop, runShards };
 })();

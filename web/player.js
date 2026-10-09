@@ -45,7 +45,7 @@
     if (P.carry) { WTP.world.releaseChunk(P.carry, 0, 0); P.carry = null; }
     WTP.rig?.reset?.();
     Object.assign(P, { mantle: null, h: 22, crouch: false, rollT: 0, ragdoll: false, ragT: 0, on: 0, x, y, vx: 0, vy: 0, ground: false, wall: 0, jumps: 1, airDash: 1, coyote: 0, buffer: 0, dashT: 0, dashCd: 0, land: 0, hurtT: 0, iframes: 0, hp: P.maxHp, dead: false, victory: false, ghosts: [], recoil: 0, swing: 0, kickT: 0, idleT: 0, stuckT: 0, gravMul: 1, maxFall: 410, ctrl: 1, pose: null, squash: 0, stretch: 0, airT: 0 });
-    P.setSkin(WTP.save.skin);
+    P.setSkin('hero');
     GD()?.reset?.();
   };
   P.setSkin = (id) => { P.skin = id; P.frames = WTP.sprites.playerFrames(id); };

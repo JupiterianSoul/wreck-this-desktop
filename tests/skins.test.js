@@ -8,13 +8,12 @@ const { launch } = require('./harness.js');
     await h.ev('__wtd.step(20); WTP.game.stopLoop(); 1');
     const r = await h.ev(`(() => {
       const S = WTP.shop, PL = S.PLAYER;
-      const paid = (slot) => PL[slot].filter((x) => x[2] > 0).map((x) => x[2]);
-      const inRange = (a, lo, hi) => a.every((v) => v >= lo && v <= hi);
+      const rars = (slot) => PL[slot].filter((x) => x[2]).map((x) => x[2]);
       const out = {
         costumes: PL.costume.length - 1, hats: PL.hat.length - 1, faces: PL.face.length - 1, trails: PL.trail.length - 1,
-        colours: inRange([...paid('body'), ...paid('scarf')], 300, 800),
-        accessories: inRange([...paid('hat'), ...paid('face'), ...paid('trail')], 500, 1500),
-        costumePrices: inRange(paid('costume'), 1500, 5000),
+        colours: rars('body').length >= 6 && rars('scarf').includes('mythic'),
+        accessories: ['hat', 'face', 'trail'].every((s) => rars(s).includes('common') && (rars(s).includes('legendary') || rars(s).includes('mythic'))),
+        costumePrices: rars('costume').every((r) => r !== 'common') && rars('costume').length === 12,
         crates: S.CRATES.length, finishes: Object.keys(S.F).length,
         previews: PL.costume.slice(1).every((x) => WTP.costumes.preview(x[0]).startsWith('data:image/png'))
       };
@@ -28,7 +27,7 @@ const { launch } = require('./harness.js');
       WTP.save.pskin.eq.costume = 'wizard'; const b = sample();
       out.drawsOnBody = a !== b;
       WTP.save.pskin.eq.costume = 'none';
-      for (const c of S.CRATES) for (let k = 0; k < 20; k++) { const w = S.rollCrate(c); if (!S.F[w.fin] || !WTP.weapons.BY[w.w]) out.badRoll = c.id; }
+      for (const c of S.CRATES) for (let k = 0; k < 20; k++) { const w = S.rollCrate(c); if (c.kind === 'weapon' ? !S.F[w.fin] || !WTP.weapons.BY[w.w] : !S.pItem(w.slot, w.id)) out.badRoll = c.id; }
       WTP.save.shards = 99999; WTP.game.pause(true); WTP.ui.openTab('skins'); document.querySelector('[data-sf="player"]').click();
       out.cards = document.querySelectorAll('#hBody .ps').length;
       out.previewImgs = document.querySelectorAll('#hBody .cprev').length;
@@ -37,10 +36,10 @@ const { launch } = require('./harness.js');
     })()`);
     t('12 costumes that change the body', r.allCostumes && r.costumes === 12 && r.drawsOnBody, JSON.stringify(r));
     t('more hats, glasses, masks and trails', r.hats >= 14 && r.faces >= 8 && r.trails >= 10);
-    t('colours priced 300 to 800', r.colours);
-    t('accessories priced 500 to 1500', r.accessories);
-    t('costumes priced 1500 to 5000', r.costumePrices);
-    t('a fifth crate and more finishes', r.crates === 5 && r.finishes >= 30 && !r.badRoll);
+    t('colours have rarities, rainbow scarf is mythic', r.colours);
+    t('accessories run from common to legendary', r.accessories);
+    t('costumes are never common', r.costumePrices);
+    t('ten crates and more finishes', r.crates === 10 && r.finishes >= 30 && !r.badRoll);
     t('skins tab shows pixel costume previews', r.previews && r.previewImgs === 12 && r.cards > 60);
     const errs = await h.ev('WTD.errors');
     t('no page errors', errs.length === 0, JSON.stringify(errs));

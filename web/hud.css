@@ -326,3 +326,72 @@
 .hud button.b.hold { position: relative; overflow: hidden; user-select: none; touch-action: none; }
 .hud button.b.hold i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: color-mix(in srgb, var(--bad) 55%, transparent); pointer-events: none; }
 .hud button.b.hold span { position: relative; }
+
+/* Crates: a shelf of hand pixelled crates */
+.hud .shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 18px 8px; padding-bottom: 6px; }
+.hud .crate2 { position: relative; display: grid; gap: 6px; justify-items: center; align-content: start; padding: 4px 4px 18px; }
+.hud .crate2::after { content: ''; position: absolute; left: -4px; right: -4px; bottom: 0; height: 10px; background: color-mix(in srgb, var(--fg) 18%, var(--bg2)); box-shadow: 0 2px 0 var(--ink), inset 0 2px 0 color-mix(in srgb, var(--fg) 30%, transparent); }
+.hud .crate2 .cimg { width: 96px; height: 88px; image-rendering: pixelated; filter: drop-shadow(0 4px 0 rgba(0,0,0,.45)); transition: transform .12s steps(2); }
+.hud .crate2:hover .cimg { transform: translateY(-3px) rotate(-2deg); }
+.hud .crate2 b { font-size: 16px; color: var(--fg); text-align: center; }
+.hud .crate2 .cown { font-size: 12px; color: var(--fg2); }
+.hud .crate2 .codds { display: grid; gap: 1px; font-size: 12px; text-align: center; }
+.hud .crate2 .cbtns { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.hud .crate2 .b[disabled] { opacity: .45; cursor: not-allowed; }
+.hud .rtag { font-style: normal; font-size: 11px; color: var(--rc); letter-spacing: .06em; text-transform: uppercase; }
+.hud .ps.locked { opacity: .7; cursor: default; }
+.hud .ps .sil { filter: brightness(0) opacity(.55); }
+.hud .ps .pprev { justify-self: center; height: 72px; image-rendering: pixelated; }
+.hud h3 small { color: var(--fg2); font-size: 12px; margin-left: 6px; letter-spacing: .04em; }
+
+/* Opening a crate */
+.hud .copen { position: fixed; inset: 0; z-index: 40; pointer-events: auto; display: grid; place-items: center; cursor: pointer; }
+.hud .copen .co-dim { position: absolute; inset: 0; background: color-mix(in srgb, var(--bg2) 70%, transparent); transition: background .6s; }
+.hud .copen.dim .co-dim { background: color-mix(in srgb, var(--bg2) 92%, transparent); }
+.hud .copen.hold .co-dim { background: #000; }
+.hud .co-stage { position: relative; width: min(1000px, 94vw); height: 560px; display: grid; place-items: center; }
+.hud .co-crate { position: absolute; width: 192px; height: 176px; transition: opacity .3s steps(4), transform .05s; }
+.hud .co-crate img { position: absolute; image-rendering: pixelated; width: 192px; left: 0; }
+.hud .co-crate .co-body { top: 56px; height: 120px; }
+.hud .co-crate .co-lid { top: 0; height: 56px; transition: transform .25s steps(4); transform-origin: 10% 100%; }
+.hud .co-crate .co-latch { width: 32px !important; height: 40px; top: 40px; transition: transform .35s cubic-bezier(.2,.8,.4,1), opacity .35s; }
+.hud .co-crate .co-latch.l { left: 32px; } .hud .co-crate .co-latch.r { left: 128px; }
+.hud .co-crate .co-latch.pop.l { transform: translate(-90px, -120px) rotate(-200deg); opacity: 0; }
+.hud .co-crate .co-latch.pop.r { transform: translate(90px, -130px) rotate(220deg); opacity: 0; }
+.hud .co-crate .co-glow { position: absolute; left: 16px; right: 16px; top: 44px; height: 16px; background: var(--glow); opacity: 0; box-shadow: 0 0 40px 18px var(--glow); transition: opacity .3s; }
+.hud .co-crate.crack .co-lid { transform: translateY(-14px) rotate(-6deg); }
+.hud .co-crate.crack .co-glow { opacity: .85; }
+.hud .co-crate.away { opacity: 0; transform: scale(1.4) !important; pointer-events: none; }
+.hud .co-strip { position: absolute; left: 0; right: 0; top: 150px; height: 190px; overflow: hidden; border: 8px solid transparent; border-image: var(--f-inset) 4 fill / 8px stretch; }
+.hud .co-strip::after { content: ''; position: absolute; left: 0; right: 0; bottom: 10px; height: 8px; background: color-mix(in srgb, var(--fg) 18%, var(--bg2)); box-shadow: 0 2px 0 var(--ink); }
+.hud .co-track { display: flex; height: 100%; align-items: center; will-change: transform; }
+.hud .co-card { position: relative; flex: none; width: 104px; height: 150px; margin-right: 8px; display: grid; grid-template-rows: 1fr auto; justify-items: center; align-items: center; padding: 4px 4px 10px; border: 6px solid transparent; border-image: var(--f-btn) 4 fill / 6px stretch; color: var(--fg); background: none; font: inherit; }
+.hud .co-card::after { content: ''; position: absolute; left: -2px; right: -2px; bottom: -2px; height: 6px; background: var(--rc); box-shadow: 0 -2px 0 var(--ink); }
+.hud .co-card::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 80%, color-mix(in srgb, var(--rc) 22%, transparent), transparent 70%); pointer-events: none; }
+.hud .copen.revealed .co-strip { opacity: 0; transform: scale(.92); transition: opacity .25s steps(4), transform .25s steps(4); pointer-events: none; }
+.hud .co-card img { max-width: 88px; max-height: 96px; image-rendering: pixelated; }
+.hud .co-card span { font-size: 11px; text-align: center; line-height: 1.1; max-height: 2.3em; overflow: hidden; }
+.hud .co-mark { position: absolute; left: 50%; top: -6px; bottom: -6px; width: 4px; margin-left: -2px; background: var(--warn); box-shadow: 0 0 0 2px var(--ink); }
+.hud .copen.hold .co-strip { transform: scale(1.08); transition: transform .7s; }
+.hud .co-reveal { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 10px; cursor: default; }
+.hud .co-reveal::before { content: ''; position: absolute; left: 50%; top: 38%; width: 420px; height: 420px; margin: -210px 0 0 -210px; background: radial-gradient(circle, color-mix(in srgb, var(--rc) 30%, transparent), transparent 65%); pointer-events: none; }
+.hud .co-reveal .co-stick { width: 280px; height: 300px; image-rendering: pixelated; position: relative; z-index: 1; }
+.hud .co-name { display: grid; gap: 4px; justify-items: center; position: relative; z-index: 1; }
+.hud .co-name b { font-size: 26px; color: var(--rc); text-shadow: 3px 3px 0 var(--ink); text-align: center; }
+.hud .co-name span { font-size: 15px; color: var(--fg); }
+.hud .co-reveal .btns { position: relative; z-index: 1; justify-content: center; }
+.hud .co-fx { position: absolute; left: 50%; top: 42%; width: 0; height: 0; pointer-events: none; }
+.hud .co-burst { position: absolute; left: -160px; top: -160px; width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(circle, var(--rc) 0 30%, transparent 70%); animation: coBurst .7s steps(7) both; }
+.hud .co-ray { position: absolute; left: -420px; top: -420px; width: 840px; height: 840px; background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--rc) 40%, transparent) 0 8deg, transparent 8deg 22deg); border-radius: 50%; mask: radial-gradient(circle, #000 20%, transparent 70%); -webkit-mask: radial-gradient(circle, #000 20%, transparent 70%); animation: coRay 8s linear infinite; }
+.hud .co-shard { position: absolute; width: 8px; height: 8px; background: var(--rc); box-shadow: 0 0 0 2px var(--ink); animation: coShard .9s cubic-bezier(.15,.7,.3,1) both; }
+.hud .co-conf { position: fixed; top: -12px; width: 6px; height: 10px; background: var(--c); animation: coConf 2.6s linear both; }
+.hud .co-grid { display: grid; grid-template-columns: repeat(5, 120px); gap: 10px; position: relative; z-index: 1; }
+.hud .co-card.big { width: 120px; height: 170px; margin: 0; cursor: pointer; animation: coIn .35s steps(5) both; }
+.hud .co-card.big em { font-style: normal; font-size: 11px; color: var(--rc); }
+.hud .co-card.big.eq { border-image-source: var(--f-hi); }
+.hud .co-skip { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); color: var(--fg2); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+@keyframes coBurst { 0% { transform: scale(.2); opacity: 1; } 100% { transform: scale(2.4); opacity: 0; } }
+@keyframes coRay { to { transform: rotate(360deg); } }
+@keyframes coShard { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; } }
+@keyframes coConf { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 100% { transform: translate(var(--sw), 110vh) rotate(720deg); opacity: .8; } }
+@keyframes coIn { 0% { transform: translateY(30px) scale(.6); opacity: 0; } 100% { transform: none; opacity: 1; } }
