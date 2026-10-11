@@ -17,6 +17,30 @@ git clone https://github.com/JupiterianSoul/wreck-this-desktop.git ~/wreck-this-
 
 It installs the packages, binds SUPER SHIFT + K (play) and SUPER SHIFT ALT + K (restore), and adds the game to the app launcher. To update later, `git pull` in the folder.
 
+## Windows and Zorin OS
+
+There is a standalone build for friends who are not on Hyprland. It bundles its own Chromium (Electron), so nothing else needs installing.
+
+Windows 10 or 11, paste this into PowerShell:
+
+```
+irm https://github.com/JupiterianSoul/wreck-this-desktop/releases/latest/download/install.ps1 | iex
+```
+
+Zorin OS (or Ubuntu, or any GNOME desktop), paste this into a terminal:
+
+```
+curl -fsSL https://github.com/JupiterianSoul/wreck-this-desktop/releases/latest/download/install.sh | bash
+```
+
+Or grab `wreck-this-desktop-windows.zip` / `wreck-this-desktop-linux.zip` from the [releases page](https://github.com/JupiterianSoul/wreck-this-desktop/releases/latest), unzip it and run `Install.cmd` (Windows) or `install.sh` (Linux).
+
+Then press CTRL ALT + K on Windows or SUPER SHIFT + K on Zorin, from whatever you have open. There is also a Start menu / app menu entry. Esc pauses, F12 quits.
+
+What is different from the Omarchy version: on Windows and on Linux with X11 it reads the real window positions, so windows are bolted structures like on Hyprland. On a Wayland GNOME session it can only see the screenshot (it uses `gnome-screenshot`, the installer adds it), so windows are not split out. The Hyprland merges (next workspace, live notifications, wreckage wallpaper, shaking real windows, x-ray) are hidden there.
+
+To build the zips: `tools/build-portable.sh` (downloads Electron once into `~/.cache`, writes everything to `dist/`). `tests/portable.test.sh` installs the Linux zip into a temp home and plays it inside Xvfb.
+
 ## Running it
 
 ```

@@ -410,7 +410,7 @@
     if (tab === 'play') {
       body.innerHTML = `<h2>Paused</h2>
         ${WTP.extras?.dailyHtml?.() || ''}
-        <div class="btns"><button class="b primary" data-a="resume">Resume</button><button class="b" data-a="restart">Restart this desktop</button><button class="b" data-a="finish">Finish and grade</button>${st.nextLevel ? '<button class="b" data-a="next">Next workspace</button>' : ''}<button class="b danger" data-a="quit">Quit to desktop</button></div>
+        <div class="btns"><button class="b primary" data-a="resume">Resume</button><button class="b" data-a="restart">Restart this desktop</button><button class="b" data-a="finish">Finish and grade</button>${st.nextLevel && !WTD.portable ? '<button class="b" data-a="next">Next workspace</button>' : ''}<button class="b danger" data-a="quit">Quit to desktop</button></div>
         <h3>Mode</h3>
         <div class="modes">${MD.ORDER.map((m) => { const M = MD.MODES[m]; const best = M.bestKey ? WTP.getBest(M.bestKey({ goal: run.goal })) : null; return `<button class="mode${run.modeId === m ? ' on' : ''}" data-mode="${m}"><b>${esc(M.name)}</b><span>${esc(M.desc)}</span>${best != null ? `<em>best ${esc(M.fmt ? M.fmt(best) : fmtInt(best))}</em>` : ''}</button>`; }).join('')}</div>
         <h3>Quick settings</h3>
@@ -448,12 +448,12 @@
         ${row('Kill cam slow-mo', toggle('killcam', st.killcam))}
         ${row('Flashes', toggle('flashes', st.flashes))}
         ${row('FPS counter', toggle('fps', st.fps), 'F3')}
-        <h3>Desktop merges</h3>
-        ${row('Next workspace', toggle('nextLevel', st.nextLevel), 'Jump to your next workspace and wreck it too')}
+        <h3>${WTD.portable ? 'Desktop' : 'Desktop merges'}</h3>
+        ${WTD.portable ? '' : `${row('Next workspace', toggle('nextLevel', st.nextLevel), 'Jump to your next workspace and wreck it too')}
         ${row('Live notifications', toggle('liveNotifs', st.liveNotifs), 'Real notifications become enemies')}
         ${row('Leave the wreckage', toggle('wreckage', st.wreckage), 'Keeps the wrecked screen as wallpaper until SUPER SHIFT ALT + K')}
         ${row('Real windows shake', toggle('shakeReal', st.shakeReal), 'Big blasts nudge real floating windows, put back on exit')}
-        ${row('X-ray holes', toggle('xray', st.xray), 'Holes show your live desktop')}
+        ${row('X-ray holes', toggle('xray', st.xray), 'Holes show your live desktop')}`}
         ${row('App gags', toggle('gags', st.gags))}
         ${WTP.ach ? `<details class="adv"${advOpen ? ' open' : ''}><summary>Advanced</summary>${row('Unlock every weapon', toggle('unlockAll', st.unlockAll), 'Achievements pause while it is on. Turning it off puts your real unlocks and hotbar back')}${row('Reset progress', resetHtml(), 'Wipes achievements, weapon unlocks, Shards, skins, crates, the hotbar and best scores. Settings and keys stay')}</details>` : ''}`;
     } else if (tab === 'controls') {
@@ -575,7 +575,7 @@
     navIdx = 0;
     p.innerHTML = `<h2>${esc(run.mode.name)}</h2><div class="grade ${run.grade}">${run.grade}</div>
       <div class="res">${r.rows.map(([k, v]) => `<span>${esc(k)}</span><b>${esc(String(v))}</b>`).join('')}${r.best ? `<span>Best</span><b>${r.best.isNew ? 'NEW ' : ''}${esc(run.mode.fmt ? run.mode.fmt(r.best.best) : fmtInt(r.best.best))}</b>` : ''}${r.shards ? `<span>Shards earned</span><b><i class="shard"></i>${fmtInt(r.shards)}</b>` : ''}</div>
-      <div class="btns"><button class="b primary" data-a="again">Again on this desktop</button>${S().settings.nextLevel ? '<button class="b" data-a="next">Next workspace</button>' : ''}<button class="b" data-a="menu">Menu</button><button class="b danger" data-a="quit">Quit</button></div>`;
+      <div class="btns"><button class="b primary" data-a="again">Again on this desktop</button>${S().settings.nextLevel && !WTD.portable ? '<button class="b" data-a="next">Next workspace</button>' : ''}<button class="b" data-a="menu">Menu</button><button class="b danger" data-a="quit">Quit</button></div>`;
     o.hidden = false;
     hud.classList.add('overlay');
     p.querySelectorAll('[data-a]').forEach((b) => b.addEventListener('click', () => {
@@ -641,7 +641,7 @@
     if (I.take('navBack') || I.take('wheel')) U.wheel(false);
   };
   U.nextLevel = () => {
-    if (!S().settings.nextLevel) return;
+    if (!S().settings.nextLevel || WTD.portable) return;
     WTD.post({ t: 'next-level' });
   };
 })();

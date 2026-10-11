@@ -22,7 +22,7 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
   const mon = q.get('mon') || 'eDP-2';
   const img = document.getElementById('shot');
   const post = (m) => { try { window.webkit.messageHandlers.wtd.postMessage(m); } catch (e) { (window.__wtdOut = window.__wtdOut || []).push(m); } };
-  window.WTD = { mon, post, test: q.has('test'), probe: q.has('probe'), under: q.has('under'), t0: performance.now() };
+  window.WTD = { mon, post, test: q.has('test'), probe: q.has('probe'), under: q.has('under'), portable: q.has('portable'), t0: performance.now() };
   img.onload = () => { if (!window.WTD.under) img.style.visibility = 'visible'; requestAnimationFrame(() => requestAnimationFrame(() => post({ t: 'shown' }))); };
   img.onerror = () => post({ t: 'log', msg: 'shot failed to load' });
   img.src = 'session/' + (q.get('shot') || ('shot-' + mon + '.png'));

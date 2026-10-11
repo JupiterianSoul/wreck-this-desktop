@@ -1,0 +1,10 @@
+{
+  "name": "wreck-this-desktop",
+  "productName": "Wreck This Desktop",
+  "version": "1.0.0",
+  "description": "Your screen becomes the level",
+  "main": "main.js",
+  "author": "Gabriel Quart",
+  "license": "UNLICENSED",
+  "private": true
+}
